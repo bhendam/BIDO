@@ -332,9 +332,26 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .qr button{flex:0 0 auto;background:var(--card);border:1.5px solid var(--line-2);color:var(--muted);
   padding:9px 14px;border-radius:22px;font-size:14px;min-height:44px}
 .qr button[aria-selected=true]{background:var(--ink);color:var(--card);border-color:var(--ink);font-weight:600}
-.qr.repsel{margin-bottom:14px}
-.qr.repsel button{font-size:14.5px;padding:10px 16px}
-.qr.repsel button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+/* رأس التقرير وسطر الفلتر */
+.rephead{width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:13px 15px;margin-bottom:10px;display:flex;flex-direction:column;gap:3px;
+  font-family:inherit;text-align:right;cursor:pointer;box-shadow:var(--shadow)}
+.rephead .rh1{display:flex;align-items:center;gap:8px}
+.rephead .rh1 b{font-size:17px;font-weight:600}
+.rephead .rh1 .go{margin-inline-start:auto;font-size:13px;color:var(--accent);font-weight:600}
+.rephead .rh2{font-size:13px;color:var(--muted)}
+.filtline{width:100%;background:var(--card-2);border:1px solid var(--line);border-radius:11px;
+  padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  font-family:inherit;font-size:13.5px;color:var(--ink-2);text-align:right;cursor:pointer;min-height:46px}
+.filtline span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filtline .go{color:var(--accent);font-weight:600}
+.repopt{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
+  padding:13px 15px;margin-bottom:8px;display:flex;flex-direction:column;gap:2px;
+  font-family:inherit;text-align:right;cursor:pointer;color:var(--ink);position:relative}
+.repopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.repopt .rl{font-size:15.5px;font-weight:600}
+.repopt .rd2{font-size:13px;color:var(--muted)}
+.repopt .go{position:absolute;inset-inline-end:14px;top:14px;color:var(--accent);font-size:17px}
 
 /* ---------------- شريط الإيصال ---------------- */
 .tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:18px 17px;
@@ -642,7 +659,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="3.0.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="3.1.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1672,20 +1689,56 @@ function iceSettle(){
 /* ---------- ٤) التقارير ---------- */
 /* شاشة تقارير واحدة: تختار «إيه اللي عايز تشوفه» من صف واحد،
    بدل خمسة تبويبات جوّاها خمسة. المستخدم بيدوّر على جهة أو فترة لا على «نوع تقرير». */
+/* اختيار التقرير فعل نادر، فلا يستحق مساحة دائمة على الشاشة.
+   الشاشة تبدأ بالمحتوى: عنوان التقرير + سطر فلتر واحد + النتيجة. */
 const REPS=[
-  ['hand','تسليم اليوم'],['acct','كشف حساب'],['all','كل العمليات'],
-  ['stmt','عهدة البكش'],['daily','المخزن اليومي'],['audit','الجرد'],
-  ['dmg','تالف السائقين'],['drv','السائقين'],['ice','الثلج']
+  ['hand','تسليم اليوم','ملخص الحركة والملاحظات — لقفل اليوم','يومي'],
+  ['daily','المخزن اليومي','رصيد أول وآخر اليوم وكل حركة بكش','يومي'],
+  ['acct','كشف حساب','حركة نقدية لمزرعة أو مبيع بالرصيد الجاري','جهة معيّنة'],
+  ['stmt','عهدة البكش','وارد وصادر البكش لجهة أو للمخزن','جهة معيّنة'],
+  ['drv','السائقين','أجور وسلف ورصيد كل سائق','جهة معيّنة'],
+  ['ice','الثلج','بلاطات وقيمة ورصيد كل مصنع','جهة معيّنة'],
+  ['audit','الجرد','فروق العدّ بين الدفتري والفعلي','مراجعة'],
+  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال','مراجعة'],
+  ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','مراجعة']
 ];
+const repInfo=k=>REPS.find(r=>r[0]===k)||REPS[0];
+function repPick(){
+  const cur=S.rep||'hand',gs=[...new Set(REPS.map(r=>r[3]))];
+  openSheet("اختر التقرير","كل التقارير هنا — اختر واحداً وارجع للنتيجة.",
+    gs.map(g=>`<div class="drillsec">${g}</div>`+
+      REPS.filter(r=>r[3]===g).map(([k,l,d])=>
+        `<button type="button" class="repopt ${k===cur?'on':''}" data-act="repSel" data-r="${k}">
+          <span class="rl">${l}</span><span class="rd2">${d}</span>
+          ${k===cur?'<span class="go">✓</span>':''}</button>`).join('')).join(''));
+}
+/* سطر الفلتر: ملخّص في سطر، ويتوسّع بالضغط */
+const fsum=()=>{
+  const F=S.F;
+  const per=(F.from||F.to)?`${F.from?arDate(F.from):'البداية'} ← ${F.to?arDate(F.to):'اليوم'}`:'كل الفترات';
+  const e=F.ent?(F.ent===WH?'المخزن':S.D.nameOf(F.ent)):'كل الجهات';
+  return `${per} · ${e}${F.q?` · «${F.q}»`:''}`;
+};
 function vRep(){
-  const r=S.rep||'hand';
-  const bar=`<div class="qr repsel">${REPS.map(([k,l])=>
-    `<button data-act="repSel" data-r="${k}" aria-selected="${r===k}">${l}</button>`).join('')}</div>`;
-  if(r==='hand')return bar+handover();
+  const r=S.rep||'hand',[,lbl,desc]=repInfo(r);
+  const head=`<button class="rephead" data-act="repPick">
+    <span class="rh1"><b>${lbl}</b><span class="go">تغيير ▾</span></span>
+    <span class="rh2">${desc}</span></button>`;
+  if(r==='hand')return head+handover()+repActions();
   S.sub.repbox=r;
   const fn={acct:repAcct,all:repAll,drv:repDrv,ice:repIce,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||repAcct;
-  return bar+filterBar()+fn();
+  const line=`<button class="filtline" data-act="fToggle">
+    <span>🔎 ${esc(fsum())}</span><span class="go">${S.fopen?'▴':'✎'}</span></button>`;
+  return head+line+(S.fopen?filterBar():'')+fn()+repActions();
+}
+function repActions(){
+  const F=S.F;
+  return `<div class="btnrow" style="margin-top:16px">
+    <button class="btn ghost" data-act="printRep">🖨️ طباعة / PDF</button>
+    <button class="btn wa" data-act="waRep">📤 واتساب</button></div>
+    ${F.ent&&F.ent!==WH?`<button class="btn dark" data-act="combined">📋 كشف مجمّع للطباعة</button>
+      <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}`;
 }
 function filterBar(){
   const F=S.F,D=S.D;
@@ -1705,13 +1758,7 @@ function filterBar(){
       </div></div>
     <div class="field" style="margin:12px 0 0"><label>بحث في الملاحظات</label>
       <input data-role="fQ" value="${esc(F.q)}" placeholder="نوع سمك، رقم عربية…"></div>
-    <div class="btnrow" style="margin:12px 0 0">
-      <button class="btn ghost sm" data-act="printRep" style="flex:1">🖨️ طباعة / PDF</button>
-      <button class="btn wa sm" data-act="waRep" style="flex:1">📤 واتساب</button></div>
-    ${F.ent&&F.ent!==WH?`<div class="btnrow" style="margin:9px 0 0">
-      <button class="btn dark sm" data-act="combined" style="flex:1">📋 كشف مجمّع للطباعة</button>
-      <button class="btn wa sm" data-act="combinedWA" style="flex:0 0 auto">📤</button></div>
-      <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}</div>`;
+    <button class="btn ghost sm" data-act="fToggle" style="width:100%;margin-top:12px">تم</button></div>`;
 }
 /* صفحة اختيار الجهة للتقارير: المزارع النشطة أولاً كمقترحات، ثم بحث في الكل */
 /* بحث موحّد: خانة واحدة تدوّر في الجهات والفواتير والحركات وتوديك للنتيجة */
@@ -1848,14 +1895,11 @@ function handover(){
   const R=[["today","اليوم"],["yest","أمس"],["week","٧ أيام"],["month","الشهر"]];
   const box=(lbl,val,sub,cls)=>`<div class="hcell ${cls||''}"><div class="hl">${lbl}</div>
     <div class="hv num">${val}</div>${sub?`<div class="hs">${sub}</div>`:''}</div>`;
-  return `<div class="card">
-    <div class="qr">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
-      aria-selected="${F.range===(k==='yest'?'custom':k)&&(k!=='yest'||from===addDays(todayISO(),-1))}">${l}</button>`).join('')}</div>
-    <div class="row" style="margin-top:4px">
-      <div class="field" style="margin:0"><label>من</label><input type="date" data-role="fFrom" value="${from}"></div>
-      <div class="field" style="margin:0"><label>إلى</label><input type="date" data-role="fTo" value="${to}"></div></div>
-  </div>
-
+  return `<div class="qr" style="margin-bottom:14px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
+      aria-selected="${from===({today:todayISO(),yest:addDays(todayISO(),-1),
+        week:addDays(todayISO(),-6),month:monthStart()})[k]&&to===todayISO()||(k==='yest'&&from===to&&from===addDays(todayISO(),-1))||(k==='today'&&from===to&&from===todayISO())}">${l}</button>`).join('')}
+    <button data-act="fToggle">📅 مخصّص</button></div>
+  ${S.fopen?filterBar():''}
   <div class="eyebrow">${one?'حركة يوم '+arDate(from):`حركة ${arDate(from)} — ${arDate(to)}`}</div>
   <div class="hgrid">
     ${box('فواتير البيع',inv.length,`${sum(inv,i=>i.boxes)} صندوق · ${money(sumM(inv,i=>i.amount))} ج.م`)}
@@ -1888,9 +1932,7 @@ function handover(){
     </tbody><tfoot><tr><td>إجمالي عهدة البكش بالخارج</td>
       <td class="n">${D.custody.merchants+D.custody.farms} صندوق</td></tr></tfoot></table></div></div>
 
-  <div class="btnrow">
-    <button class="btn ghost" data-act="handPrint">🖨️ طباعة ورقة التسليم</button>
-    <button class="btn wa" data-act="shareDaily">📤 واتساب</button></div>`;
+  <button class="btn dark" data-act="handPrint" style="margin-top:14px">📋 طباعة ورقة التسليم كاملة</button>`;
 }
 function handIssuesHTML(){
   const I=handIssues(S.F.from||todayISO(),S.F.to||S.F.from||todayISO());
@@ -2755,7 +2797,10 @@ function onClick(ev){
     case 'openSearch':return openSearch();
     case 'rare':S.rare=!S.rare;return render();
     case 'finGo':S.sub.fin=b.dataset.s;S.toTop=true;return render();
-    case 'repSel':S.rep=b.dataset.r;S.page=0;S.toTop=true;return render();
+    case 'repPick':return repPick();
+    case 'fToggle':S.fopen=!S.fopen;return render();
+    case 'repSel':S.rep=b.dataset.r;S.page=0;S.toTop=true;S.fopen=false;
+      closeSheet();return render();
     case 'handRange':{const t=todayISO();
       const M={today:[t,t],yest:[addDays(t,-1),addDays(t,-1)],week:[addDays(t,-6),t],month:[monthStart(),t]};
       const[a,c]=M[b.dataset.r];S.F.from=a;S.F.to=c;S.F.range=b.dataset.r==='yest'?'custom':b.dataset.r;
