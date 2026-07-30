@@ -513,8 +513,7 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
     <button data-act="fabGo" data-go="ops|ops|drv"     class="f-drv"><span>سائقين</span><i>🚚</i></button>
     <button data-act="fabGo" data-go="ops|ops|ice"     class="f-ice"><span>ثلج</span><i>🧊</i></button>
   </div>
-  <button id="fab" data-act="fabToggle" aria-label="تسجيل عملية" aria-expanded="false"
-    onclick="try{fabToggle()}catch(e){}"><span>+</span></button>
+  <button id="fab" data-act="fabToggle" aria-label="تسجيل عملية" aria-expanded="false"><span>+</span></button>
 </div>
 <div id="toast"></div>
 <div id="modal"><div class="sheet" id="sheet"></div></div>
@@ -606,7 +605,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="2.4.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="2.4.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -926,9 +925,7 @@ function render(){
       if(el&&el.focus){el.focus();try{el.setSelectionRange(keep.ss,keep.se)}catch(e){}}
     }
   }
-  const fw=$('#fabwrap');
-  if(fw){fw.classList.toggle('hide',S.tab==='set'||S.tab==='rep');fw.classList.remove('on');
-    const fb=$('#fab');if(fb)fb.setAttribute('aria-expanded','false')}
+  paintFab();
   window.scrollTo(0,S.toTop?0:sy);S.toTop=false;
 }
 /* اختيار الجهة: القوائم المنسدلة تحتاج لمستين وتمريراً وقراءة نص صغير.
@@ -2122,12 +2119,20 @@ async function doWipe(){
     toast(kind==='all'?`تم المسح: ${n} حركة و${m} جهة`:`تم مسح ${n} حركة — الجهات محفوظة`,"ok");
   }catch(e){toast("تعذّرت التصفية: "+(e.message||''),"err")}
 }
-/* الخيارات الطافية: أربعة أقسام تنقل مباشرة لصفحة عملياتها */
-function fabToggle(force){
+/* الخيارات الطافية: أربعة أقسام تنقل مباشرة لصفحة عملياتها.
+   الحالة في S.fab لا في صنف CSS — لأن render يعيد بناء الشاشة وكان يمسح الصنف.
+   ومصدر واحد للحقيقة يمنع تعارض المستمعات. */
+function paintFab(){
   const w=$('#fabwrap');if(!w)return;
-  const on=force===undefined?!w.classList.contains('on'):!!force;
-  w.classList.toggle('on',on);
-  const b=$('#fab');if(b)b.setAttribute('aria-expanded',String(on));
+  const hide=S.tab==='set'||S.tab==='rep';
+  if(hide)S.fab=false;
+  w.classList.toggle('hide',hide);
+  w.classList.toggle('on',!!S.fab);
+  const b=$('#fab');if(b)b.setAttribute('aria-expanded',String(!!S.fab));
+}
+function fabToggle(force){
+  S.fab=force===undefined?!S.fab:!!force;
+  paintFab();
 }
 function addOpen(id){
   const e=S.entities.find(x=>x.id===id);if(!e)return;
@@ -2396,7 +2401,10 @@ function wire(root){
   const af=$('form[data-form=audit]',root);if(af)wireAudit(af);
   if($('form[data-form=settle]',root))wireSettle(root);
 }
+let _lastEv=null;
 function onClick(ev){
+  /* لو تعدّدت المستمعات لأي سبب، لا يُنفَّذ الأمر إلا مرة واحدة لكل ضغطة */
+  if(ev===_lastEv)return; _lastEv=ev;
   const pc=ev.target.closest('.pchip[data-pv]');
   if(pc){const box=pc.closest('.pick');if(box)return setPick(box.id,pc.dataset.pv)}
   const qv=ev.target.closest('[data-qv]');
