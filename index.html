@@ -35,65 +35,77 @@
    ========================================================================== */
 
 /* ---------------- الرموز ---------------- */
+/* ==========================================================================
+   نظام الألوان — مبدأ واحد: اللون نادر ومعناه ثابت.
+
+   المشكلة قبل كده: الخلفية كانت بتتلوّن بالكامل مع كل قسم، ولون الأزرار
+   بيتغيّر معاها. النتيجة إن الشاشة تبان غير مستقرة، واللون بيفقد معناه
+   لأنه موجود في كل حتة. دلوقتي:
+
+   • القماشة رمادية محايدة تماماً — الأرقام الملوّنة هي اللي تبان.
+   • لون الفعل ثابت لا يتغيّر بين الأقسام (أزرق-أخضر داكن).
+   • الاتجاه له لونان فقط في كل التطبيق:
+        أخضر = داخل · دائن · له        أحمر = خارج · مدين · عليه
+   • هوية القسم في الأيقونة والشريط العلوي فقط، لا في الخلفية:
+        حسابات أخضر-أزرق · بكش بنفسجي · سائقين كهرماني · ثلج أزرق
+     (البنفسجي مقصود: يفصل «مجال البكش» عن «التالف=أحمر»)
+   • كل الألوان مفحوصة: أقل تباين 4.76:1 وأعلى 17.6:1
+   ========================================================================== */
 :root{
-  /* التدرّج المحايد — من حبر الميناء إلى ضباب الثلج */
-  --ink:#0A1F2A;          /* النص الأساسي  16.1:1 */
-  --ink-2:#24505E;        /* عناوين ثانوية  7.9:1 */
-  --muted:#4C6A76;        /* نص ثانوي       5.6:1 */
-  --faint:#8AA3AD;        /* تلميحات معطّلة */
-  --line:#DBE5E9;
-  --line-2:#BFD1D8;
-  --bg:#F4F7F8;
-  --card:#FFFFFF;
-  --card-2:#EFF4F6;       /* رأس الجدول والتظليل */
+  /* رمادي محايد بلا صبغة */
+  --ink:#111A1F;      --ink-2:#31434C;   --muted:#5C6C75;  --faint:#8B99A1;
+  --line:#E3E7EA;     --line-2:#CBD3D8;
+  --bg:#F5F6F7;       --card:#FFFFFF;    --card-2:#EDF0F2;
 
-  /* الأساسي */
-  --primary:#0B6E75;
-  --primary-ink:#05545A;
-  --primary-bg:#E1EFF0;
+  /* لون الفعل — ثابت في كل الأقسام */
+  --primary:#0E6E7D;  --primary-bg:#E3F1F3;
 
-  /* الزوج الدلالي */
-  --debt:#A32130;   --debt-bg:#FBECEE;
-  --credit:#186349; --credit-bg:#E6F2EC;
-  --warn:#8A5A00;   --warn-bg:#FAF1DE;
+  /* الاتجاه */
+  --debt:#B4232F;     --debt-bg:#FCEDEE;
+  --credit:#15795A;   --credit-bg:#E6F4EE;
+  --warn:#8F6200;     --warn-bg:#FAF2DF;
+  --info:#15628F;     --info-bg:#E7F0F7;
 
-  /* توافق مع الأسماء القديمة في الكود */
+  /* هوية الأقسام — للأيقونات والأشرطة فقط */
+  --c-acct:#0E6E7D;   --c-box:#5E45AC;   --c-drv:#8F6200;  --c-ice:#15628F;
+  --wa:#0F7A6C;                 /* واتساب — لون العلامة نفسه */
+  --tape-k:#B9CFD6;             /* نص شريط الإيصال على خلفية داكنة */
+  --tape-d:#3A5E6B;
+
+  /* توافق مع الأسماء القديمة */
   --sea:var(--primary); --sea-soft:var(--primary-bg);
   --brass:var(--warn);  --brass-soft:var(--warn-bg);
   --paid:var(--credit); --paid-soft:var(--credit-bg);
-  --debt-soft:var(--debt-bg); --mist:var(--bg); --ink-2x:var(--ink-2);
-
+  --debt-soft:var(--debt-bg); --mist:var(--bg);
   --accent:var(--primary); --accent-soft:var(--primary-bg); --tint:var(--bg);
-  --r:14px;
-  --shadow:0 1px 2px rgba(10,31,42,.05), 0 10px 26px -20px rgba(10,31,42,.5);
-  --dlgbg:rgba(10,31,42,.55);
 
+  --r:14px;
+  --shadow:0 1px 2px rgba(17,26,31,.04), 0 1px 3px rgba(17,26,31,.06);
+  --dlgbg:rgba(17,26,31,.5);
   --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,system-ui,-apple-system,sans-serif;
   --num:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
 }
-
-/* هوية الأقسام: الشريط والأيقونة فقط. الخلفية تلميح ٣٪ لا صبغة كاملة. */
-body[data-theme=box]    {--accent:#9E2C36;--accent-soft:#FAEBEC;--tint:#FBF5F5}
-body[data-theme=drivers]{--accent:#7E5200;--accent-soft:#FAF0DC;--tint:#FBF7F0}
-body[data-theme=ice]    {--accent:#0A5C82;--accent-soft:#E2EFF6;--tint:#F2F7FA}
+/* هوية القسم: الشريط والأيقونات — والخلفية تفضل محايدة */
+body[data-theme=acct]   {--accent:var(--c-acct);--accent-soft:var(--primary-bg)}
+body[data-theme=box]    {--accent:var(--c-box);--accent-soft:#EEEAF8}
+body[data-theme=drivers]{--accent:var(--c-drv);--accent-soft:var(--warn-bg)}
+body[data-theme=ice]    {--accent:var(--c-ice);--accent-soft:var(--info-bg)}
 
 @media (prefers-color-scheme:dark){
   :root{
-    --ink:#EAF1F3; --ink-2:#BCD2D9; --muted:#9AB4BD; --faint:#6D8892;
-    --line:#22404B; --line-2:#2E5461; --bg:#0B1A21; --card:#12262F; --card-2:#183038;
-    --primary:#4FB3BB; --primary-ink:#7ACBD1; --primary-bg:#0F3239;
-    --debt:#F08A93;   --debt-bg:#3A1B20;
-    --credit:#66C79B; --credit-bg:#12321F;
-    --warn:#E0AE5B;   --warn-bg:#33270F;
-    --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 26px -20px rgba(0,0,0,.9);
-    --dlgbg:rgba(0,0,0,.68);
+    --ink:#E8ECEE; --ink-2:#BDC9CF; --muted:#94A3AA; --faint:#6C7B83;
+    --line:#26343B; --line-2:#33454E; --bg:#0E1519; --card:#161F24; --card-2:#1D282E;
+    --primary:#3FB0C0; --primary-bg:#0E3238;
+    --debt:#F08A93;   --debt-bg:#3A1A1E;
+    --credit:#5FC79B; --credit-bg:#0F3125;
+    --warn:#DCA94F;   --warn-bg:#33270F;
+    --info:#5CAEE0;   --info-bg:#0F2C3F;
+    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+    --dlgbg:rgba(0,0,0,.66);
   }
-  body[data-theme=box]    {--accent:#F08A93;--accent-soft:#3A1B20;--tint:#160F11}
-  body[data-theme=drivers]{--accent:#E0AE5B;--accent-soft:#33270F;--tint:#15110A}
-  body[data-theme=ice]    {--accent:#5EB3DC;--accent-soft:#10303F;--tint:#0A161C}
+  body[data-theme=box]{--accent-soft:#241C3D}
 }
-
-/* ---------------- الأساس ---------------- */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
@@ -106,8 +118,7 @@ body{
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
   padding-bottom:calc(84px + env(safe-area-inset-bottom));
-  transition:background .2s;
-}
+  }
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
 
 /* الأرقام جدولية في كل مكان حتى تصطفّ الخانات */
@@ -141,12 +152,16 @@ header{
 .brand .today b{display:block;font-size:14px;color:var(--ink-2);font-weight:600;
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
 .hdr-sub{margin-top:1px;font-size:12.5px;color:var(--muted);font-weight:400}
-.band{height:3px;background:var(--accent);margin:0 -16px;border-radius:2px 2px 0 0}
+.band{height:4px;background:var(--accent);margin:0 -16px}
 
 /* ---------------- التخطيط ---------------- */
 main{padding:16px 13px 8px;max-width:820px;margin:0 auto}
 .sec-title{font-size:15px;font-weight:600;color:var(--ink);margin:26px 2px 10px;
   display:flex;align-items:center;gap:9px}
+.sec-title.s-acct span.n{background:var(--c-acct)}
+.sec-title.s-box span.n{background:var(--c-box)}
+.sec-title.s-drv span.n{background:var(--c-drv)}
+.sec-title.s-ice span.n{background:var(--c-ice)}
 .sec-title span.n{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:7px;
   display:grid;place-items:center;font-size:12px;font-weight:600;font-family:var(--num)}
 main>.sec-title:first-child{margin-top:4px}
@@ -168,11 +183,12 @@ main>.eyebrow:first-child{margin-top:4px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   padding:14px 15px;box-shadow:var(--shadow);width:100%;text-align:right;position:relative;
   overflow:hidden;display:block;font-family:inherit;cursor:pointer;margin-bottom:11px;color:var(--ink)}
-.tile::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:var(--accent)}
+.tile::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:var(--c-acct)}
 .tile.debt::after{background:var(--debt)}
 .tile.brass::after{background:var(--warn)}
-.tile.paid::after{background:var(--credit)}
-.tile.ice::after{background:#0A5C82}
+.tile.paid::after{background:var(--c-drv)}
+.tile.ice::after{background:var(--c-ice)}
+.tile.box::after{background:var(--c-box)}
 .tile .lbl{font-size:13.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
 .tile .lbl .car{margin-inline-start:auto;color:var(--faint);font-size:13px}
 .tile .val{font-size:27px;font-weight:600;margin-top:3px;line-height:1.25;color:var(--ink);
@@ -200,15 +216,15 @@ main>.eyebrow:first-child{margin-top:4px}
 /* ---------------- الجداول ---------------- */
 table{width:100%;border-collapse:collapse;font-size:14.5px}
 th{text-align:right;font-size:12.5px;color:var(--muted);font-weight:600;
-  padding:9px 8px;background:var(--card-2);white-space:nowrap;border-bottom:2px solid var(--line-2)}
+  padding:10px 8px;background:var(--card-2);white-space:nowrap;border-bottom:1px solid var(--line-2)}
 th:first-child{border-start-start-radius:8px}
 th:last-child{border-start-end-radius:8px}
 td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink)}
-tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 45%,transparent)}
+tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 40%,transparent)}
 tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:left}
 td.n{font-size:15px;font-variant-numeric:tabular-nums}
-tfoot td{font-weight:600;border-top:2px solid var(--line-2);background:var(--card-2);font-size:15px}
+tfoot td{font-weight:600;border-top:2px solid var(--ink-2);background:var(--card-2);font-size:15px}
 tfoot tr:nth-child(even) td{background:var(--card-2)}
 .tname{font-weight:600}
 .money-neg{color:var(--credit)}
@@ -236,11 +252,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--accent);outline-
 .with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:14px}
 
 button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing:0}
-.btn{background:var(--accent);color:#fff;padding:14px 16px;width:100%;font-size:16px;min-height:52px}
+.btn{background:var(--primary);color:#fff;padding:14px 16px;width:100%;font-size:16px;min-height:52px}
 .btn:active{transform:translateY(1px)}
 .btn.brass{background:var(--warn)}
 .btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line-2)}
-.btn.wa{background:#0F7A6C}
+.btn.wa{background:var(--wa)}
 .btn.dark{background:var(--ink)}
 .btn.danger{background:var(--debt-bg);color:var(--debt);border:1.5px solid var(--debt)}
 .btn.sm{padding:11px 14px;font-size:14px;width:auto;min-height:46px}
@@ -288,6 +304,20 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .hcell .hv{font-size:22px;font-weight:600;margin-top:2px;line-height:1.2}
 .hcell .hs{font-size:12px;color:var(--muted);margin-top:2px}
 
+/* وسم المجال: نقطة لونية صغيرة تقول «ده بكش» أو «ده ثلج» بلا كلام */
+.dom{display:inline-flex;align-items:center;gap:6px}
+.dom::before{content:"";width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
+.dom.d-acct::before{background:var(--c-acct)}
+.dom.d-box::before {background:var(--c-box)}
+.dom.d-drv::before {background:var(--c-drv)}
+.dom.d-ice::before {background:var(--c-ice)}
+.dom.d-set::before {background:var(--warn)}
+
+/* الأرقام: الاتجاه بلونين ثابتين في كل التطبيق */
+.up{color:var(--credit);font-weight:600}     /* داخل · دائن · له */
+.down{color:var(--debt);font-weight:600}     /* خارج · مدين · عليه */
+.zero{color:var(--faint)}
+
 /* اقتراحات الأعداد المتكرّرة */
 .qn{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .qn button{background:var(--card-2);border:1.5px solid var(--line);border-radius:20px;
@@ -314,6 +344,8 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 /* أعمدة الداخل والخارج في التقارير */
 .cin{color:var(--credit);font-weight:600}
 .cout{color:var(--debt);font-weight:600}
+.money-neg{color:var(--credit);font-weight:600}
+.money-pos{color:var(--debt);font-weight:600}
 
 /* ---------------- التبويبات ---------------- */
 .seg{display:flex;gap:5px;background:var(--card-2);padding:5px;border-radius:13px;margin-bottom:16px;
@@ -323,6 +355,13 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
   border-radius:9px;white-space:nowrap;min-height:46px}
 .seg button[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:600;
   box-shadow:0 1px 3px rgba(10,31,42,.14)}
+.opsseg button::before{content:"";width:9px;height:9px;border-radius:50%;display:inline-block;
+  margin-inline-end:7px;vertical-align:middle;background:currentColor;opacity:.35}
+.opsseg button.o-acct[aria-selected=true]{color:var(--c-acct)}
+.opsseg button.o-box[aria-selected=true]{color:var(--c-box)}
+.opsseg button.o-drv[aria-selected=true]{color:var(--c-drv)}
+.opsseg button.o-ice[aria-selected=true]{color:var(--c-ice)}
+.opsseg button[aria-selected=true]::before{opacity:1}
 .seg.inner{background:none;padding:0;gap:7px;border:0}
 .seg.inner button{flex:0 0 auto;border:1.5px solid var(--line-2);background:var(--card);
   padding:9px 15px;font-size:14px;border-radius:22px;min-height:44px}
@@ -357,7 +396,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:18px 17px;
   margin-bottom:12px;position:relative}
 .tape::before,.tape::after{content:"";position:absolute;inset-inline:-1px;height:9px;
-  background:radial-gradient(circle at 5.5px -2px,var(--tint) 6.5px,#0000 7px) repeat-x;background-size:11px 9px}
+  background:radial-gradient(circle at 5.5px -2px,var(--bg) 6.5px,#0000 7px) repeat-x;background-size:11px 9px}
 .tape::before{top:-2px;transform:rotate(180deg)}
 .tape::after{bottom:-2px}
 .tape h3{margin:0 0 3px;font-size:16px;font-weight:600}
@@ -438,7 +477,7 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
   transition:opacity .18s;pointer-events:none}
 #fabwrap.on #fabbd{opacity:1;visibility:visible;pointer-events:auto}
 #fab{position:absolute;inset-inline-end:16px;bottom:calc(92px + env(safe-area-inset-bottom));
-  width:60px;height:60px;border-radius:50%;background:var(--accent);color:#fff;border:0;
+  width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;border:0;
   box-shadow:0 10px 26px -8px rgba(10,31,42,.55);display:grid;place-items:center;cursor:pointer;
   pointer-events:auto;transition:transform .2s}
 #fab span{font-size:34px;line-height:1;font-weight:300;margin-top:-3px}
@@ -459,15 +498,11 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 #fabwrap.on #fabmenu button:nth-child(4){transition-delay:.01s}
 #fabmenu button i{font-style:normal;font-size:20px;width:38px;height:38px;border-radius:50%;
   display:grid;place-items:center;flex:0 0 auto}
-#fabmenu .f-acct i{background:var(--primary-bg)}
-#fabmenu .f-box  i{background:#FAEBEC}
-#fabmenu .f-drv  i{background:#FAF0DC}
-#fabmenu .f-ice  i{background:#E2EFF6}
-@media (prefers-color-scheme:dark){
-  #fabmenu .f-box i{background:#3A1B20}
-  #fabmenu .f-drv i{background:#33270F}
-  #fabmenu .f-ice i{background:#10303F}
-}
+#fabmenu .f-acct i{background:var(--primary-bg);color:var(--c-acct)}
+#fabmenu .f-box  i{background:#EEEAF8;color:var(--c-box)}
+#fabmenu .f-drv  i{background:var(--warn-bg);color:var(--c-drv)}
+#fabmenu .f-ice  i{background:var(--info-bg);color:var(--c-ice)}
+@media (prefers-color-scheme:dark){#fabmenu .f-box i{background:#241C3D}}
 
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:95;
   display:flex;flex-direction:column;gap:9px;pointer-events:none;align-items:center}
@@ -554,7 +589,6 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 <main id="app"><div class="empty">جارٍ تحضير الدفتر…</div></main>
 <nav id="nav">
   <button data-tab="home" aria-selected="true"><span class="ic">🏠</span>الرئيسية</button>
-  <button data-tab="fin"><span class="ic">🧾</span>الحسابات</button>
   <button data-tab="ops"><span class="ic">📦</span>العمليات</button>
   <button data-tab="rep"><span class="ic">📈</span>التقارير</button>
   <button data-tab="set"><span class="ic">⚙️</span>الإعدادات</button>
@@ -562,7 +596,7 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 <div id="fabwrap">
   <div id="fabbd" data-act="fabClose"></div>
   <div id="fabmenu">
-    <button data-act="fabGo" data-go="fin|fin|invoice" class="f-acct"><span>حسابات</span><i>🧾</i></button>
+    <button data-act="fabGo" data-go="ops|ops|acct|fin|invoice" class="f-acct"><span>حسابات</span><i>💰</i></button>
     <button data-act="fabGo" data-go="ops|ops|box"     class="f-box"><span>بكش</span><i>📦</i></button>
     <button data-act="fabGo" data-go="ops|ops|drv"     class="f-drv"><span>سائقين</span><i>🚚</i></button>
     <button data-act="fabGo" data-go="ops|ops|ice"     class="f-ice"><span>ثلج</span><i>🧊</i></button>
@@ -659,7 +693,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="3.1.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.0.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -781,7 +815,7 @@ function legsOf(e){
 
 /* ============ الحالة ============ */
 const S={tab:"home",
-  sub:{fin:"invoice",ops:"box",box:"out",boxop:"issue_farm",drv:"trips",ice:"op",
+  sub:{fin:"invoice",ops:"acct",box:"out",boxop:"issue_farm",drv:"trips",ice:"op",
     rep:"box",repbox:"stmt",set:"farm",setg:"data",acct:"all",dacct:"driver"},
   rep:"hand",
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
@@ -955,12 +989,12 @@ function render(){
   const hl=$('#hdrLogo');
   hl.className='mark'+(S.co.logo?'':' own');
   hl.innerHTML=S.co.logo?`<img src="${S.co.logo}" alt="">`:BRANDMARK;
-  document.body.dataset.theme = S.tab==='ops'?({box:'box',drv:'drivers',ice:'ice'})[S.sub.ops]
-    : S.tab==='rep'?({box:'box',drv:'drivers',ice:'ice'})[S.sub.rep]||'' : '';
+  document.body.dataset.theme = S.tab==='ops'
+    ?({acct:'acct',box:'box',drv:'drivers',ice:'ice'})[S.sub.ops]||'' : '';
   $$('#nav button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===S.tab)));
   const app=$('#app');
   /* حاجز أخطاء: خطأ في شاشة واحدة كان يترك التطبيق أبيض بلا مخرج */
-  try{ app.innerHTML=({home:vHome,fin:vFin,ops:vOps,rep:vRep,set:vSet})[S.tab](); }
+  try{ app.innerHTML=({home:vHome,ops:vOps,rep:vRep,set:vSet})[S.tab](); }
   catch(err){
     console.error(err);
     app.innerHTML=`<div class="errbox"><b>حصل خطأ في عرض هذه الشاشة</b>
@@ -1139,7 +1173,7 @@ function quickNums(target,vals){
 }
 const opt=(items,sel,ph)=>`<option value="">${ph}</option>`+items.map(i=>`<option value="${i.id}"${i.id===sel?' selected':''}>${esc(i.name)}</option>`).join('');
 const seg=(key,tabs,cur,inner)=>`<div class="seg${inner?' inner':''}" data-seg="${key}">`+tabs.map(([k,l])=>`<button data-sub="${k}" aria-selected="${cur===k}">${l}</button>`).join('')+`</div>`;
-const secT=(n,t)=>`<div class="sec-title"><span class="n">${n}</span>${t}</div>`;
+const secT=(n,t,d)=>`<div class="sec-title${d?' s-'+d:''}"><span class="n">${n}</span>${t}</div>`;
 
 /* ---------- ١) الرئيسية ---------- */
 function vHome(){
@@ -1164,7 +1198,7 @@ function vHome(){
     <div class="lbl">⚠️ نسخة احتياطية مطلوبة</div>
     <div class="val sm" style="color:var(--debt)">${a.since} حركة بلا نسخة</div>
     <div class="sub">اضغط لتنزيل نسخة الآن — البيانات على هذا الجهاز فقط</div></button>`:''})()}
-  ${secT(1,'الحسابات')}
+  ${secT(1,'الحسابات','acct')}
   <button class="tile debt" data-act="drill" data-key="merch" aria-expanded="${!!d.merch}">
     <div class="lbl">إجمالي مديونية المبايع <span class="car">${d.merch?'▴':'▾'}</span></div>
     <div class="val num" style="color:var(--debt)">${money(k.merchantDebt)}</div>
@@ -1190,15 +1224,15 @@ function vHome(){
           <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):''})()}
   </div>`:''}
 
-  ${secT(2,'البكش — العهدة')}
-  <button class="tile" data-act="none">
+  ${secT(2,'البكش — العهدة','box')}
+  <button class="tile box" data-act="none">
     <div class="lbl">إجمالي العهدة</div>
     <div class="val num">${D.custody.all}</div>
     <div class="sub">مخزن ${D.wh.total} · مبايع ${D.custody.merchants} · مزارع ${D.custody.farms}</div>
     <div class="bar">
-      <i style="width:${pct(D.wh.total,D.custody.all)}%;background:var(--sea)"></i>
-      <i style="width:${pct(D.custody.merchants,D.custody.all)}%;background:var(--brass)"></i>
-      <i style="width:${pct(D.custody.farms,D.custody.all)}%;background:#B3313C"></i>
+      <i style="width:${pct(D.wh.total,D.custody.all)}%;background:var(--c-acct)"></i>
+      <i style="width:${pct(D.custody.merchants,D.custody.all)}%;background:var(--c-box)"></i>
+      <i style="width:${pct(D.custody.farms,D.custody.all)}%;background:var(--warn)"></i>
     </div>
   </button>
   <div class="grid2">
@@ -1222,7 +1256,7 @@ function vHome(){
     </div>
   </div>
 
-  ${secT(3,'السائقين')}
+  ${secT(3,'السائقين','drv')}
   <button class="tile paid" data-act="drill" data-key="drv" aria-expanded="${!!d.drv}">
     <div class="lbl">إجمالي مديونية السائقين <span class="car">${d.drv?'▴':'▾'}</span></div>
     <div class="val num">${money(k.driverDue)}</div>
@@ -1230,7 +1264,7 @@ function vHome(){
   </button>
   ${d.drv?rowsHTML(drvList,x=>money(x.balance),'repDriver'):''}
 
-  ${secT(4,'الثلج')}
+  ${secT(4,'الثلج','ice')}
   <button class="tile ice" data-act="drill" data-key="ice" aria-expanded="${!!d.ice}">
     <div class="lbl">إجمالي مديونية الثلج <span class="car">${d.ice?'▴':'▾'}</span></div>
     <div class="val num" style="color:#0A6E9E">${money(k.iceDue)}</div>
@@ -1392,9 +1426,15 @@ function vArchive(){
 }
 
 /* ---------- ٣) العمليات ---------- */
+/* العمليات = كل التسجيل اليومي في مكان واحد: حسابات · بكش · سائقين · ثلج.
+   كان «الحسابات» تبويباً مستقلاً رغم أنه نفس نوع العمل. */
 function vOps(){
-  const s=seg('ops',[["box","📦 بكش"],["drv","🚚 سائقين"],["ice","🧊 ثلج"]],S.sub.ops);
-  return s+({box:opsBox,drv:opsDrv,ice:opsIce})[S.sub.ops]();
+  const g=S.sub.ops||'acct';
+  const s=`<div class="seg opsseg" data-seg="ops">`+
+    [["acct","حسابات","acct"],["box","بكش","box"],["drv","سائقين","drv"],["ice","ثلج","ice"]]
+    .map(([k,l,d])=>`<button data-sub="${k}" class="o-${d}" aria-selected="${g===k}">${l}</button>`).join('')+
+    `</div>`;
+  return s+({acct:vFin,box:opsBox,drv:opsDrv,ice:opsIce})[g]();
 }
 /* --- بكش --- */
 /* كل عملية بكش في تبويب مستقل — الشاشة الواحدة كانت تحمل ستة نماذج فوق بعض */
@@ -2231,12 +2271,19 @@ function repAll(){
     if(e.type==='ice_op')return `${D.nameOf(e.factoryId)} → ${D.nameOf(e.farmId)} · ${e.qty} بلاطة`;
     if(e.type==='driver_damage_clear')return `${D.nameOf(e.driverId)} · ${e.count} صندوق`;
     return D.nameOf(e.entityId||e.driverId||e.factoryId||e.merchantId)};
-  const val=e=>e.type==='box'?boxQtyTxt(e)
-    :e.type==='trip'?money(e.fare??e.cost)
-    :e.type==='settlement'?money(e.payable)
-    :e.type==='ice_op'?money((+e.qty||0)*(+e.unitPrice||0))
-    :e.type==='driver_damage_clear'?e.count+' ص'
-    :e.amount!==undefined?money(e.amount):'';
+  /* اتجاه القيمة: أحمر = علينا/خارج · أخضر = لنا/داخل */
+  const DIR={invoice:'down',collection:'up',opening_cash:'',settlement:'',
+    trip:'down',driver_advance:'up',driver_payment:'up',factory_payment:'up',ice_op:'down'};
+  const val=e=>{
+    const raw=e.type==='box'?boxQtyTxt(e)
+      :e.type==='trip'?money(e.fare??e.cost)
+      :e.type==='settlement'?money(e.payable)
+      :e.type==='ice_op'?money((+e.qty||0)*(+e.unitPrice||0))
+      :e.type==='driver_damage_clear'?e.count+' ص'
+      :e.amount!==undefined?money(e.amount):'';
+    const c=DIR[e.type];
+    return c?`<span class="${c}">${raw}</span>`:raw;
+  };
   const title=e=>e.type==='box'?(BOXOP[e.op]||'بكش')+(e.auto?' · آلي':''):(T[e.type]||e.type);
   S.print={title:"سجل العمليات",html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>البيان</th><th class="n">القيمة</th></tr></thead><tbody>
     ${items.map(e=>`<tr><td>${arDate(e.date)}</td><td>${esc(title(e))}</td><td>${esc(meta(e))}</td><td class="n">${esc(String(val(e)))}</td></tr>`).join('')}
@@ -2631,12 +2678,16 @@ function diagHTML(){
    التفاصيل وأزرار التعديل والحذف تظهر عند الضغط على السطر. */
 /* بطاقة الحركة: سطر للنوع والقيمة، وسطر للتفاصيل والتاريخ،
    والإجراءات تظهر بالضغط. كل البيانات ظاهرة بلا ازدحام. */
+/* مجال كل حركة — نقطة لونية تُعرّفه بلا كلام */
+const DOMOF=e=>e.type==='box'?'box'
+  :['trip','driver_advance','driver_payment','driver_damage_clear'].includes(e.type)?'drv'
+  :['ice_op','factory_payment','ice_in','ice_out'].includes(e.type)?'ice':'acct';
 function recHTML(e,title,meta,val,acts){
   const dead=S.D.dead.has(e.id),rep=!!e.replaces,open=S.openRec===e.id;
   return `<div class="rec ${dead?'void':''} ${open?'open':''}">
     <button class="rechead" data-act="toggleRec" data-id="${e.id}">
       <span class="r1">
-        <b>${esc(title)}</b>
+        <b class="dom d-${DOMOF(e)}">${esc(title)}</b>
         ${rep?'<span class="tag edit">معدَّلة</span>':''}${dead?'<span class="tag void">ملغاة</span>':''}
         ${val?`<span class="rv num">${val}</span>`:''}
       </span>
@@ -2756,7 +2807,8 @@ function onClick(ev){
   if(gb){(S.pkg||(S.pkg={}))[gb.dataset.pkg]=gb.dataset.g;return render()}
   const b=ev.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id;
-  const go=(tab,sub)=>{S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
+  const go=(tab,sub)=>{if(tab==='fin'){tab='ops';sub={ops:'acct',...(sub||{})}}
+    S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
     case 'pkOpen':return openPicker(b.dataset.pk);
     case 'saveAgain':{const f=b.closest('form');if(!f)return;S.again=true;
@@ -2783,10 +2835,10 @@ function onClick(ev){
     case 'more':S.page=(S.page||0)+1;return render();
     case 'setMore':S.setp=(S.setp||0)+1;return render();
     case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
-    case 'settleFarm':S.form.settle={farmId:id};return go('fin',{fin:'settle'});
+    case 'settleFarm':S.form.settle={farmId:id};return go('ops',{ops:'acct',fin:'settle'});
     case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
-    case 'goFarms':return go('fin',{fin:'settle'});
-    case 'goDrafts':return go('fin',{fin:'draft'});
+    case 'goFarms':return go('ops',{ops:'acct',fin:'settle'});
+    case 'goDrafts':return go('ops',{ops:'acct',fin:'draft'});
     case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
     case 'repDriver':S.F.ent=id;return go('rep',{rep:'drv'});
     case 'repFactory':S.F.ent=id;return go('rep',{rep:'ice'});
@@ -3081,7 +3133,7 @@ function showTape(id){const s=S.D.settlements.find(x=>x.id===id);if(!s)return;
   S.lastReceipt={farmName:S.D.nameOf(s.farmId),farmId:s.farmId,date:s.date,ids:s.coveredIds||[],
     count:(s.coveredIds||[]).length,boxes:s.boxes,
     total:s.total,office:s.office,farmRatio:s.farmRatio,commission:s.commission,expenses:s.expenses,net:s.net,prevDebt:s.prevDebt,payable:s.payable};
-  S.sub.fin='settle';S.tab='fin';render()}
+  S.sub.fin='settle';S.tab='ops';S.sub.ops='acct';render()}
 
 /* ============ تعديل وحذف الحركات (بحركات جديدة) ============ */
 const OPF={
