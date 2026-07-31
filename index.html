@@ -291,6 +291,25 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
   padding:1px 7px;border-radius:20px;font-family:var(--num)}
 .finlinks button span.warn{background:var(--debt-bg);color:var(--debt)}
 
+/* حقل بزر مايك */
+.withmic{display:flex;gap:8px}
+.withmic input{flex:1}
+.mic{flex:0 0 auto;width:50px;min-height:50px;border-radius:11px;background:var(--card-2);
+  border:1.5px solid var(--line-2);font-size:19px;cursor:pointer}
+.mic.rec{background:var(--debt);border-color:var(--debt);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+/* شريط الانتباه في الرئيسية: القرارات قبل الأرقام */
+.attn{width:100%;background:var(--debt-bg);border:1.5px solid var(--debt);border-radius:var(--r);
+  padding:13px 15px;margin-bottom:12px;display:flex;flex-direction:column;gap:3px;
+  font-family:inherit;text-align:right;cursor:pointer;color:var(--debt)}
+.attn .a1{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:600}
+.attn .ab{background:var(--debt);color:#fff;min-width:24px;height:24px;border-radius:12px;
+  display:grid;place-items:center;font-size:13px;font-family:var(--num);margin-inline-start:auto}
+.attn .a2{font-size:13px;opacity:.9}
+.allok{background:var(--credit-bg);border:1px solid var(--credit);color:var(--credit);
+  border-radius:var(--r);padding:12px 15px;margin-bottom:12px;font-size:14.5px;font-weight:600}
+
 /* بطاقات ورقة التسليم */
 .hgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
 .hcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;
@@ -303,6 +322,47 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .hcell .hl{font-size:12.5px;color:var(--muted);font-weight:500}
 .hcell .hv{font-size:22px;font-weight:600;margin-top:2px;line-height:1.2}
 .hcell .hs{font-size:12px;color:var(--muted);margin-top:2px}
+.hcell .hd{margin-top:6px}
+.dlt{font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block}
+.dlt.up{background:var(--credit-bg);color:var(--credit)}
+.dlt.down{background:var(--debt-bg);color:var(--debt)}
+.dlt.same{background:var(--card-2);color:var(--muted)}
+.dlt.new{background:var(--info-bg);color:var(--info)}
+.dlt{font-weight:600;font-family:var(--num);white-space:nowrap}
+.dlt.up{color:var(--credit)}.dlt.down{color:var(--debt)}.dlt.zero{color:var(--faint)}
+
+/* شريط آخر ٣ عمليات فوق النماذج */
+.last3{background:var(--card-2);border:1px solid var(--line);border-radius:11px;
+  padding:8px 12px 10px;margin-bottom:14px}
+.l3h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px}
+.l3r{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:13.5px;
+  border-bottom:1px solid var(--line)}
+.l3r:last-child{border-bottom:0}
+.l3d{color:var(--faint);font-size:12px;flex:0 0 auto}
+.l3t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.l3v{flex:0 0 auto;font-weight:600;color:var(--ink)}
+
+/* شاشة القرارات في الرئيسية */
+.attn{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
+.attnh{padding:11px 14px;font-size:13.5px;font-weight:600;color:var(--ink-2);
+  background:var(--card-2);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.attnh span{background:var(--warn);color:#fff;font-size:12px;padding:1px 8px;border-radius:20px;font-family:var(--num)}
+.attnrow{width:100%;background:none;border:0;border-bottom:1px solid var(--line);
+  padding:12px 14px;display:flex;flex-direction:column;gap:3px;font-family:inherit;
+  text-align:right;cursor:pointer;color:var(--ink);position:relative}
+.attnrow:last-child{border-bottom:0}
+.attnrow::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px}
+.attnrow.t-warn::before{background:var(--warn)}
+.attnrow.t-bad::before{background:var(--debt)}
+.attnrow.t-info::before{background:var(--info)}
+.attnrow .ar1{display:flex;align-items:center;gap:8px}
+.attnrow .ar1 b{font-size:15px;font-weight:600}
+.attnrow .av{margin-inline-start:auto;font-size:14px;color:var(--muted);font-family:var(--num);direction:rtl}
+.attnrow .ar2{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.attnrow .ar2 .go{margin-inline-start:auto;color:var(--faint)}
+.allok{background:var(--credit-bg);color:var(--credit);border:1px solid var(--credit);
+  border-radius:var(--r);padding:14px;text-align:center;font-size:14.5px;font-weight:600;margin-bottom:16px}
 
 /* وسم المجال: نقطة لونية صغيرة تقول «ده بكش» أو «ده ثلج» بلا كلام */
 .dom{display:inline-flex;align-items:center;gap:6px}
@@ -693,7 +753,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.0.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.1.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1176,8 +1236,41 @@ const seg=(key,tabs,cur,inner)=>`<div class="seg${inner?' inner':''}" data-seg="
 const secT=(n,t,d)=>`<div class="sec-title${d?' s-'+d:''}"><span class="n">${n}</span>${t}</div>`;
 
 /* ---------- ١) الرئيسية ---------- */
+/* ما الذي يحتاج انتباهك — يُحسب من كل السجل لا من فترة.
+   الرقم وحده لا يقول «اعمل إيه»، فنبدأ بالقرارات ثم الأرقام. */
+const STALE=14;   /* يوم بلا حركة على عهدة قائمة = عهدة راكدة */
+function attention(){
+  const D=S.D,A=[];
+  const add=(tone,t,v,hint,act,id)=>A.push({tone,t,v,hint,act,id});
+  if(D.drafts.length)add('warn','فواتير بلا مبلغ',D.drafts.length+' مسوّدة',
+    'اكتب مبلغها قبل التصفية','goDrafts');
+  const oldF=D.activeFarms.filter(f=>f.cycleInvoices.length&&f.cycleInvoices[0].date<addDays(todayISO(),-21));
+  if(oldF.length)add('warn','دورات مفتوحة من أكتر من ٣ أسابيع',
+    oldF.slice(0,3).map(f=>f.name).join(' · ')+(oldF.length>3?` +${oldF.length-3}`:''),
+    'راجع تصفيتها','goFarms');
+  /* عهدة راكدة: بكش عند جهة بلا أي حركة من أسبوعين */
+  const lastMove={};
+  D.live.filter(e=>e.type==='box').forEach(e=>legsOf(e).forEach(l=>{
+    [l.from,l.to].forEach(x=>{if(x&&!isVirt(x)&&x!==WH)lastMove[x]=e.date>(lastMove[x]||'')?e.date:lastMove[x]}) }));
+  const stale=[...D.mBox,...D.fBox].filter(x=>x.box.intact>0&&(!lastMove[x.id]||lastMove[x.id]<addDays(todayISO(),-STALE)));
+  if(stale.length)add('warn','عهدة بكش راكدة',
+    stale.slice(0,3).map(x=>`${x.name} (${x.box.intact})`).join(' · ')+(stale.length>3?` +${stale.length-3}`:''),
+    `مافيش حركة من ${STALE} يوم — راجعها`,'goBox');
+  const dmg=D.drivers.filter(x=>x.dmg.open>0);
+  if(dmg.length)add('warn','تالف بإهمال مفتوح',
+    dmg.map(x=>`${x.name} (${x.dmg.open})`).join(' · '),'صفّه من سائقين ← التالف','goDmg');
+  if(D.unlinked.length)add('info','فواتير بلا حركة بكش',D.unlinked.length+' فاتورة',
+    'فعّل الترحيل الآلي أو سجّلها','goBoxMove');
+  if(D.wh.intact<0||D.wh.damaged<0)add('bad','رصيد المخزن بالسالب',
+    `${D.wh.intact} سليم · ${D.wh.damaged} تالف`,'سجّل رصيداً افتتاحياً أو اعمل جرد','goBoxAdj');
+  const a=bkAge();
+  if(a.since>=25)add('bad','نسخة احتياطية مطلوبة',a.since+' حركة بلا نسخة',
+    'البيانات على الجهاز فقط','exportJSON');
+  return A;
+}
 function vHome(){
   const D=S.D,k=D.kpi,d=S.drill;
+  const AT=attention();
   const rowsHTML=(arr,fmt,act)=>`<div class="drill">`+(arr.length?arr.map(x=>
     `<button class="drow" data-act="${act}" data-id="${x.id}"><span class="tname">${esc(x.name)}</span>
       <b>${fmt(x)}</b><span class="go">‹</span></button>`).join(''):`<div class="empty" style="margin:8px 0">لا يوجد</div>`)+`</div>`;
@@ -1186,18 +1279,16 @@ function vHome(){
   const drvList=D.drivers.filter(x=>Math.abs(x.balance)>.004).sort((a,b)=>b.balance-a.balance);
 
   return `
+  ${AT.length?`<div class="attn">
+    <div class="attnh">محتاج انتباهك <span>${AT.length}</span></div>
+    ${AT.map(x=>`<button class="attnrow t-${x.tone}" data-act="${x.act}">
+      <span class="ar1"><b>${esc(x.t)}</b><span class="av">${esc(x.v)}</span></span>
+      <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join('')}
+  </div>`:`<div class="allok">✓ مافيش حاجة محتاجة انتباه — كله ماشي</div>`}
   ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:14px">
     <div class="lbl">📲 ثبّت التطبيق على الجهاز</div>
     <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
     <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
-  ${D.drafts.length?`<button class="tile debt" data-act="goDrafts" style="margin-bottom:14px">
-    <div class="lbl">🧾 فواتير بانتظار المبلغ</div>
-    <div class="val sm" style="color:var(--debt)">${D.drafts.length}</div>
-    <div class="sub">اتحفظت بلا مبلغ — اضغط لتكملتها قبل التصفية</div></button>`:''}
-  ${(()=>{const a=bkAge();return a.since>=25?`<button class="tile debt" data-act="exportJSON" style="margin-bottom:14px">
-    <div class="lbl">⚠️ نسخة احتياطية مطلوبة</div>
-    <div class="val sm" style="color:var(--debt)">${a.since} حركة بلا نسخة</div>
-    <div class="sub">اضغط لتنزيل نسخة الآن — البيانات على هذا الجهاز فقط</div></button>`:''})()}
   ${secT(1,'الحسابات','acct')}
   <button class="tile debt" data-act="drill" data-key="merch" aria-expanded="${!!d.merch}">
     <div class="lbl">إجمالي مديونية المبايع <span class="car">${d.merch?'▴':'▾'}</span></div>
@@ -1311,14 +1402,15 @@ function fInvoice(){
   const D=S.D,K=S.invKeep||{};
   if(!D.farms.length||!D.merchants.length)return `<div class="empty"><b>ناقص بيانات</b>أضف مزرعة ومبيعاً من «الإعدادات».</div>`;
   const gk='farmId:invfarm',isNew=(S.pkg||{})[gk]==='new';
-  return `<div class="eyebrow">فاتورة بيع جديدة</div>
+  return lastOps(['invoice'])
+  +`<div class="eyebrow">فاتورة بيع جديدة</div>
   <div class="card"><form data-form="invoice">
     <div class="field"><label>المزرعة</label>${entPick('farmId','invfarm',K.farmId||'')}
       ${isNew?`<p class="note" style="color:var(--brass)">اختيار مزرعة من هنا يبدأ لها <b>دورة جديدة</b> مستقلة عن دوراتها السابقة.</p>`:''}</div>
     <div class="field"><label>المبيع</label>${entPick('merchantId','merchant','')}</div>
     <div class="row">
       <div class="field"><label>الإجمالي (ج.م) <span class="hint">فاضي = مسوّدة</span></label>
-        <input type="text" name="amount" inputmode="decimal" placeholder="—"></div>
+        ${micField('amount','placeholder="—"')}</div>
       <div class="field"><label>عدد البكش</label>
         <input type="number" name="boxes" min="0" step="1" inputmode="numeric" value="0"></div>
     </div>
@@ -1333,7 +1425,7 @@ function fInvoice(){
     <p class="note">«واحدة تانية» بتحفظ وتفضّل المزرعة والسائق والتاريخ جاهزين للفاتورة اللي بعدها —
       لأن نفس المزرعة بتتوزّع على أكتر من مبيع.<br>
       وسيب خانة المبلغ فاضية لو لسه مش متأكد: تتحفظ مسوّدة والبكش ينتقل.</p></form></div>
-  ${logList(['invoice'],"آخر الفواتير")}`;
+`;
 }
 /* المسوّدات: فواتير اتسجّلت بلا مبلغ لئلا تُنسى — البكش اتنقل، والمال معلّق */
 function vDrafts(){
@@ -1359,17 +1451,17 @@ function vDrafts(){
 function fCollect(){
   const D=S.D;
   if(!D.merchants.length)return `<div class="empty"><b>لا يوجد مبايع</b>أضف مبيعاً من «الإعدادات».</div>`;
-  return `<div class="eyebrow">تحصيل من مبيع</div>
+  return lastOps(['collection'])+`<div class="eyebrow">تحصيل من مبيع</div>
   <div class="card"><form data-form="collection">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     <div class="field"><label>المبيع</label>${entPick('merchantId','merchant','',{role:'mpick'})}
       <p data-role="mhint" class="note">اختر مبيعاً لعرض رصيده.</p></div>
-    <div class="field"><label>المبلغ (ج.م)</label><div class="with-btn">
-      <input type="text" name="amount" inputmode="decimal" required>
-      <button type="button" class="btn ghost sm" data-act="fullM">الرصيد كامل</button></div></div>
+    <div class="field"><label>المبلغ (ج.م)</label>
+      ${micField('amount','required')}
+      <button type="button" class="btn ghost sm" data-act="fullM" style="width:100%;margin-top:9px">الرصيد كامل</button></div>
     <div class="field"><label>ملاحظة</label><input name="note" placeholder="كاش / تحويل"></div>
     <button class="btn" type="submit">تسجيل التحصيل</button></form></div>
-  ${logList(['collection'],"آخر التحصيلات")}`;
+`;
 }
 function fSettle(){
   const D=S.D;
@@ -1475,8 +1567,8 @@ function opsBox(){
   return head+`<div style="height:10px"></div>`+seg('boxop',ops,op,true)
     +(g==='adj'?`<button class="rarebtn" data-act="rare">${rare?'▴ إخفاء العمليات النادرة':'▾ عمليات نادرة (تصحيح رصد · بلا طرف)'}</button>`:'')
     +`<p class="note" style="margin:12px 0">🔒 حركات البكش لا تمسّ مديونية مبيع ولا مستحق مزرعة.</p>`
-    +(op==='audit'?auditForm():boxForm(op,'تسجيل الحركة',op==='sale_move'?invPicker():''))
-    +boxLog([op],5);
+    +boxLog([op],3)
+    +(op==='audit'?auditForm():boxForm(op,'تسجيل الحركة',op==='sale_move'?invPicker():''));
 }
 function invPicker(){
   const D=S.D,p=D.unlinked.slice(-15).reverse();
@@ -1501,7 +1593,7 @@ function auditForm(){
 }
 function boxForm(op,btn,extra=""){
   const f=BOXF[op]||[];
-  return `<div class="card"><form data-form="box" data-op="${op}">
+  return lastOps(['box'],[op])+`<div class="card"><form data-form="box" data-op="${op}">
     ${BOXHINT[op]?`<p class="note" style="margin:0 0 14px">${BOXHINT[op]}</p>`:''}
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     ${f.map(([k,l,t,e,o])=>fieldHTML(k,l,t,e,o)).join('')}${extra}
@@ -1600,7 +1692,7 @@ function opsDrv(){
 }
 function drvTrips(){
   const D=S.D;
-  return `<div class="eyebrow">تسجيل رحلة</div><div class="card"><form data-form="trip">
+  return lastOps(['trip'])+`<div class="eyebrow">تسجيل رحلة</div><div class="card"><form data-form="trip">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
     <div class="field"><label>الرحلة / نوعها</label>${entPick('routeId','route','',{role:'routePick'})}
@@ -1609,17 +1701,18 @@ function drvTrips(){
       <input type="text" name="fare" data-role="fare" inputmode="decimal" value="0" required></div>
     <div class="field"><label>ملاحظة</label><input name="note" placeholder="رقم العربية، حمولة…"></div>
     <button class="btn" type="submit">تسجيل الرحلة</button></form></div>
-  ${logList(['trip'],"آخر الرحلات")}`;
+`;
 }
 function drvAdv(){
   const D=S.D;
-  return `<div class="eyebrow">سلفة سائق</div><div class="card"><form data-form="driver_advance">
+  return lastOps(['driver_advance'])+`<div class="eyebrow">سلفة سائق</div><div class="card"><form data-form="driver_advance">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
-    <div class="field"><label>مبلغ السلفة (ج.م)</label><input type="text" name="amount" inputmode="decimal" required></div>
+    <div class="field"><label>مبلغ السلفة (ج.م)</label>
+      ${micField('amount','required')}</div>
     <div class="field"><label>الغرض</label><input name="note" placeholder="بنزين، صيانة…"></div>
     <button class="btn" type="submit">تسجيل السلفة</button></form></div>
-  ${logList(['driver_advance'],"آخر السلف")}`;
+`;
 }
 /* عدّاد التالف بإهمال: متابعة أمانة السائق — لا يدخل أي حساب مالي ولا عهدة */
 function drvDamage(){
@@ -1680,7 +1773,7 @@ function drvSettle(){
     <div class="field"><label>السائق</label>${entPick('driverId','driver','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر سائقاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
-      <input type="text" name="amount" inputmode="decimal" required>
+      ${micField('amount','required')}
       <button type="button" class="btn ghost sm" data-act="fullA" data-kind="driver">سداد كامل</button></div></div>
     <div class="field"><label>ملاحظة</label><input name="note"></div>
     <button class="btn" type="submit">تسجيل التصفية</button></form></div>
@@ -1695,7 +1788,7 @@ function opsIce(){
 }
 function iceOp(){
   const D=S.D;
-  return `<div class="eyebrow">عملية ثلج</div><div class="card"><form data-form="ice_op">
+  return lastOps(['ice_op'])+`<div class="eyebrow">عملية ثلج</div><div class="card"><form data-form="ice_op">
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
     <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'facPick'})}</div>
     <div class="row"><div class="field"><label>عدد البلاطات</label><input type="number" name="qty" min="1" step="1" inputmode="numeric" required></div>
@@ -1705,7 +1798,7 @@ function iceOp(){
     <div class="field"><label>ملاحظة</label><input name="note"></div>
     <button class="btn" type="submit">تسجيل العملية</button>
     <p class="note">تعديل السعر هنا لا يغيّر سعر البلاطة في بطاقة المصنع.</p></form></div>
-  ${logList(['ice_op'],"آخر العمليات")}`;
+`;
 }
 function iceSettle(){
   const D=S.D;
@@ -1719,7 +1812,7 @@ function iceSettle(){
     <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر مصنعاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
-      <input type="text" name="amount" inputmode="decimal" required>
+      ${micField('amount','required')}
       <button type="button" class="btn ghost sm" data-act="fullA" data-kind="factory">سداد كامل</button></div></div>
     <div class="field"><label>ملاحظة</label><input name="note"></div>
     <button class="btn" type="submit">تسجيل التصفية</button></form></div>
@@ -1900,11 +1993,12 @@ const inR=e=>{const F=S.F;return (!F.from||e.date>=F.from)&&(!F.to||e.date<=F.to
    بدل ما يفتح أربع تقارير ويقارن بينهم بنفسه. */
 function handIssues(from,to){
   const D=S.D,I=[];
-  const L=D.live.filter(e=>e.date>=from&&e.date<=to);
+  /* بلا مدى = كل الفترات (تُستخدم في الرئيسية) */
+  const L=from?D.live.filter(e=>e.date>=from&&e.date<=to):D.live;
   const dft=L.filter(e=>e.type==='invoice'&&!(+e.amount>0));
   if(dft.length)I.push(['مسوّدات بلا مبلغ',dft.length+' فاتورة',
     'اكتب مبلغها من «الحسابات ← مسوّدات» قبل التصفية','goDrafts','']);
-  const unl=D.unlinked.filter(i=>i.date>=from&&i.date<=to);
+  const unl=from?D.unlinked.filter(i=>i.date>=from&&i.date<=to):D.unlinked;
   if(unl.length)I.push(['فواتير بلا حركة بكش',unl.length+' فاتورة',
     'سجّل حركة البكش أو فعّل الترحيل الآلي','','']);
   if(D.wh.intact<0||D.wh.damaged<0)I.push(['رصيد المخزن بالسالب',
@@ -1920,6 +2014,12 @@ function handIssues(from,to){
     'راجع تصفيتها','goFarms','']);
   return I;
 }
+/* المقارنة بالفترة السابقة: الرقم وحده مالوش معنى من غير مرجع.
+   نحسب فترة بنفس الطول قبلها مباشرة ونعرض الفرق نسبةً. */
+function prevRange(from,to){
+  const d=Math.round((new Date(to+'T12:00')-new Date(from+'T12:00'))/864e5)+1;
+  return[addDays(from,-d),addDays(from,-1)];
+}
 function handover(){
   const D=S.D,F=S.F;
   const from=F.from||todayISO(),to=F.to||from;
@@ -1933,24 +2033,48 @@ function handover(){
   bx.forEach(e=>legsOf(e).forEach(l=>{if(l.to===WH)bIn+=l.count;if(l.from===WH)bOut+=l.count}));
   const issues=handIssues(from,to);
   const R=[["today","اليوم"],["yest","أمس"],["week","٧ أيام"],["month","الشهر"]];
-  const box=(lbl,val,sub,cls)=>`<div class="hcell ${cls||''}"><div class="hl">${lbl}</div>
-    <div class="hv num">${val}</div>${sub?`<div class="hs">${sub}</div>`:''}</div>`;
+  /* الفترة السابقة بنفس الطول — الرقم لوحده مالوش معنى من غير مرجع */
+  const days=Math.max(1,Math.round((new Date(to)-new Date(from))/864e5)+1);
+  const pFrom=addDays(from,-days),pTo=addDays(from,-1);
+  const PL=D.live.filter(e=>e.date>=pFrom&&e.date<=pTo);
+  const ppick=t=>PL.filter(e=>e.type===t);
+  const prev={inv:ppick('invoice').filter(i=>+i.amount>0),col:ppick('collection'),
+    tr:ppick('trip'),ic:ppick('ice_op')};
+  let pIn=0,pOut=0;
+  PL.filter(e=>e.type==='box').forEach(e=>legsOf(e).forEach(l=>{
+    if(l.to===WH)pIn+=l.count;if(l.from===WH)pOut+=l.count}));
+  const delta=(now,was)=>{
+    if(!was&&!now)return '';
+    if(!was)return `<span class="dlt up">جديد</span>`;
+    const p=Math.round((now-was)/Math.abs(was)*100);
+    if(Math.abs(p)<1)return `<span class="dlt zero">= السابق</span>`;
+    return `<span class="dlt ${p>0?'up':'down'}">${p>0?'▲':'▼'} ${Math.abs(p)}%</span>`;
+  };
+  const box=(lbl,val,sub,cls,dl)=>`<div class="hcell ${cls||''}"><div class="hl">${lbl}</div>
+    <div class="hv num">${val}</div>${sub||dl?`<div class="hs">${sub||''}${dl||''}</div>`:''}</div>`;
   return `<div class="qr" style="margin-bottom:14px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
       aria-selected="${from===({today:todayISO(),yest:addDays(todayISO(),-1),
         week:addDays(todayISO(),-6),month:monthStart()})[k]&&to===todayISO()||(k==='yest'&&from===to&&from===addDays(todayISO(),-1))||(k==='today'&&from===to&&from===todayISO())}">${l}</button>`).join('')}
     <button data-act="fToggle">📅 مخصّص</button></div>
   ${S.fopen?filterBar():''}
-  <div class="eyebrow">${one?'حركة يوم '+arDate(from):`حركة ${arDate(from)} — ${arDate(to)}`}</div>
+  <div class="eyebrow">${one?'حركة يوم '+arDate(from):`حركة ${arDate(from)} — ${arDate(to)}`}
+</div>
   <div class="hgrid">
-    ${box('فواتير البيع',inv.length,`${sum(inv,i=>i.boxes)} صندوق · ${money(sumM(inv,i=>i.amount))} ج.م`)}
-    ${box('التحصيلات',money(sumM(col,c=>c.amount)),col.length+' عملية','ok')}
-    ${box('بكش خرج من المخزن',bOut,'صندوق','out')}
-    ${box('بكش دخل المخزن',bIn,'صندوق','in')}
-    ${box('الرحلات',tr.length,money(sumM(tr,x=>x.fare??x.cost))+' ج.م')}
-    ${box('الثلج',sum(ic,x=>x.qty),money(sumM(ic,x=>(+x.qty||0)*(+x.unitPrice||0)))+' ج.م')}
+    ${box('فواتير البيع',inv.length,`${sum(inv,i=>i.boxes)} صندوق · ${money(sumM(inv,i=>i.amount))} ج.م `,'',
+      delta(sumM(inv,i=>i.amount),sumM(prev.inv,i=>i.amount)))}
+    ${box('التحصيلات',money(sumM(col,c=>c.amount)),col.length+' عملية ','ok',
+      delta(sumM(col,c=>c.amount),sumM(prev.col,c=>c.amount)))}
+    ${box('بكش خرج من المخزن',bOut,'صندوق ','out',delta(bOut,pOut))}
+    ${box('بكش دخل المخزن',bIn,'صندوق ','in',delta(bIn,pIn))}
+    ${box('الرحلات',tr.length,money(sumM(tr,x=>x.fare??x.cost))+' ج.م ','',
+      delta(sumM(tr,x=>x.fare??x.cost),sumM(prev.tr,x=>x.fare??x.cost)))}
+    ${box('الثلج',sum(ic,x=>x.qty),money(sumM(ic,x=>(+x.qty||0)*(+x.unitPrice||0)))+' ج.م ','',
+      delta(sum(ic,x=>x.qty),sum(prev.ic,x=>x.qty)))}
     ${st.length?box('تصفيات',st.length,money(sumM(st,x=>x.payable))+' ج.م','brass'):''}
   </div>
 
+  <p class="note" style="margin:2px 2px 12px">المقارنة مع الفترة السابقة بنفس الطول
+    (${arDate(pFrom)} ← ${arDate(pTo)}).</p>
   <div class="eyebrow ${issues.length?'debt':''}">${issues.length?`محتاج مراجعة (${issues.length})`:'لا شيء يحتاج مراجعة ✓'}</div>
   ${issues.length?issues.map(([t2,v,hint,act])=>`<div class="rec">
       <div class="top"><b>${esc(t2)}</b></div>
@@ -2703,6 +2827,28 @@ function recHTML(e,title,meta,val,acts){
         <button class="btn danger sm" data-act="delOp" data-id="${e.id}">حذف</button></div>`}</div>`:''}
   </div>`;
 }
+/* آخر ٣ عمليات فوق النموذج: تأكيد سريع إن اللي سجّلته دخل صح،
+   بلا ما تسيب الشاشة وتروح للسجل. */
+function lastOps(types,opFilter){
+  const D=S.D;
+  const items=S.ledger.filter(e=>types.includes(e.type)&&(!opFilter||opFilter.includes(e.op))
+    &&!D.dead.has(e.id)).sort((a,b)=>b.seq-a.seq).slice(0,3);
+  if(!items.length)return '';
+  const line=e=>{
+    if(e.type==='box')return[boxFlow(e),boxQtyTxt(e)];
+    if(e.type==='invoice')return[`${D.nameOf(e.merchantId)} ← ${D.nameOf(e.farmId)}`,
+      (+e.amount>0?money(e.amount):'مسوّدة')+' · '+e.boxes+' ص'];
+    if(e.type==='collection')return[D.nameOf(e.merchantId),money(e.amount)];
+    if(e.type==='trip')return[`${D.nameOf(e.driverId)} · ${D.nameOf(e.routeId)||''}`,money(e.fare??e.cost)];
+    if(e.type==='ice_op')return[`${D.nameOf(e.factoryId)} → ${D.nameOf(e.farmId)}`,e.qty+' بلاطة'];
+    return[D.nameOf(e.driverId||e.factoryId||e.entityId),
+      e.count!==undefined?e.count+' ص':money(e.amount)];
+  };
+  return `<div class="last3"><div class="l3h">آخر ٣ عمليات</div>
+    ${items.map(e=>{const[a,b]=line(e);
+      return `<div class="l3r"><span class="l3d num">${arDate(e.date).slice(0,5)}</span>
+        <span class="l3t">${esc(a)}</span><span class="l3v num">${esc(b)}</span></div>`}).join('')}</div>`;
+}
 function logList(types,title,limit=6){
   const D=S.D;
   const items=S.ledger.filter(e=>types.includes(e.type)).sort((a,b)=>b.seq-a.seq).slice(0,limit);
@@ -2839,6 +2985,10 @@ function onClick(ev){
     case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
     case 'goFarms':return go('ops',{ops:'acct',fin:'settle'});
     case 'goDrafts':return go('ops',{ops:'acct',fin:'draft'});
+    case 'goBox':return go('ops',{ops:'box',box:'bal'});
+    case 'goBoxMove':return go('ops',{ops:'box',box:'move',boxop:'sale_move'});
+    case 'goBoxAdj':return go('ops',{ops:'box',box:'adj',boxop:'opening_box'});
+    case 'goDmg':return go('ops',{ops:'drv',drv:'dmg'});
     case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
     case 'repDriver':S.F.ent=id;return go('rep',{rep:'drv'});
     case 'repFactory':S.F.ent=id;return go('rep',{rep:'ice'});
@@ -2846,6 +2996,8 @@ function onClick(ev){
     case 'allType':S.F.type=b.dataset.t;S.page=0;return render();
     case 'fPick':return openFilterPick(b.dataset.et);
     case 'fClear':S.F.ent='';S.page=0;return render();
+    case 'mic':{const w=b.closest('.withmic');const i=w&&w.querySelector('input');
+      return i&&micListen(i)}
     case 'openSearch':return openSearch();
     case 'rare':S.rare=!S.rare;return render();
     case 'finGo':S.sub.fin=b.dataset.s;S.toTop=true;return render();
@@ -2977,6 +3129,57 @@ function wireAudit(f){
 }
 
 /* ============ الحفظ ============ */
+/* ============ الإدخال بالصوت ============
+   في سوق مبلول الإيدين، نطق الرقم أسرع وأنضف من الكتابة.
+   الويب يدعم التعرّف على الكلام بالعربية في كروم أندرويد. */
+const VOICE=()=>globalThis.SpeechRecognition||globalThis.webkitSpeechRecognition;
+const AR_ONES={'صفر':0,'واحد':1,'اتنين':2,'اثنين':2,'تلاتة':3,'ثلاثة':3,'اربعة':4,'أربعة':4,
+  'خمسة':5,'ستة':6,'سبعة':7,'تمانية':8,'ثمانية':8,'تسعة':9,'عشرة':10};
+const AR_MUL={'مية':100,'مئة':100,'ميه':100,'الف':1000,'ألف':1000,'الاف':1000,'آلاف':1000,'مليون':1e6};
+/* يحوّل نص الكلام لرقم: يقبل الأرقام المنطوقة صريحة أو الكلمات الشائعة */
+function speechNum(t){
+  if(!t)return null;
+  const s2=AR2EN(String(t)).replace(/[،,]/g,'');
+  const d=s2.match(/\d+(?:\.\d+)?/g);
+  if(d&&d.length){
+    /* «تمنتاشر ألف» تخرج أحياناً «18 الف» */
+    let v=parseFloat(d.join(''));
+    for(const k in AR_MUL)if(s2.includes(k)&&v<AR_MUL[k])v*=AR_MUL[k];
+    return v;
+  }
+  let tot=0,cur=0,found=false;
+  for(const w of s2.split(/\s+/)){
+    if(w in AR_ONES){cur=cur?cur*10+AR_ONES[w]:AR_ONES[w];found=true}
+    else if(w in AR_MUL){cur=(cur||1)*AR_MUL[w];tot+=cur;cur=0;found=true}
+  }
+  tot+=cur;
+  return found?tot:null;
+}
+function micListen(input){
+  const R=VOICE();
+  if(!R)return toast("المتصفح لا يدعم الإدخال بالصوت","err");
+  const r=new R();
+  r.lang='ar-EG';r.interimResults=false;r.maxAlternatives=3;
+  const btn=input&&input.parentElement&&input.parentElement.querySelector('.mic');
+  if(btn)btn.classList.add('rec');
+  toast("اتكلم دلوقتي…","ok");
+  r.onresult=e=>{
+    let v=null,txt='';
+    for(const alt of e.results[0]){txt=alt.transcript;v=speechNum(txt);if(v!==null)break}
+    if(v===null)return toast(`ما فهمتش «${txt}» — اكتبه بإيدك`,"err");
+    input.value=String(v);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    toast(`${money(v)} ✓`,"ok");
+  };
+  r.onerror=e=>toast(e.error==='not-allowed'?"لازم تسمح باستخدام المايك":"تعذّر السماع","err");
+  r.onend=()=>{if(btn)btn.classList.remove('rec')};
+  try{r.start()}catch(e){toast("جرّب تاني","err")}
+}
+/* حقل رقمي بزر مايك */
+const micField=(name,extra='')=>`<div class="withmic">
+  <input type="text" name="${name}" inputmode="decimal" ${extra}>
+  <button type="button" class="mic" data-act="mic" aria-label="إدخال بالصوت">🎤</button></div>`;
+
 /* لوحة المفاتيح العربية تكتب ٠١٢٣ — نطبّعها في الحقول الرقمية فقط حتى لا تصير NaN */
 const AR2EN=s=>String(s).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
   .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[،٫]/g,'.');
@@ -3005,6 +3208,14 @@ async function onSubmit(ev){
     if(kind==='invoice'){
       if(!p.farmId||!p.merchantId)return toast("اختر المزرعة والمبيع","err");
       const amt=+p.amount||0;
+      /* خطأ شائع في الإدخال السريع: نفس الفاتورة تتسجّل مرتين */
+      const dup=S.D.live.find(e=>e.type==='invoice'&&e.date===p.date
+        &&e.farmId===p.farmId&&e.merchantId===p.merchantId
+        &&(Math.abs((+e.amount||0)-amt)<.005||Math.round(+e.boxes||0)===Math.round(+p.boxes||0)));
+      if(dup&&!await ask("فاتورة شبه مكرّرة",
+        `فيه فاتورة بنفس المزرعة والمبيع في ${arDate(p.date)}:\n`
+        +`${dup.boxes} صندوق · ${dup.amount>0?money(dup.amount)+' ج.م':'مسوّدة'}\n\n`
+        +`تسجّل واحدة تانية؟`,{ok:"سجّل برضه",cancel:"رجوع",danger:1}))return;
       const inv=await append({type:'invoice',date:p.date,farmId:p.farmId,merchantId:p.merchantId,
         driverId:p.driverId||null,boxes:Math.max(0,Math.round(+p.boxes||0)),amount:amt,note:p.note});
       await syncInvoiceBox(inv,null);
@@ -3162,7 +3373,7 @@ async function amountOnly(id){
     `${D.nameOf(e.merchantId)} ← ${D.nameOf(e.farmId)} · ${e.boxes} صندوق · ${arDate(e.date)}`,
     `<form data-sheet="amountOnly" data-id="${id}">
       <div class="field"><label>الإجمالي (ج.م)</label>
-        <input name="amount" inputmode="decimal" placeholder="0.00" autofocus></div>
+        ${micField('amount','placeholder="0.00" autofocus')}</div>
       <button class="btn" type="submit">حفظ المبلغ</button>
       <p class="note">الفاتورة هتتحوّل من مسوّدة لفاتورة كاملة وتدخل الحسابات.</p></form>`);
 }
@@ -3603,9 +3814,21 @@ function summaryHTML(from,to){
   const pick=ty=>L.filter(e=>e.type===ty);
   const inv=pick('invoice').filter(i=>+i.amount>0),dft=pick('invoice').filter(i=>!(+i.amount>0));
   const col=pick('collection'),tr=pick('trip'),ic=pick('ice_op'),st=pick('settlement');
-  const R=(a,b)=>`<tr><td>${a}</td><td class="n">${b}</td></tr>`;
+  const R=(a,b,c)=>`<tr><td>${a}</td><td class="n">${b}</td>${c!==undefined?`<td class="n">${c}</td>`:''}</tr>`;
   const k=D.kpi;
+  const[pf,pt]=prevRange(from,to);
+  const PL=D.live.filter(e=>e.date>=pf&&e.date<=pt);
+  const pinv=PL.filter(e=>e.type==='invoice'&&+e.amount>0),pcol=PL.filter(e=>e.type==='collection');
+  const dp=(c,pv)=>!pv?'—':`${c>=pv?'▲':'▼'} ${Math.abs(Math.round((c-pv)/Math.abs(pv)*100))}٪`;
   return `<h3>${one?'حركة يوم '+arDate(from):'حركة الفترة '+arDate(from)+' — '+arDate(to)}</h3>
+  <table><thead><tr><th>البند</th><th class="n">الفترة</th><th class="n">السابقة</th><th class="n">الفرق</th></tr></thead><tbody>
+    <tr><td>مبيعات</td><td class="n">${money(sumM(inv,i=>i.amount))}</td>
+      <td class="n">${money(sumM(pinv,i=>i.amount))}</td>
+      <td class="n">${dp(sumM(inv,i=>i.amount),sumM(pinv,i=>i.amount))}</td></tr>
+    <tr><td>تحصيلات</td><td class="n">${money(sumM(col,c=>c.amount))}</td>
+      <td class="n">${money(sumM(pcol,c=>c.amount))}</td>
+      <td class="n">${dp(sumM(col,c=>c.amount),sumM(pcol,c=>c.amount))}</td></tr>
+  </tbody></table>
   <table><thead><tr><th>البند</th><th class="n">القيمة</th></tr></thead><tbody>
     ${R('فواتير البيع',inv.length+' فاتورة · '+sum(inv,i=>i.boxes)+' صندوق · '+money(sumM(inv,i=>i.amount))+' ج.م')}
     ${dft.length?R('مسوّدات بلا مبلغ',dft.length+' فاتورة'):''}
