@@ -753,7 +753,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.1.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.2.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1826,14 +1826,23 @@ function iceSettle(){
    الشاشة تبدأ بالمحتوى: عنوان التقرير + سطر فلتر واحد + النتيجة. */
 const REPS=[
   ['hand','تسليم اليوم','ملخص الحركة والملاحظات — لقفل اليوم','يومي'],
-  ['daily','المخزن اليومي','رصيد أول وآخر اليوم وكل حركة بكش','يومي'],
-  ['acct','كشف حساب','حركة نقدية لمزرعة أو مبيع بالرصيد الجاري','جهة معيّنة'],
-  ['stmt','عهدة البكش','وارد وصادر البكش لجهة أو للمخزن','جهة معيّنة'],
-  ['drv','السائقين','أجور وسلف ورصيد كل سائق','جهة معيّنة'],
-  ['ice','الثلج','بلاطات وقيمة ورصيد كل مصنع','جهة معيّنة'],
-  ['audit','الجرد','فروق العدّ بين الدفتري والفعلي','مراجعة'],
-  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال','مراجعة'],
-  ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','مراجعة']
+  ['daily','جرد المخزن اليومي','رصيد افتتاحي وعمليات اليوم والرصيد الختامي والفعلي','يومي'],
+  ['farmDaily','تقرير المزرعة اليومي','مبيعات وعهدة بكش وثلج المزرعة في يوم واحد','يومي'],
+  ['colDaily','تقرير التحصيل','تحصيلات يوم واحد لكل المبايع مع الإجمالي','يومي'],
+
+  ['farmEnt','تقرير المزرعة','بكش أو فواتير وتصفيات أو ثلج لمزرعة واحدة','تقارير الجهات'],
+  ['merchEnt','تقرير المبيع','بكش أو فواتير وتحصيل لمبيع واحد','تقارير الجهات'],
+  ['drv','السائقين','حساب رحلات أو تقرير تالف لكل سائق','تقارير الجهات'],
+  ['ice','الثلج','بلاطات وسعر ورصيد كل مصنع','تقارير الجهات'],
+
+  ['boxAll','حركة البكش العامة','كل حركات البكش في كل الجهات والمخزن','تقارير العمل'],
+  ['farmsAll','المزارع عموماً','أرصدة كل المزارع في صف واحد','تقارير العمل'],
+  ['merchAll','المبايع عموماً','أرصدة كل المبايع في صف واحد','تقارير العمل'],
+  ['drvAll','السائقين عموماً','أرصدة كل السائقين في صف واحد','تقارير العمل'],
+  ['iceAll','المصانع عموماً','أرصدة كل مصانع الثلج في صف واحد','تقارير العمل'],
+  ['audit','الجرد','فروق العدّ بين الدفتري والفعلي','تقارير العمل'],
+  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال — كل السائقين','تقارير العمل'],
+  ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','تقارير العمل']
 ];
 const repInfo=k=>REPS.find(r=>r[0]===k)||REPS[0];
 function repPick(){
@@ -1859,8 +1868,10 @@ function vRep(){
     <span class="rh2">${desc}</span></button>`;
   if(r==='hand')return head+handover()+repActions();
   S.sub.repbox=r;
-  const fn={acct:repAcct,all:repAll,drv:repDrv,ice:repIce,
-    stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||repAcct;
+  const fn={all:repAll,drv:repDrv,ice:repIce,drvAll:repDrv,iceAll:repIce,
+    farmEnt:repFarmEnt,merchEnt:repMerchEnt,farmDaily:repFarmDaily,colDaily:repCollDaily,
+    boxAll:repBoxAll,farmsAll:repFarmsAll,merchAll:repMerchAll,
+    stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
   const line=`<button class="filtline" data-act="fToggle">
     <span>🔎 ${esc(fsum())}</span><span class="go">${S.fopen?'▴':'✎'}</span></button>`;
   return head+line+(S.fopen?filterBar():'')+fn()+repActions();
@@ -1873,22 +1884,26 @@ function repActions(){
     ${F.ent&&F.ent!==WH?`<button class="btn dark" data-act="combined">📋 كشف مجمّع للطباعة</button>
       <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}`;
 }
+/* تقارير عامة بلا فلترة جهة — «عموماً» يعني كل الجهات، فإخفاء الحقل أوضح من عرضه معطّلاً */
+const REPNOENT=new Set(['farmsAll','merchAll','drvAll','iceAll']);
 function filterBar(){
   const F=S.F,D=S.D;
-  const etype={acct:'farmerchant',stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
-    drv:'driver',ice:'ice',all:'farmerchant'}[S.rep]||'farmerchant';
+  const etype={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
+    drv:'driver',ice:'ice',all:'farmerchant',farmEnt:'farm',merchEnt:'merchant',
+    farmDaily:'farm',colDaily:'merchant',boxAll:'loc'}[S.rep]||'farmerchant';
   const R=[["today","اليوم"],["week","٧ أيام"],["month","هذا الشهر"],["all","الكل"],["custom","مخصص"]];
   const cur=F.ent?D.ent(F.ent):null;
+  const noEnt=REPNOENT.has(S.rep);
   return `<div class="card">
     <div class="qr">${R.map(([k,l])=>`<button data-act="range" data-r="${k}" aria-selected="${F.range===k}">${l}</button>`).join('')}</div>
     <div class="row"><div class="field" style="margin:0"><label>من</label><input type="date" data-role="fFrom" value="${F.from}"></div>
       <div class="field" style="margin:0"><label>إلى</label><input type="date" data-role="fTo" value="${F.to}"></div></div>
-    <div class="field" style="margin:12px 0 0"><label>الجهة</label>
+    ${noEnt?'':`<div class="field" style="margin:12px 0 0"><label>الجهة</label>
       <div class="fent">
         <button type="button" class="btn ghost" data-act="fPick" data-et="${etype}" style="flex:1;text-align:right">
           ${cur?esc(cur.name):(F.ent===WH?'المخزن':'كل الجهات')}</button>
         ${F.ent?`<button type="button" class="btn ghost sm" data-act="fClear">✕</button>`:''}
-      </div></div>
+      </div></div>`}
     <div class="field" style="margin:12px 0 0"><label>بحث في الملاحظات</label>
       <input data-role="fQ" value="${esc(F.q)}" placeholder="نوع سمك، رقم عربية…"></div>
     <button class="btn ghost sm" data-act="fToggle" style="width:100%;margin-top:12px">تم</button></div>`;
@@ -1933,7 +1948,7 @@ function openSearch(){
     close();
     if(b.dataset.sv2==='ent'){
       S.F.ent=b.dataset.id;S.F.range='all';S.F.from='';S.F.to='';
-      S.rep={farm:'acct',merchant:'acct',driver:'drv',ice:'ice'}[b.dataset.t]||'acct';
+      S.rep={farm:'farmEnt',merchant:'merchEnt',driver:'drv',ice:'ice'}[b.dataset.t]||'farmEnt';
       S.tab='rep';S.toTop=true;render();
     }else{
       S.rep='all';S.F={from:'',to:'',ent:'',q:'',range:'all',type:''};
@@ -2345,27 +2360,9 @@ function repBox(){
         «هلك عادي» غير محمَّل على أحد. عمود «مفتوح الآن» هو الرصيد غير المصفّى بغضّ النظر عن الفترة،
         وتصفيته من «العمليات ← سائقين ← التالف».</p></div>`;
   }
-  /* لم يعد يُستدعى: سجل البكش صار ضمن «كل العمليات» بفلتر النوع */
-  const l=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent))).sort((a,b)=>b.seq-a.seq);
-  /* الوارد والصادر محسوبان بالنسبة لموقع مرجعي (الجهة المختارة أو المخزن) */
-  const ref=F.ent||WH;
-  const io=e=>{let i=0,o=0;legsOf(e).forEach(x=>{if(x.to===ref)i+=x.count;if(x.from===ref)o+=x.count});return[i,o]};
-  let TI=0,TO=0;
-  const rows=l.map(e=>{const[i,o]=io(e);TI+=i;TO+=o;
-    return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td>
-      <td>${esc(legsTxt(e))}</td><td class="n cin">${i||''}</td><td class="n cout">${o||''}</td>
-      <td>${esc(e.note||'')}</td></tr>`}).join('');
-  S.print={title:`سجل حركات البكش — الوارد/الصادر بالنسبة لـ ${D.nameOf(ref)}`,
-    html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th>
-      <th class="n">وارد</th><th class="n">صادر</th><th>ملاحظة</th></tr></thead>
-    <tbody>${rows}</tbody><tfoot><tr><td colspan="3">الإجمالي (${l.length} حركة)</td>
-      <td class="n">${TI}</td><td class="n">${TO}</td><td></td></tr></tfoot></table>`};
-  const N=30,show=Math.min(l.length,N*((S.page||0)+1));
-  return t+`<div class="eyebrow">كل الحركات (${l.length})</div>`
-    +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
-        boxFlow(e)+(e.driverId?` · ${D.nameOf(e.driverId)}`:''),boxQtyTxt(e))).join('')
-      +(show<l.length?`<button class="more" data-act="more">عرض ${Math.min(N,l.length-show)} حركة أخرى · باقي ${l.length-show}</button>`:'')
-      :'<div class="empty">لا حركات</div>');
+  /* الفروع الأربعة فوق (stmt/daily/audit/dmg) تغطّي كل نداءات S.sub.repbox المعروفة.
+     سجل الحركة العامة صار تقريراً مستقلاً repBoxAll() — هذا احتياط دفاعي فقط. */
+  return t+`<div class="empty">اختر نوع تقرير من «التقارير».</div>`;
 }
 /* سجل شامل: كل حركة في التطبيق، بفلترة بالنوع والجهة والتاريخ،
    وتعديل وحذف مباشرين — بدل «آخر ٦ حركات» في كل شاشة. */
@@ -2419,6 +2416,11 @@ function repAll(){
 }
 function repDrv(){
   const D=S.D,F=S.F;
+  const who0=F.ent?D.drivers.find(d=>d.id===F.ent):null;
+  const K=S.sub.drvRep||'trips';
+  if(who0&&K==='dmg')return seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)
+    +`<div style="height:14px"></div>`+driverDmgTab(who0);
+  const segTop=who0?seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)+`<div style="height:14px"></div>`:'';
   const items=D.live.filter(e=>['trip','driver_advance','driver_payment'].includes(e.type)&&inR(e)&&(!F.ent||e.driverId===F.ent))
     .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
   const nm={trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية'};
@@ -2438,7 +2440,7 @@ function repDrv(){
     <tfoot><tr><td colspan="4">الإجمالي (${items.length} حركة)</td>
       <td class="n">${money(tIn)}</td><td class="n">${money(tOut)}</td>
       ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
-  const who=F.ent?D.drivers.find(d=>d.id===F.ent):null;
+  const who=who0;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
   const tot=D.drivers.filter(d=>!F.ent||d.id===F.ent);
   const bal=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
@@ -2450,10 +2452,39 @@ function repDrv(){
       <td class="n">${money(sumM(tot,d=>d.advances))}</td><td class="n">${money(sumM(tot,d=>d.paid))}</td>
       <td class="n">${money(sumM(tot,d=>d.balance))}</td></tr></tfoot></table>`;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
-  return `<div class="eyebrow">حركات السائقين (${items.length})</div>
+  return segTop+`<div class="eyebrow">حركات السائقين (${items.length})</div>
     <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
     <div class="eyebrow">الأرصدة</div><div class="card"><div class="tscroll">${bal}</div>
     <p class="note">الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
+}
+/* تقرير التالف لسائق واحد — منفصل عن ملخص كل السائقين (dmg) حتى لا يتأثر التقرير العام. */
+function driverDmgTab(driver){
+  const D=S.D;
+  const ents=D.live.filter(e=>e.type==='box'&&e.driverId===driver.id&&inR(e));
+  let ok=0,neg=0,wear=0;
+  ents.forEach(e=>legsOf(e).forEach(l=>{
+    if(l.cond==='damaged')e.dmgReason==='negligence'?neg+=l.count:wear+=l.count;
+    else ok+=l.count}));
+  const tot=ok+neg+wear;
+  const rows=ents.filter(e=>legsOf(e).some(l=>l.cond==='damaged')).sort((a,b)=>b.seq-a.seq)
+    .map(e=>{const d=sum(legsOf(e).filter(l=>l.cond==='damaged'),l=>l.count);
+      return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td>
+        <td>${e.dmgReason==='negligence'?'إهمال':'هلك عادي'}</td><td class="n cout">${d}</td></tr>`}).join('');
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>السبب</th><th class="n">العدد</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="4">لا تالف مسجَّل في المدى المحدد</td></tr>'}</tbody></table>`;
+  S.print={title:`تقرير التالف — ${driver.name}`,html:tbl,phone:driver.phone};
+  return `<div class="eyebrow debt">تالف ${esc(driver.name)}</div>
+    <div class="card">
+      <div class="row"><div class="diff" style="flex:1"><span>سليم</span><b>${ok}</b></div>
+        <div class="diff over" style="flex:1"><span>تالف بإهمال</span><b>${neg}</b></div></div>
+      <div class="diff"><span>هلك عادي (لا يُحمَّل عليه)</span><b>${wear}</b></div>
+      <div class="diff ${driver.dmg.open>0?'over':''}"><span>مفتوح الآن (كل الفترات)</span><b>${driver.dmg.open}</b></div>
+      <div class="diff"><span>نسبة التلف في المدى المحدد</span><b>${tot?Math.round((neg+wear)/tot*100):0}%</b></div>
+    </div>
+    <div class="eyebrow">تفاصيل التالف في المدى المحدد</div>
+    <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا تالف مسجَّل في المدى المحدد</div>'}</div>
+    <p class="note">«تالف بإهمال» يُقيَّد كعدّاد متابعة فقط — مش مديونية ولا عهدة.
+      تصفيته من «العمليات ← سائقين ← التالف».</p>`;
 }
 function repIce(){
   const D=S.D,F=S.F;
@@ -2489,6 +2520,195 @@ function repIce(){
     <div class="eyebrow">أرصدة المصانع</div><div class="card"><div class="tscroll">${bal}</div></div>`;
 }
 
+/* ============ تقرير المزرعة اليومي ============
+   اختيار مزرعة + يوم واحد: مبيعات اليوم، عهدة البكش لهذا اليوم، وعمليات الثلج باسم المزرعة. */
+function repFarmDaily(){
+  const D=S.D,F=S.F;
+  const farm=F.ent?D.farms.find(f=>f.id===F.ent):null;
+  const day=(F.from&&F.from===F.to)?F.from:'';
+  if(!farm||!day)return `<div class="empty"><b>اختر مزرعة ويوم واحد</b>
+    افتح الفلتر فوق واختر المزرعة، واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="farm">اختر مزرعة</button>
+    <button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
+  const fid=farm.id;
+  const inv=D.live.filter(e=>e.type==='invoice'&&e.farmId===fid&&e.date===day).sort((a,b)=>a.seq-b.seq);
+  const invRows=inv.map(i=>`<tr><td>${esc(D.nameOf(i.merchantId))}</td>
+    <td>${esc(i.driverId?D.nameOf(i.driverId):'—')}</td>
+    <td class="n">${i.boxes||0}</td><td class="n">${(+i.amount>0)?money(i.amount):'مسوّدة'}</td></tr>`).join('');
+  const invBoxes=sum(inv,i=>i.boxes),invAmt=sumM(inv.filter(i=>+i.amount>0),i=>i.amount);
+  const salesTbl=`<table><thead><tr><th>المبيع</th><th>السائق</th><th class="n">بكش</th><th class="n">المبلغ</th></tr></thead>
+    <tbody>${invRows||'<tr><td colspan="4">لا فواتير بيع في هذا اليوم</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="2">الإجمالي (${inv.length} فاتورة)</td><td class="n">${invBoxes}</td><td class="n">${money(invAmt)}</td></tr></tfoot></table>`;
+
+  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+  let oi=0,od=0;
+  ents.filter(e=>e.date<day).forEach(e=>legsOf(e).forEach(l=>{
+    if(l.to===fid)l.cond==='intact'?oi+=l.count:od+=l.count;
+    if(l.from===fid)l.cond==='intact'?oi-=l.count:od-=l.count}));
+  const day1=ents.filter(e=>e.date===day&&legsOf(e).some(l=>l.from===fid||l.to===fid)).sort((a,b)=>a.seq-b.seq);
+  let ci=oi,cd=od,TI=0,TO=0;
+  const boxRows=day1.map(e=>{
+    let ii=0,idd=0,oo=0,od2=0;const other=new Set();
+    legsOf(e).forEach(l=>{
+      if(l.to===fid){l.cond==='intact'?ii+=l.count:idd+=l.count;if(l.from!==fid&&l.from!=='#ADJ')other.add(D.nameOf(l.from))}
+      if(l.from===fid){l.cond==='intact'?oo+=l.count:od2+=l.count;if(l.to!==fid&&l.to!=='#ADJ')other.add(D.nameOf(l.to))}});
+    ci+=ii-oo;cd+=idd-od2;TI+=ii+idd;TO+=oo+od2;
+    return `<tr><td>${esc(BOXOP[e.op]||'حركة')}${e.auto?' <span class="tag">آلي</span>':''}</td>
+      <td>${esc([...other].join(' · ')||'—')}</td>
+      <td class="n cin">${ii+idd||''}</td><td class="n cout">${oo+od2||''}</td></tr>`}).join('');
+  /* المزرعة جهة، والعهدة عندها «سليم» فقط دائماً — نعرض عدداً واحداً بلا تقسيم سليم/تالف */
+  const boxTbl=`<table><thead><tr><th>العملية</th><th>الطرف الآخر</th>
+    <th class="n">وارد</th><th class="n">صادر</th></tr></thead>
+    <tbody>${boxRows||'<tr><td colspan="4">لا حركات بكش في هذا اليوم</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="2">إجمالي ${day1.length} حركة</td><td class="n">${TI}</td><td class="n">${TO}</td></tr></tfoot></table>`;
+
+  const ice=D.live.filter(e=>e.type==='ice_op'&&e.farmId===fid&&e.date===day).sort((a,b)=>a.seq-b.seq);
+  const iceRows=ice.map(e=>`<tr><td>${esc(D.nameOf(e.factoryId))}</td><td class="n">${e.qty}</td>
+    <td class="n">${money(e.unitPrice)}</td><td class="n">${money((+e.qty||0)*(+e.unitPrice||0))}</td></tr>`).join('');
+  const iceQty=sum(ice,e=>e.qty),iceVal=sumM(ice,e=>(+e.qty||0)*(+e.unitPrice||0));
+  const iceTbl=`<table><thead><tr><th>المصنع</th><th class="n">بلاطات</th><th class="n">السعر</th><th class="n">القيمة</th></tr></thead>
+    <tbody>${iceRows||'<tr><td colspan="4">لا عمليات ثلج باسم المزرعة في هذا اليوم</td></tr>'}</tbody>
+    <tfoot><tr><td>الإجمالي (${ice.length})</td><td class="n">${iceQty}</td><td></td><td class="n">${money(iceVal)}</td></tr></tfoot></table>`;
+
+  S.print={title:`تقرير المزرعة اليومي — ${farm.name} — ${arDate(day)}`,phone:farm.phone,
+    html:`<h3>عمليات البيع</h3>${salesTbl}
+      <h3>عهدة البكش</h3><p>رصيد أول اليوم: ${oi} صندوق — رصيد آخر اليوم: ${ci} صندوق</p>${boxTbl}
+      <h3>عمليات الثلج باسم المزرعة</h3>${iceTbl}`};
+  return `<div class="eyebrow">عمليات البيع — ${esc(farm.name)} — ${arDate(day)}</div>
+    <div class="card">${inv.length?`<div class="tscroll">${salesTbl}</div>`:'<div class="empty">لا فواتير بيع في هذا اليوم</div>'}</div>
+    <div class="eyebrow">عهدة البكش لهذا اليوم</div>
+    <div class="card">
+      <div class="diff"><span>رصيد أول اليوم</span><b>${oi} صندوق</b></div>
+      ${day1.length?`<div class="tscroll">${boxTbl}</div>`:'<div class="empty">لا حركات بكش في هذا اليوم</div>'}
+      <div class="diff over"><span>رصيد آخر اليوم</span><b>${ci} صندوق</b></div>
+    </div>
+    <div class="eyebrow">عمليات الثلج باسم المزرعة</div>
+    <div class="card">${ice.length?`<div class="tscroll">${iceTbl}</div>`:'<div class="empty">لا عمليات ثلج باسم المزرعة في هذا اليوم</div>'}</div>`;
+}
+/* ============ تقرير التحصيل ============
+   يوم واحد: كل التحصيلات (كل المبايع، أو مبيع واحد لو اتفلتر) والإجمالي. */
+function repCollDaily(){
+  const D=S.D,F=S.F;
+  const day=(F.from&&F.from===F.to)?F.from:'';
+  if(!day)return `<div class="empty"><b>اختر يوماً واحداً</b>
+    افتح الفلتر فوق واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
+  const items=D.live.filter(e=>e.type==='collection'&&e.date===day&&(!F.ent||e.merchantId===F.ent))
+    .sort((a,b)=>a.seq-b.seq);
+  const rows=items.map(c=>`<tr><td>${esc(D.nameOf(c.merchantId))}</td>
+    <td class="n">${money(c.amount)}</td><td>${esc(c.note||'—')}</td></tr>`).join('');
+  const total=sumM(items,c=>c.amount);
+  const tbl=`<table><thead><tr><th>المبيع</th><th class="n">المبلغ</th><th>ملاحظات</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="3">لا تحصيلات في هذا اليوم</td></tr>'}</tbody>
+    <tfoot><tr><td>الإجمالي (${items.length} تحصيل)</td><td class="n">${money(total)}</td><td></td></tr></tfoot></table>`;
+  S.print={title:`تقرير التحصيل — ${arDate(day)}`,html:tbl};
+  return `<div class="eyebrow">تحصيلات ${arDate(day)}${F.ent?` — ${esc(D.nameOf(F.ent))}`:''}</div>
+    <div class="card">${items.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا تحصيلات في هذا اليوم</div>'}
+    <div class="diff over" style="margin-top:12px"><span>الإجمالي</span><b>${money(total)}</b></div></div>`;
+}
+/* ============ تقارير الجهات المركّبة: المزرعة والمبيع ============
+   شاشة واحدة لكل جهة بتبويبات (بكش · فواتير · تلج) بدل تقارير منفصلة —
+   تعيد استخدام repBox('stmt') وrepAcct القائمين بدل تكرار الحساب. */
+function repFarmEnt(){
+  const D=S.D,F=S.F;
+  const target=F.ent?D.farms.find(f=>f.id===F.ent):null;
+  if(!target)return `<div class="empty"><b>اختر مزرعة</b>افتح الفلتر فوق واختر مزرعة لعرض تقريرها.
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="farm">اختر مزرعة</button></div></div>`;
+  const K=S.sub.farmEnt||'stmt';
+  const segK=seg('farmEnt',[["stmt","بكش"],["led","فواتير وتصفيات"],["ice","تلج"]],K,true);
+  let body;
+  if(K==='ice')body=farmIceTab(target);
+  else if(K==='led')body=repAcct();
+  else{S.sub.repbox='stmt';body=repBox()}
+  return segK+`<div style="height:14px"></div>`+body;
+}
+function repMerchEnt(){
+  const D=S.D,F=S.F;
+  const target=F.ent?D.merchants.find(m=>m.id===F.ent):null;
+  if(!target)return `<div class="empty"><b>اختر مبيعاً</b>افتح الفلتر فوق واختر مبيعاً لعرض تقريره.
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="merchant">اختر مبيعاً</button></div></div>`;
+  const K=S.sub.merchEnt||'stmt';
+  const segK=seg('merchEnt',[["stmt","بكش"],["led","فواتير وتحصيل"]],K,true);
+  let body;
+  if(K==='led')body=repAcct();
+  else{S.sub.repbox='stmt';body=repBox()}
+  return segK+`<div style="height:14px"></div>`+body;
+}
+function farmIceTab(farm){
+  const D=S.D;
+  const items=D.live.filter(e=>e.type==='ice_op'&&e.farmId===farm.id&&inR(e))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+  const rows=items.map(e=>`<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.factoryId))}</td>
+    <td class="n">${e.qty}</td><td class="n">${money(e.unitPrice)}</td>
+    <td class="n">${money((+e.qty||0)*(+e.unitPrice||0))}</td></tr>`).join('');
+  const totQty=sum(items,e=>e.qty),totVal=sumM(items,e=>(+e.qty||0)*(+e.unitPrice||0));
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>المصنع</th><th class="n">بلاطات</th>
+    <th class="n">السعر</th><th class="n">القيمة</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="5">لا عمليات ثلج باسم هذه المزرعة في المدى المحدد</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="2">الإجمالي (${items.length})</td><td class="n">${totQty}</td><td></td>
+    <td class="n">${money(totVal)}</td></tr></tfoot></table>`;
+  S.print={title:`عمليات الثلج باسم ${farm.name}`,html:tbl,phone:farm.phone};
+  return `<div class="eyebrow">عمليات الثلج باسم ${esc(farm.name)}</div>
+    <div class="card">${items.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا عمليات ثلج باسم هذه المزرعة في المدى المحدد</div>'}
+    <div class="diff" style="margin-top:12px"><span>إجمالي القيمة</span><b>${money(totVal)}</b></div></div>`;
+}
+/* ============ تقارير عامة (أرصدة كل الجهات في نوع واحد) ============ */
+function repFarmsAll(){
+  const D=S.D;
+  const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.cycleCount}</td>
+    <td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
+  const ffoot=`<tfoot><tr><td>الإجمالي (${D.farms.length} مزرعة)</td>
+    <td class="n">${sum(D.farms,f=>f.cycleCount)}</td><td class="n">${sum(D.farms,f=>f.cycleBoxes)}</td>
+    <td class="n">${money(sumM(D.farms,f=>f.balance))}</td></tr></tfoot>`;
+  const fth=`<thead><tr><th>المزرعة</th><th class="n">فواتير الدورة</th><th class="n">صناديق</th><th class="n">الرصيد</th></tr></thead>`;
+  const ftbl=`<table>${fth}<tbody>${frows}</tbody>${ffoot}</table>`;
+  S.print={title:"تقرير المزارع عموماً",html:ftbl};
+  return `<div class="eyebrow brass">أرصدة المزارع (${D.farms.length})</div>
+    <div class="card">${frows?`<div class="tscroll">${ftbl}</div>`:'<div class="empty">لا يوجد</div>'}</div>
+    <p class="note">اختر مزرعة من «تقارير الجهات ← تقرير المزرعة» لكشف تفصيلي.</p>`;
+}
+function repMerchAll(){
+  const D=S.D;
+  const rows=D.merchants.map(m=>`<tr><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
+    <td class="n">${money(m.collected)}</td>${mcell(m.balance)}</tr>`).join('');
+  const mfoot=`<tfoot><tr><td>الإجمالي (${D.merchants.length} مبيع)</td>
+    <td class="n">${money(sumM(D.merchants,m=>m.invoiced))}</td>
+    <td class="n">${money(sumM(D.merchants,m=>m.collected))}</td>
+    <td class="n">${money(sumM(D.merchants,m=>m.balance))}</td></tr></tfoot>`;
+  const mth=`<thead><tr><th>المبيع</th><th class="n">فواتير</th><th class="n">محصّل</th><th class="n">الرصيد</th></tr></thead>`;
+  const mtbl=`<table>${mth}<tbody>${rows}</tbody>${mfoot}</table>`;
+  S.print={title:"تقرير المبايع عموماً",html:mtbl};
+  return `<div class="eyebrow">أرصدة المبايع (${D.merchants.length})</div>
+    <div class="card">${rows?`<div class="tscroll">${mtbl}</div>`:'<div class="empty">لا يوجد</div>'}
+    <p class="note">الأحمر = مديونية عليه · الأخضر = دفعة مقدّمة له.</p></div>
+    <p class="note">اختر مبيعاً من «تقارير الجهات ← تقرير المبيع» لكشف تفصيلي.</p>`;
+}
+/* ============ حركة البكش العامة ============
+   سجل كل حركات البكش في كل الجهات — كان مبنياً وغير مستدعى، أصبح تقريراً مستقلاً. */
+function repBoxAll(){
+  const D=S.D,F=S.F;
+  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+  const l=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent))).sort((a,b)=>b.seq-a.seq);
+  const ref=F.ent||WH;
+  const io=e=>{let i=0,o=0;legsOf(e).forEach(x=>{if(x.to===ref)i+=x.count;if(x.from===ref)o+=x.count});return[i,o]};
+  let TI=0,TO=0;
+  const rows=l.map(e=>{const[i,o]=io(e);TI+=i;TO+=o;
+    return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td>
+      <td>${esc(legsTxt(e))}</td><td class="n cin">${i||''}</td><td class="n cout">${o||''}</td>
+      <td>${esc(e.note||'')}</td></tr>`}).join('');
+  S.print={title:`سجل حركات البكش — الوارد/الصادر بالنسبة لـ ${D.nameOf(ref)}`,
+    html:`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الحركة</th>
+      <th class="n">وارد</th><th class="n">صادر</th><th>ملاحظة</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr><td colspan="3">الإجمالي (${l.length} حركة)</td>
+      <td class="n">${TI}</td><td class="n">${TO}</td><td></td></tr></tfoot></table>`};
+  const N=30,show=Math.min(l.length,N*((S.page||0)+1));
+  return `<div class="eyebrow">كل حركات البكش (${l.length})</div>`
+    +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
+        boxFlow(e)+(e.driverId?` · ${D.nameOf(e.driverId)}`:''),boxQtyTxt(e))).join('')
+      +(show<l.length?`<button class="more" data-act="more">عرض ${Math.min(N,l.length-show)} حركة أخرى · باقي ${l.length-show}</button>`:'')
+      :'<div class="empty">لا حركات</div>');
+}
+
 /* ---------- ٥) الإعدادات ---------- */
 const ENTF={
   farm:[['name','اسم المزرعة','text'],['place','المكان','text'],['phone','رقم التواصل','tel']],
@@ -2499,7 +2719,7 @@ const ENTF={
 };
 const ENTAR={farm:'مزرعة',merchant:'مبيع',driver:'سائق',route:'رحلة',ice:'مصنع ثلج'};
 /* الجهات التي لها كشف حساب في التقارير */
-const ENTREP={farm:['acct'],merchant:['acct'],driver:['drv'],ice:['ice']};
+const ENTREP={farm:['farmEnt'],merchant:['merchEnt'],driver:['drv'],ice:['ice']};
 /* حقول الرصيد الافتتاحي — تظهر عند الإضافة وفي ورقة «رصيد افتتاحي» للجهات القديمة */
 /* لوحة المفاتيح الرقمية على الموبايل ما فيهاش علامة سالب، فالاتجاه يُختار بزرّين
    بدل كتابة إشارة — أوضح للمستخدم وأضمن من ناحية الإدخال. */
@@ -2982,17 +3202,17 @@ function onClick(ev){
     case 'setMore':S.setp=(S.setp||0)+1;return render();
     case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
     case 'settleFarm':S.form.settle={farmId:id};return go('ops',{ops:'acct',fin:'settle'});
-    case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
+    case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';S.rep='farmEnt';S.page=0;S.fopen=false;return go('rep');
     case 'goFarms':return go('ops',{ops:'acct',fin:'settle'});
     case 'goDrafts':return go('ops',{ops:'acct',fin:'draft'});
     case 'goBox':return go('ops',{ops:'box',box:'bal'});
     case 'goBoxMove':return go('ops',{ops:'box',box:'move',boxop:'sale_move'});
     case 'goBoxAdj':return go('ops',{ops:'box',box:'adj',boxop:'opening_box'});
     case 'goDmg':return go('ops',{ops:'drv',drv:'dmg'});
-    case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';return go('rep',{rep:'acct'});
-    case 'repDriver':S.F.ent=id;return go('rep',{rep:'drv'});
-    case 'repFactory':S.F.ent=id;return go('rep',{rep:'ice'});
-    case 'repEntity':S.F.ent=id;return go('rep',{rep:'box',repbox:'log'});
+    case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';S.rep='merchEnt';S.page=0;S.fopen=false;return go('rep');
+    case 'repDriver':S.F.ent=id;S.rep='drv';S.page=0;S.fopen=false;return go('rep');
+    case 'repFactory':S.F.ent=id;S.rep='ice';S.page=0;S.fopen=false;return go('rep');
+    case 'repEntity':S.F.ent=id;S.rep='boxAll';S.page=0;S.fopen=false;return go('rep');
     case 'allType':S.F.type=b.dataset.t;S.page=0;return render();
     case 'fPick':return openFilterPick(b.dataset.et);
     case 'fClear':S.F.ent='';S.page=0;return render();
@@ -3004,6 +3224,9 @@ function onClick(ev){
     case 'repPick':return repPick();
     case 'fToggle':S.fopen=!S.fopen;return render();
     case 'repSel':S.rep=b.dataset.r;S.page=0;S.toTop=true;S.fopen=false;
+      if(REPNOENT.has(S.rep))S.F.ent='';
+      if((S.rep==='farmDaily'||S.rep==='colDaily')&&S.F.from!==S.F.to){
+        const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
       closeSheet();return render();
     case 'handRange':{const t=todayISO();
       const M={today:[t,t],yest:[addDays(t,-1),addDays(t,-1)],week:[addDays(t,-6),t],month:[monthStart(),t]};
@@ -3041,7 +3264,7 @@ function onClick(ev){
     case 'delOp':return delOp(id);
     case 'toggleEnt':S.openEnt=S.openEnt===id?null:id;return render();
     case 'entRep':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';
-      return go('rep',{rep:ENTREP[b.dataset.t][0]});
+      S.rep=ENTREP[b.dataset.t][0];S.page=0;S.fopen=false;return go('rep');
     case 'editEnt':return editEnt(id);
     case 'addOpen':return addOpen(id);
     case 'delEnt':return delEnt(id);
