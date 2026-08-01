@@ -171,8 +171,22 @@ main>.sec-title:first-child{margin-top:4px}
 .eyebrow::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--accent);flex:0 0 auto}
 .eyebrow.brass::before{background:var(--warn)}
 .eyebrow.debt::before{background:var(--debt)}
+/* ألوان النطاق نفسها المستخدمة في .sec-title/.tile — نعيد استخدامها هنا لتلوين
+   شريط عنوان القسم داخل التقارير (بكش=بنفسجي، ثلج=أزرق، حسابات=تركواز) بدل شريط
+   واحد بلون الثيم فقط، عشان قسم البكش والثلج يتميّزا بصرياً في تقرير واحد */
+.eyebrow.acct::before{background:var(--c-acct)}
+.eyebrow.box::before{background:var(--c-box)}
+.eyebrow.ice::before{background:var(--c-ice)}
+.eyebrow.drv::before{background:var(--c-drv)}
 .eyebrow .free{font-weight:400;color:var(--muted);font-size:13px}
 main>.eyebrow:first-child{margin-top:4px}
+
+/* اسم الجهة في بداية تقرير مركّز عليها (مزرعة/مبيع/سائق..) — عنوان كبير وواضح
+   في نص الصفحة، مختلف عن .eyebrow (شريط قسم فرعي) */
+.rptname{text-align:center;margin:2px 2px 20px}
+.rptname b{display:block;font-size:22px;font-weight:700;color:var(--ink);line-height:1.35}
+.rptname span{display:block;font-size:13.5px;color:var(--muted);margin-top:5px}
+main>.rptname:first-child{margin-top:4px}
 
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
@@ -214,15 +228,15 @@ main>.eyebrow:first-child{margin-top:4px}
 .drow .go{color:var(--faint);font-size:18px}
 
 /* ---------------- الجداول ---------------- */
-table{width:100%;border-collapse:collapse;font-size:14.5px}
-th{text-align:right;font-size:12.5px;color:var(--muted);font-weight:600;
+table{width:100%;border-collapse:collapse;font-size:14.5px;text-align:center}
+th{text-align:center;font-size:12.5px;color:var(--muted);font-weight:600;
   padding:10px 8px;background:var(--card-2);white-space:nowrap;border-bottom:1px solid var(--line-2)}
 th:first-child{border-start-start-radius:8px}
 th:last-child{border-start-end-radius:8px}
-td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink)}
+td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);text-align:center}
 tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 40%,transparent)}
 tr:last-child td{border-bottom:0}
-td.n,th.n{text-align:left}
+td.n,th.n{text-align:center}
 td.n{font-size:15px;font-variant-numeric:tabular-nums}
 tfoot td{font-weight:600;border-top:2px solid var(--ink-2);background:var(--card-2);font-size:15px}
 tfoot tr:nth-child(even) td{background:var(--card-2)}
@@ -618,12 +632,11 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
   #print tfoot{display:table-footer-group}
   #print tr{page-break-inside:avoid;break-inside:avoid}
   #print th{background:#E8E8E8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;
-    border:0.6pt solid #555;padding:6px 7px;text-align:right;font-weight:700;font-size:9pt}
-  #print td{border:0.6pt solid #999;padding:5px 7px;text-align:right}
+    border:0.6pt solid #555;padding:6px 7px;text-align:center;font-weight:700;font-size:9pt}
+  #print td{border:0.6pt solid #999;padding:5px 7px;text-align:center}
   #print tbody tr:nth-child(even) td{background:#F6F6F6!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  #print td:last-child,#print th:last-child,
-  #print td.n,#print th.n{text-align:left;font-variant-numeric:tabular-nums}
+  #print td.n,#print th.n{text-align:center;font-variant-numeric:tabular-nums}
   #print tfoot td{font-weight:700;border-top:1.6pt solid #000;background:#EDEDED!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
 
@@ -704,6 +717,12 @@ const mcell=(v,flip)=>{const n=+v||0;const cls=Math.abs(n)<.005?'':((flip?-n:n)>
   return `<td class="n ${cls}">${money(n)}</td>`};
 const todayISO=()=>new Date().toLocaleDateString('en-CA');
 const arDate=iso=>{if(!iso)return"—";const[y,m,d]=iso.split('-');return `${d}/${m}/${y}`};
+/* تاريخ مختصر لاسم ملف الحفظ: يوم بلا صفر بادئ + أول ٣ حروف الشهر بالإنجليزية — "1aug" */
+const MONABBR=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const dtag=iso=>{if(!iso)return'';const[,m,d]=iso.split('-');return `${+d}${MONABBR[+m-1]||''}`};
+/* اسم ملف الحفظ: نوع التقرير + الجهة (لو موجودة) + التاريخ المختصر — أجزاء غير فاضية بينها "-" */
+const fname=(...parts)=>parts.filter(Boolean).join('-')
+  .replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'_');
 const sum=(a,f)=>a.reduce((t,x)=>t+(+f(x)||0),0);
 /* حساب المال بالقروش الصحيحة: 0.1+0.2 بالعشري = 0.30000000000000004،
    ومع آلاف السطور الفرق يظهر في المجاميع. نجمع صحيحاً ثم نقسم. */
@@ -753,7 +772,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.3.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.4.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2581,19 +2600,20 @@ function repFarmDaily(){
     <tfoot><tr><td>الإجمالي (${ice.length})</td><td class="n">${iceQty}</td><td></td><td class="n">${money(iceVal)}</td></tr></tfoot></table>`;
 
   S.print={title:`تقرير المزرعة اليومي — ${farm.name} — ${arDate(day)}`,phone:farm.phone,
-    html:`<h3>عمليات البيع</h3>${salesTbl}
-      <h3>عهدة البكش</h3><p>رصيد أول اليوم: ${oi} صندوق — رصيد آخر اليوم: ${ci} صندوق</p>${boxTbl}
-      <h3>عمليات الثلج باسم المزرعة</h3>${iceTbl}`};
-  return `<div class="eyebrow">عمليات البيع — ${esc(farm.name)} — ${arDate(day)}</div>
+    html:`<h3>عمليات الثلج باسم المزرعة</h3>${iceTbl}
+      <h3>عمليات البيع</h3>${salesTbl}
+      <h3>عهدة البكش</h3><p>رصيد أول اليوم: ${oi} صندوق — رصيد آخر اليوم: ${ci} صندوق</p>${boxTbl}`};
+  return `<div class="rptname"><b>${esc(farm.name)}</b><span>تقرير يومي — ${arDate(day)}</span></div>
+    <div class="eyebrow ice">عمليات الثلج باسم المزرعة</div>
+    <div class="card">${ice.length?`<div class="tscroll">${iceTbl}</div>`:'<div class="empty">لا عمليات ثلج باسم المزرعة في هذا اليوم</div>'}</div>
+    <div class="eyebrow acct">عمليات البيع</div>
     <div class="card">${inv.length?`<div class="tscroll">${salesTbl}</div>`:'<div class="empty">لا فواتير بيع في هذا اليوم</div>'}</div>
-    <div class="eyebrow">عهدة البكش لهذا اليوم</div>
+    <div class="eyebrow box">عهدة البكش لهذا اليوم</div>
     <div class="card">
       <div class="diff"><span>رصيد أول اليوم</span><b>${oi} صندوق</b></div>
       ${day1.length?`<div class="tscroll">${boxTbl}</div>`:'<div class="empty">لا حركات بكش في هذا اليوم</div>'}
       <div class="diff over"><span>رصيد آخر اليوم</span><b>${ci} صندوق</b></div>
-    </div>
-    <div class="eyebrow">عمليات الثلج باسم المزرعة</div>
-    <div class="card">${ice.length?`<div class="tscroll">${iceTbl}</div>`:'<div class="empty">لا عمليات ثلج باسم المزرعة في هذا اليوم</div>'}</div>`;
+    </div>`;
 }
 /* ============ تقرير التحصيل ============
    يوم واحد: كل التحصيلات (كل المبايع، أو مبيع واحد لو اتفلتر) والإجمالي. */
@@ -3245,26 +3265,33 @@ function onClick(ev){
       return render()}
     case 'handPrint':return printDoc(
       (S.F.from===S.F.to?'ورقة تسليم يوم ':'ورقة تسليم فترة ')+arDate(S.F.from||todayISO()),
-      summaryHTML(S.F.from||todayISO(),S.F.to||S.F.from||todayISO())+handIssuesHTML());
+      summaryHTML(S.F.from||todayISO(),S.F.to||S.F.from||todayISO())+handIssuesHTML(),
+      fname('تسليم',dtag(S.F.from||todayISO())));
     case 'range':return setRange(b.dataset.r);
-    case 'combined':return printDoc("كشف حساب مجمّع — "+S.D.nameOf(S.F.ent),combinedHTML(S.F.ent));
+    case 'combined':return printDoc("كشف حساب مجمّع — "+S.D.nameOf(S.F.ent),combinedHTML(S.F.ent),
+      fname('كشف_مجمع',S.D.nameOf(S.F.ent),dtag(todayISO())));
     case 'combinedWA':return shareWA(combinedText(S.F.ent),S.D.phoneOf(S.F.ent));
-    case 'printRep':return printDoc(S.print?.title||"تقرير",S.print?.html||"");
+    case 'printRep':return printDoc(S.print?.title||"تقرير",S.print?.html||"",
+      fname(repInfo(S.rep)[1],S.F.ent?S.D.nameOf(S.F.ent):'',
+        dtag((S.F.from&&S.F.from===S.F.to)?S.F.from:todayISO())));
     case 'waRep':return waReport();
     case 'shareDaily':return shareWA(dailyText(),S.co.phone);
     case 'printDaily':return openSumPick();
     case 'sumGo':{const[a,b2]=b.dataset.rg.split('|');closeSheet();
-      return printDoc(`ملخص ${b.dataset.lbl}`,summaryHTML(a,b2));}
+      return printDoc(`ملخص ${b.dataset.lbl}`,summaryHTML(a,b2),fname('ملخص',b.dataset.lbl,dtag(a)));}
     case 'shareReceipt':return S.lastReceipt&&shareWA(receiptText(S.lastReceipt),S.D.phoneOf(S.lastReceipt.farmId));
-    case 'printReceipt':return S.lastReceipt&&printDoc("إيصال تصفية",receiptHTML(S.lastReceipt));
+    case 'printReceipt':return S.lastReceipt&&printDoc("إيصال تصفية",receiptHTML(S.lastReceipt),
+      fname('إيصال_تصفية',S.lastReceipt.farmName,dtag(S.lastReceipt.date)));
     case 'printReceiptFull':return S.lastReceipt&&
-      printDoc("إيصال تصفية مفصّل",receiptFullHTML(S.lastReceipt,S.lastReceipt.ids));
+      printDoc("إيصال تصفية مفصّل",receiptFullHTML(S.lastReceipt,S.lastReceipt.ids),
+        fname('إيصال_تصفية',S.lastReceipt.farmName,dtag(S.lastReceipt.date)));
     case 'archFull':{const st=S.D.settlements.find(x=>x.id===id);if(!st)return;
       const r={farmName:S.D.nameOf(st.farmId),farmId:st.farmId,date:st.date,
         count:(st.coveredIds||[]).length,boxes:st.boxes,total:st.total,office:st.office,
         farmRatio:st.farmRatio,commission:st.commission,expenses:st.expenses,net:st.net,
         prevDebt:st.prevDebt,payable:st.payable};
-      return printDoc("إيصال تصفية مفصّل",receiptFullHTML(r,st.coveredIds));}
+      return printDoc("إيصال تصفية مفصّل",receiptFullHTML(r,st.coveredIds),
+        fname('إيصال_تصفية',r.farmName,dtag(r.date)));}
     case 'fullM':return fillM(b);
     case 'fullA':return fillA(b);
     case 'fullDmg':return fillDmg(b);
@@ -3965,7 +3992,7 @@ function combinedText(id){
 }
 
 /* ============ التقارير: طباعة PDF وواتساب ============ */
-async function printDoc(title,bodyHTML){
+async function printDoc(title,bodyHTML,saveName){
   const c=S.co,F=S.F;
   const range=(F.from||F.to)?`الفترة: ${F.from?arDate(F.from):'البداية'} — ${F.to?arDate(F.to):'اليوم'}`:'كل الفترات';
   const stamp=new Date().toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'});
@@ -3980,7 +4007,14 @@ async function printDoc(title,bodyHTML){
   /* بدون الانتظار، اللوجو (data-URL) قد لا يكون فُكّ تشفيره فيطبع التقرير بلا شعار */
   const img=$('#print img');
   if(img&&img.decode){try{await img.decode()}catch(e){}}
+  /* المتصفح بيقترح اسم ملف PDF من عنوان الصفحة عند «حفظ كـ PDF» من حوار الطباعة —
+     نغيّره مؤقتاً لاسم مفهوم (نوع التقرير-الجهة-تاريخ مختصر) ونرجّعه بعد الطباعة. */
+  const prevTitle=document.title;
+  if(saveName)document.title=saveName;
+  const restore=()=>{document.title=prevTitle;window.removeEventListener('afterprint',restore)};
+  if(saveName)window.addEventListener('afterprint',restore);
   window.print();
+  if(saveName)setTimeout(restore,1500);   /* احتياط لو afterprint ما اتطلقتش (بعض المتصفحات) */
 }
 function waReport(){
   const p=S.print;if(!p)return toast("لا يوجد تقرير","err");
