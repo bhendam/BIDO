@@ -753,7 +753,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.2.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.3.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -914,8 +914,14 @@ function derive(entities,ledger){
   const farms=list('farm').map(f=>{
     const inv=invoices.filter(i=>i.farmId===f.id),cyc=inv.filter(i=>!covered.has(i.id));
     const ss=actSet.filter(s=>s.farmId===f.id);
+    /* المسوّدة تحرّك بكش فعلاً، فحساب المزرعة يبقى «جارياً» بيها حتى لو ما دخلتش
+       أي حساب مالي (قاعدة ٨.٤). hasOpen/cycleStart بيشملوا المسوّدة، أما cycleInvoices/
+       cycleCount/cycleTotal (المستخدمة في التصفية الفعلية) تفضل مسعّرة بس — عشان
+       مسوّدة متتقفلش جوّه تصفية وهي لسه بلا مبلغ. */
+    const openAll=allInv.filter(i=>i.farmId===f.id&&!covered.has(i.id));
+    const cycleStart=openAll.length?openAll.reduce((m,i)=>i.date<m?i.date:m,openAll[0].date):null;
     return{...f,cycleInvoices:cyc,cycleCount:cyc.length,cycleBoxes:sum(cyc,i=>i.boxes),
-      cycleTotal:sumM(cyc,i=>i.amount),opening:openOf(f.id),
+      cycleTotal:sumM(cyc,i=>i.amount),opening:openOf(f.id),hasOpen:openAll.length>0,cycleStart,
       balance:msum(openOf(f.id),sumM(inv,i=>i.amount),-sumM(ss,s=>s.total)),settlements:ss}});
 
   /* تالف السائقين: عدّاد متابعة فقط — ليس مالاً ولا عهدة.
@@ -992,6 +998,9 @@ function derive(entities,ledger){
       return [...NUMSEED,third===undefined?100:third]})(),
     unlinked:invoices.filter(i=>(+i.boxes||0)>0&&!linked.has(i.id)),
     routes:list('route'),activeFarms:farms.filter(f=>f.cycleCount>0),
+    /* openFarms: عندها فاتورة (مسعّرة أو مسوّدة) لسه ما اتغطتش بتصفية — الدورة «جارية».
+       أوسع من activeFarms (اللي بيتحسب من المسعّرة بس وده مقصود لأغراض التصفية). */
+    openFarms:farms.filter(f=>f.hasOpen),
     locOptions:[{id:WH,name:'المخزن'},...farms,...merchants],
     kpi:{merchantDebt:sumM(merchants,m=>Math.max(m.balance,0)),merchantCredit:sumM(merchants,m=>Math.min(m.balance,0)),
       farmDue:sumM(farms,f=>f.balance),driverDue:sumM(drivers,d=>Math.max(d.balance,0)),
@@ -1122,12 +1131,14 @@ const GTAG={merchant:'مبيع',farm:'مزرعة',driver:'سائق',ice:'مصن�
 let _pk=0;
 function entList(t){
   const D=S.D;
-  /* «فتح دورة جديدة»: المزارع اللي مالهاش دورة مفتوحة — جديدة أو مصفّاة.
-     الدورة الجديدة مستقلة تماماً عن القديمة (دورة سمك جديدة). */
-  const idle=D.farms.filter(f=>!f.cycleCount);
+  /* «فتح دورة جديدة»: المزارع اللي مالهاش فاتورة جارية (مسعّرة أو مسوّدة) — جديدة أو مصفّاة.
+     مسوّدة بلا مبلغ لسه حركة حقيقية (بكش تحرّك)، فبتخلّي حساب المزرعة «جارياً»
+     ولا تستاهل تتحسب «دورة جديدة مستقلة» — لذلك hasOpen/openFarms بتشمل المسوّدة،
+     على عكس activeFarms المستخدمة في التصفية الفعلية (مسعّرة بس). */
+  const idle=D.farms.filter(f=>!f.hasOpen);
   return {farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
     loc:D.locOptions,farmerchant:[...D.farms,...D.merchants],
-    invfarm:D.activeFarms,active:D.activeFarms,
+    invfarm:D.openFarms,active:D.openFarms,
     new:[...idle.filter(f=>!f.settlements.length),...idle.filter(f=>f.settlements.length)]}[t]||[];
 }
 function entPick(name,type,sel,o={}){
@@ -1215,12 +1226,12 @@ function setPick(pkId,val){
   }
   inp.dispatchEvent(new Event('change',{bubbles:true}));
 }
-function entPickList(name,items,sel){
+function entPickList(name,items,sel,sub){
   const id='pk'+(++_pk);
   return `<div class="pick" id="${id}" data-name="${name}" data-ent="farm">
     <input type="hidden" name="${name}" value="${sel||''}">
     <div class="pkrow">${items.map(i=>
-      `<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}</button>`).join('')
+      `<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}${sub&&sub(i)?` <span class="rd2">${esc(sub(i))}</span>`:''}</button>`).join('')
       ||'<div class="empty" style="padding:14px">لا يوجد</div>'}</div></div>`;
 }
 /* أعداد الصناديق بتتكرّر بنفس القيم يومياً — نتعلّمها من الفواتير السابقة
@@ -1304,7 +1315,8 @@ function vHome(){
   ${d.farms?`<div class="drill">
     ${D.activeFarms.length?`<div class="drillsec">نشطة — اضغط للتصفية</div>`+
       D.activeFarms.sort((a,b)=>b.cycleTotal-a.cycleTotal).map(f=>
-      `<button class="drow" data-act="settleFarm" data-id="${f.id}"><span class="tname">${esc(f.name)}</span>
+      `<button class="drow" data-act="settleFarm" data-id="${f.id}"><span class="tname">${esc(f.name)}
+        ${f.cycleStart?`<span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</span>
         <span style="color:var(--muted);font-size:12px">${f.cycleCount} فاتورة</span>
         <b>${money(f.cycleTotal)}</b><span class="go">‹</span></button>`).join(''):''}
     ${(()=>{const done=D.farms.filter(f=>!f.cycleCount);
@@ -1468,7 +1480,7 @@ function fSettle(){
   return `<div class="eyebrow brass">تصفية وأرشفة دورة مزرعة</div>
   <div class="card"><form data-form="settle">
     <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
-      ${entPickList('farmId',D.activeFarms,f.farmId||"")}</div>
+      ${entPickList('farmId',D.activeFarms,f.farmId||"",x=>x.cycleStart?'دورة '+arDate(x.cycleStart):'')}</div>
     <div class="field"><label>تاريخ التصفية</label><input type="date" name="date" value="${f.date||todayISO()}" required></div>
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
@@ -2653,8 +2665,8 @@ function farmIceTab(farm){
 /* ============ تقارير عامة (أرصدة كل الجهات في نوع واحد) ============ */
 function repFarmsAll(){
   const D=S.D;
-  const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.cycleCount}</td>
-    <td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
+  const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}${f.cycleStart?` <span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</td>
+    <td class="n">${f.cycleCount}</td><td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
   const ffoot=`<tfoot><tr><td>الإجمالي (${D.farms.length} مزرعة)</td>
     <td class="n">${sum(D.farms,f=>f.cycleCount)}</td><td class="n">${sum(D.farms,f=>f.cycleBoxes)}</td>
     <td class="n">${money(sumM(D.farms,f=>f.balance))}</td></tr></tfoot>`;
@@ -2663,7 +2675,8 @@ function repFarmsAll(){
   S.print={title:"تقرير المزارع عموماً",html:ftbl};
   return `<div class="eyebrow brass">أرصدة المزارع (${D.farms.length})</div>
     <div class="card">${frows?`<div class="tscroll">${ftbl}</div>`:'<div class="empty">لا يوجد</div>'}</div>
-    <p class="note">اختر مزرعة من «تقارير الجهات ← تقرير المزرعة» لكشف تفصيلي.</p>`;
+    <p class="note">«دورة ت/ت/سسسس» = تاريخ أول فاتورة (مسعّرة أو مسوّدة) في الدورة الجارية.
+      اختر مزرعة من «تقارير الجهات ← تقرير المزرعة» لكشف تفصيلي.</p>`;
 }
 function repMerchAll(){
   const D=S.D;
@@ -3326,7 +3339,8 @@ function syncSettle(){
   const c=calcSettlement(raw);
   if(!touched)g('commission').value=c.commission;
   g('net').value=Math.round(c.net*100)/100;g('payable').value=Math.round(c.payable*100)/100;
-  $('[data-role=cyc]',f).textContent=x?`${x.cycleCount} فاتورة · ${x.cycleBoxes} صندوق في الدورة`:"اختر مزرعة.";
+  $('[data-role=cyc]',f).textContent=x?`${x.cycleCount} فاتورة · ${x.cycleBoxes} صندوق في الدورة`
+    +(x.cycleStart?` · فُتحت الدورة في ${arDate(x.cycleStart)}`:''):"اختر مزرعة.";
   const pe=$('[data-role=pct]',f);
   if(pe)pe.innerHTML=c.pct>0
     ?`<b class="num">${raw.office} ÷ ${raw.farmRatio}</b> = <b class="num">${Math.round(c.pct*1000)/1000}%</b>
@@ -3757,10 +3771,29 @@ function runTests(){
   d=D([inv('a',1000),{...inv('a2',700),replaces:'a'}]);
   ok("التعديل يحسب النسخة الجديدة فقط",d.merchants[0].balance===700);
 
+  /* مسوّدة بلا مبلغ: البكش تحرّك فعلاً، فحساب المزرعة يبقى «جارياً» رغم أنها
+     لا تدخل أي حساب مالي (cycleCount/cycleTotal يفضلوا صفر لحد ما تتسعّر). */
+  d=D([inv('a',0,10)]);
+  ok("المسوّدة وحدها لا تدخل حساب مالي",d.farms[0].balance===0&&d.farms[0].cycleCount===0);
+  ok("المسوّدة تخلّي حساب المزرعة جارياً (hasOpen)",d.farms[0].hasOpen===true);
+  ok("مزرعة بمسوّدة بس تفضل خارج activeFarms (مفيش حاجة تتصفّى)",!d.activeFarms.some(f=>f.id==='f1'));
+  ok("لكنها تدخل openFarms (عشان مانديهاش دورة جديدة غلط)",d.openFarms.some(f=>f.id==='f1'));
+  ok("cycleStart = تاريخ المسوّدة",d.farms[0].cycleStart==='2026-01-01');
+
+  d=D([{...inv('a',0,10),date:'2026-01-01'},{...inv('b',900,4),date:'2026-01-05'}]);
+  ok("cycleStart = أول تاريخ بين المسوّدة والمسعّرة",d.farms[0].cycleStart==='2026-01-01');
+  ok("cycleCount يحسب المسعّرة بس",d.farms[0].cycleCount===1);
+
+  d=D([{...inv('a',0,10),date:'2026-01-01'},{...inv('b',900,4),date:'2026-01-05'},
+       {id:'s1',type:'settlement',farmId:'f1',total:900,coveredIds:['b'],payable:900}]);
+  ok("تصفية المسعّرة لا تغطّي المسوّدة",d.farms[0].hasOpen===true&&d.farms[0].cycleCount===0);
+  ok("cycleStart بعد التصفية = تاريخ المسوّدة المتبقّية",d.farms[0].cycleStart==='2026-01-01');
+
   d=D([inv('a',1000,5),{id:'s1',type:'settlement',farmId:'f1',total:1000,coveredIds:['a'],payable:960}]);
   ok("التصفية تصفّر رصيد المزرعة",d.farms[0].balance===0);
   ok("الفواتير المصفّاة تخرج من الدورة",d.farms[0].cycleCount===0);
   ok("التصفية لا تمسّ رصيد المبيع",d.merchants[0].balance===1000);
+  ok("لا مسوّدة متبقّية = hasOpen false و cycleStart فاضي",d.farms[0].hasOpen===false&&d.farms[0].cycleStart===null);
 
   d=D([inv('a',1000),{id:'s1',type:'settlement',farmId:'f1',total:1000,coveredIds:['a']},
        {type:'settlement_reversal',refId:'s1'}]);
