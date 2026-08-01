@@ -753,7 +753,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.2.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.2.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1408,15 +1408,13 @@ function fInvoice(){
     <div class="field"><label>المزرعة</label>${entPick('farmId','invfarm',K.farmId||'')}
       ${isNew?`<p class="note" style="color:var(--brass)">اختيار مزرعة من هنا يبدأ لها <b>دورة جديدة</b> مستقلة عن دوراتها السابقة.</p>`:''}</div>
     <div class="field"><label>المبيع</label>${entPick('merchantId','merchant','')}</div>
-    <div class="row">
-      <div class="field"><label>الإجمالي (ج.م) <span class="hint">فاضي = مسوّدة</span></label>
-        ${micField('amount','placeholder="—"')}</div>
-      <div class="field"><label>عدد البكش</label>
-        <input type="number" name="boxes" min="0" step="1" inputmode="numeric" value="0"></div>
-    </div>
+    <div class="field"><label>عدد البكش</label>
+      <input type="number" name="boxes" min="0" step="1" inputmode="numeric" value="0"></div>
     ${quickNums('boxes',D.boxTop)}
     <div class="field" style="margin-top:14px"><label>السائق <span class="hint">اختياري</span></label>
       ${entPick('driverId','driver',K.driverId||'',{optional:1})}</div>
+    <div class="field" style="margin-top:14px"><label>الإجمالي (ج.م) <span class="hint">فاضي = مسوّدة</span></label>
+      ${micField('amount','placeholder="—"')}</div>
     <div class="field"><label>ملاحظة <span class="hint">اختياري</span></label><input name="note" placeholder="نوع السمك…"></div>
     <div class="field"><label>التاريخ</label><input type="date" name="date" value="${K.date||todayISO()}" required></div>
     <div class="btnrow" style="margin:0">
