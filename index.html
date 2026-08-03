@@ -772,7 +772,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.5.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.5.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1602,17 +1602,29 @@ function costDayList(farm){
   <div class="diff over" style="margin-top:14px"><span>إجمالي مصاريف الدورة</span><b>${money(farm.cycleExpenseTotal)}</b></div>
   <p class="note">الإجمالي ده بيتحط تلقائي في خانة «مصاريف تشغيل» عند تصفية المزرعة، وتقدر تعدّله من هناك.</p>`;
 }
-function costItemsList(list,closed,labelFn){
+/* بيان البند: الثلج بعدد البلاطات (مطلوب في التفصيل)، السيارات باسم السائق،
+   الباقي بالنص المكتوب يدوياً أو اسم البند الافتراضي. مستخدَمة هنا وفي تقرير المصاريف. */
+function costLabel(c){
+  const D=S.D;
+  if(c.cat==='ice')return c.qty?`${c.qty} بلاطة`:(c.note||'ثلج');
+  if(c.cat==='trip')return D.nameOf(c.driverId)||'سائق';
+  return c.note||CATLBL[c.cat]||'';
+}
+function costItemsList(list,closed){
   if(!list.length)return '';
-  return list.map(c=>`<div class="diff"><span>${labelFn?esc(labelFn(c))+(c.note?' — '+esc(c.note):''):esc(c.note||CATLBL[c.cat]||'')}</span>
+  return list.map(c=>`<div class="diff"><span>${esc(costLabel(c))}</span>
     <b>${money(c.amount)}</b></div>
     ${closed?'':`<div class="btnrow" style="margin:-4px 0 10px"><button type="button" class="btn ghost sm" data-act="editOp" data-id="${c.id}">تعديل</button>
       <button type="button" class="btn danger sm" data-act="delOp" data-id="${c.id}">حذف</button></div>`}`).join('');
 }
-function costSimpleForm(farmId,day,cat,def){
-  return `<form data-form="costItem" data-cat="${cat}" data-farm="${farmId}" data-day="${day}" class="row" style="align-items:flex-end">
-    <div class="field" style="margin:0;flex:1"><label>إضافة مبلغ</label>
-      <input type="number" name="amount" step="0.01" inputmode="decimal" value="${def||''}" placeholder="0.00"></div>
+/* الثلج بعدد بلاطات × سعر (زي عملية الثلج نفسها) لا مبلغ واحد — عشان يتسجّل
+   عدد البلاطات في البند نفسه ويظهر في التقرير المفصّل. */
+function costIceForm(farmId,day,qtyDef,priceDef){
+  return `<form data-form="costItem" data-cat="ice" data-farm="${farmId}" data-day="${day}" class="row" style="align-items:flex-end">
+    <div class="field" style="margin:0"><label>عدد البلاطات</label>
+      <input type="number" name="qty" min="0" step="1" inputmode="numeric" value="${qtyDef||''}" placeholder="0"></div>
+    <div class="field" style="margin:0"><label>متوسط سعر البلاطة</label>
+      <input type="number" name="unitPrice" step="0.01" inputmode="decimal" value="${priceDef||''}" placeholder="0.00"></div>
     <button class="btn sm" type="submit" style="flex:0 0 auto;margin-bottom:1px">تسجيل</button></form>`;
 }
 function costDriverRow(farmId,day,driverId,name,def){
@@ -1643,12 +1655,16 @@ function costDayView(farm,day){
   const dayTotal=sumM(farm.openCosts.filter(x=>x.cat!=='cash'&&x.date===day),x=>x.amount);
 
   const ice=items('ice');
+  /* السحب من كل مصانع الثلج المسجَّلة باسم المزرعة في نفس اليوم — العدد الإجمالي
+     ومتوسط السعر (القيمة ÷ العدد)، الاتنين مقترَحان وقابلان للتعديل قبل التسجيل. */
   const iceAuto=D.iceOps.filter(o=>o.farmId===farm.id&&o.date===day);
-  const iceAutoVal=Math.round(sumM(iceAuto,o=>(+o.qty||0)*(+o.unitPrice||0))*100)/100;
+  const iceAutoQty=sum(iceAuto,o=>o.qty);
+  const iceAutoVal=sumM(iceAuto,o=>(+o.qty||0)*(+o.unitPrice||0));
+  const iceAvgPrice=iceAutoQty>0?Math.round((iceAutoVal/iceAutoQty)*100)/100:'';
   const iceSec=`<div class="eyebrow ice">ثلج</div><div class="card">
-    ${iceAuto.length?`<p class="note" style="margin:0 0 10px">مسجَّل من عمليات الثلج: ${sum(iceAuto,o=>o.qty)} بلاطة بقيمة ${money(iceAutoVal)} — بالسعر الافتراضي، وتقدر تعدّل المبلغ قبل التسجيل.</p>`:''}
+    ${iceAuto.length?`<p class="note" style="margin:0 0 10px">مسحوب من كل المصانع: ${iceAutoQty} بلاطة بقيمة ${money(iceAutoVal)} — متوسط السعر ${money(iceAvgPrice)}، وتقدر تعدّل العدد أو السعر قبل التسجيل.</p>`:''}
     ${costItemsList(ice,closed)}
-    ${closed?'':costSimpleForm(farm.id,day,'ice',iceAutoVal>0?iceAutoVal:'')}
+    ${closed?'':costIceForm(farm.id,day,iceAutoQty>0?iceAutoQty:'',iceAvgPrice)}
   </div>`;
 
   const trip=items('trip');
@@ -1658,7 +1674,7 @@ function costDayView(farm,day){
   const sarouh=D.routes.find(r=>(r.name||'').includes('سروح'));
   const defFare=sarouh?+sarouh.fare||0:0;
   const trpSec=`<div class="eyebrow drv">سيارات</div><div class="card">
-    ${costItemsList(trip,closed,x=>D.nameOf(x.driverId))}
+    ${costItemsList(trip,closed)}
     ${closed?'':dayInvDrv.map(id=>costDriverRow(farm.id,day,id,D.nameOf(id),defFare)).join('')}
     ${closed?'':costDriverAddForm(farm.id,day,defFare)}
     ${(!closed&&!dayInvDrv.length&&!trip.length)?'<p class="note" style="margin-top:0">مفيش سائق مربوط بفاتورة النهاردة — أضف واحداً من الفورم فوق لو زار المزرعة.</p>':''}
@@ -2845,7 +2861,7 @@ function farmCostReport(farm){
     body='<div class="empty">لا توجد مصاريف مسجَّلة للدورة الحالية</div>';
   }else if(view==='detail'){
     const rows=costs.map(c=>`<tr><td class="n">${arDate(c.date)}</td><td>${esc(CATLBL[c.cat]||c.cat)}</td>
-      <td>${esc(c.note||(c.driverId?D.nameOf(c.driverId):'')||'—')}</td><td class="n">${money(c.amount)}</td></tr>`).join('');
+      <td>${esc(costLabel(c))}</td><td class="n">${money(c.amount)}</td></tr>`).join('');
     body=`<table><thead><tr><th>التاريخ</th><th>البند</th><th>بيان</th><th class="n">المبلغ</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td colspan="3">الإجمالي (${costs.length})</td><td class="n">${money(sumM(costs,c=>c.amount))}</td></tr></tfoot></table>`;
@@ -3736,10 +3752,15 @@ async function onSubmit(ev){
       if(cat!=='cash'&&S.D.closedDays.has(key)&&S.cost.unlock!==key)return toast("اليوم مقفول للتعديل","err");
       if(cat==='trip'&&!p.driverId)return toast("اختر السائق","err");
       if((cat==='labor'||cat==='misc'||cat==='cash')&&!p.note?.trim())return toast("اكتب بياناً مختصراً","err");
-      const amt=+p.amount||0;
+      let amt,qty=null;
+      if(cat==='ice'){
+        qty=Math.max(0,Math.round(+p.qty||0));
+        if(qty<=0)return toast("اكتب عدد بلاطات أكبر من صفر","err");
+        amt=P(qty*(+p.unitPrice||0))/100;
+      }else amt=+p.amount||0;
       if(amt<=0)return toast("اكتب مبلغاً أكبر من صفر","err");
       await append({type:'farm_cost',date,farmId,cat,amount:amt,note:p.note||'',
-        driverId:p.driverId||null});
+        driverId:p.driverId||null,qty});
       f.reset();return toast("تم التسجيل","ok")}
     if(kind==='driver_advance'||kind==='driver_payment'||kind==='factory_payment'){
       const key=kind==='factory_payment'?'factoryId':'driverId';
