@@ -772,7 +772,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.4.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.5.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -790,10 +790,11 @@ const SCHEMA={invoice:['date','farmId','merchantId'],collection:['date','merchan
   factory_payment:['date','factoryId'],ice_op:['date','factoryId','farmId'],
   settlement:['date','farmId'],settlement_reversal:['refId'],box:['date','op'],void:['voidOf'],
   opening_cash:['date','entityId','amount'],
-  driver_damage_clear:['date','driverId','count']};
+  driver_damage_clear:['date','driverId','count'],
+  farm_cost:['date','farmId','cat','amount'],farm_day_close:['date','farmId']};
 /* الفاتورة غير مذكورة هنا عمداً: مبلغها قد يكون صفراً (مسوّدة) */
 const POSF={collection:['amount'],driver_advance:['amount'],
-  driver_payment:['amount'],factory_payment:['amount'],ice_op:['qty']};
+  driver_payment:['amount'],factory_payment:['amount'],ice_op:['qty'],farm_cost:['amount']};
 function validate(e){
   if(!e||!e.type)throw new Error("نوع الحركة مفقود");
   const req=SCHEMA[e.type];if(!req)throw new Error("نوع حركة غير معروف: "+e.type);
@@ -900,7 +901,8 @@ const S={tab:"home",
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,wipeLog:[],wipe:{kind:'ledger',backedUp:false},
-  F:{from:monthStart(),to:todayISO(),ent:"",q:"",range:"month"}};
+  F:{from:monthStart(),to:todayISO(),ent:"",q:"",range:"month"},
+  cost:{farmId:"",day:"",unlock:""}};
 
 function derive(entities,ledger){
   /* الحركات الميتة: ملغاة أو مستبدلة بنسخة أحدث */
@@ -917,6 +919,14 @@ function derive(entities,ledger){
   const voided=new Set(T('settlement_reversal').map(e=>e.refId));
   const actSet=settlements.filter(s=>!voided.has(s.id));
   const covered=new Set();actSet.forEach(s=>(s.coveredIds||[]).forEach(i=>covered.add(i)));
+  /* مصاريف المزرعة: بند واحد لكل عملية (ثلج/سيارات/عمال/نثريات/نقدية)، تُغطّى
+     بالتصفية بنفس منطق الفواتير (costIds بدل coveredIds) — عشان ما تتكررش
+     في دورة جديدة ولا تتحسب مرتين. إغلاق اليوم علامة عرض فقط، بلا تغطية تصفية،
+     لأنها لا تحمل مالاً بذاتها. */
+  const costs=T('farm_cost');
+  const closes=T('farm_day_close');
+  const costCovered=new Set();actSet.forEach(s=>(s.costIds||[]).forEach(i=>costCovered.add(i)));
+  const closedDays=new Set(closes.map(c=>c.farmId+'|'+c.date));
   const ent=id=>entities.find(e=>e.id===id);
   const list=t=>entities.filter(e=>e.type===t&&!e.deleted).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
   const nameOf=id=>id===WH?'المخزن':(VIRT[id]||ent(id)?.name||"«محذوف»");
@@ -939,8 +949,10 @@ function derive(entities,ledger){
        مسوّدة متتقفلش جوّه تصفية وهي لسه بلا مبلغ. */
     const openAll=allInv.filter(i=>i.farmId===f.id&&!covered.has(i.id));
     const cycleStart=openAll.length?openAll.reduce((m,i)=>i.date<m?i.date:m,openAll[0].date):null;
+    const openCosts=costs.filter(c=>c.farmId===f.id&&!costCovered.has(c.id));
     return{...f,cycleInvoices:cyc,cycleCount:cyc.length,cycleBoxes:sum(cyc,i=>i.boxes),
       cycleTotal:sumM(cyc,i=>i.amount),opening:openOf(f.id),hasOpen:openAll.length>0,cycleStart,
+      openInv:openAll,openCosts,cycleExpenseTotal:sumM(openCosts,c=>c.amount),
       balance:msum(openOf(f.id),sumM(inv,i=>i.amount),-sumM(ss,s=>s.total)),settlements:ss}});
 
   /* تالف السائقين: عدّاد متابعة فقط — ليس مالاً ولا عهدة.
@@ -1020,6 +1032,7 @@ function derive(entities,ledger){
     /* openFarms: عندها فاتورة (مسعّرة أو مسوّدة) لسه ما اتغطتش بتصفية — الدورة «جارية».
        أوسع من activeFarms (اللي بيتحسب من المسعّرة بس وده مقصود لأغراض التصفية). */
     openFarms:farms.filter(f=>f.hasOpen),
+    closedDays,
     locOptions:[{id:WH,name:'المخزن'},...farms,...merchants],
     kpi:{merchantDebt:sumM(merchants,m=>Math.max(m.balance,0)),merchantCredit:sumM(merchants,m=>Math.min(m.balance,0)),
       farmDue:sumM(farms,f=>f.balance),driverDue:sumM(drivers,d=>Math.max(d.balance,0)),
@@ -1425,9 +1438,11 @@ function vFin(){
       تصفية مزرعة${na?`<span>${na}</span>`:''}</button>
     <button data-act="finGo" data-s="draft" aria-selected="${cur==='draft'}">
       مسوّدات${nd?`<span class="warn">${nd}</span>`:''}</button>
+    <button data-act="finGo" data-s="cost" aria-selected="${cur==='cost'}">
+      مصاريف المزرعة</button>
     <button data-act="finGo" data-s="archive" aria-selected="${cur==='archive'}">
       الأرشيف${nr?`<span>${nr}</span>`:''}</button></div>`;
-  return main+links+({invoice:fInvoice,collect:fCollect,draft:vDrafts,settle:fSettle,archive:vArchive})[cur]();
+  return main+links+({invoice:fInvoice,collect:fCollect,draft:vDrafts,cost:fCosts,settle:fSettle,archive:vArchive})[cur]();
 }
 function fInvoice(){
   const D=S.D,K=S.invKeep||{};
@@ -1532,6 +1547,172 @@ function tapeHTML(r){
   ${L("مصاريف تشغيل","− "+money(r.expenses),"minus")}${L("صافي المزرعة",money(r.net),"rule")}
   ${L("دين سابق","− "+money(r.prevDebt),"minus")}
   ${L(r.payable>=0?"المستحق للمزرعة":"مستحق على المزرعة",money(Math.abs(r.payable)),"total")}</div>`;
+}
+/* ============ مصاريف المزرعة ============
+   بند مصروف لكل عملية (farm_cost) مربوط بمزرعة ويوم (عدا النقدية: يوم حر).
+   يُغطّى بالتصفية بحقل costIds بنفس منطق coveredIds، فيتصفّر مع كل دورة جديدة.
+   إغلاق اليوم (farm_day_close) علامة عرض فقط — تمنع التعديل من الواجهة حتى
+   يُفتح صراحة، لكنها لا تُغطّى بالتصفية لأنها لا تحمل مالاً بذاتها. */
+const CATLBL={ice:'ثلج',trip:'رحلة سائق',labor:'عمال',misc:'نثريات',cash:'مصاريف/سحب'};
+function costFarmPick(){
+  const D=S.D;
+  if(!D.openFarms.length)return `<div class="empty"><b>لا توجد مزرعة بدورة مفتوحة</b>
+    مصاريف المزرعة تُسجَّل ضمن دورة جارية — سجّل فاتورة بيع أو عملية ثلج للمزرعة أولاً.</div>`;
+  const rows=D.openFarms.map(f=>`<button type="button" class="drow" data-act="costPick" data-id="${f.id}">
+    <span class="tname">${esc(f.name)}</span>${f.cycleStart?` <span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}
+    ${f.cycleExpenseTotal>0?`<b class="num">${money(f.cycleExpenseTotal)}</b>`:''}
+    <span class="go">‹</span></button>`).join('');
+  return `<div class="eyebrow">مصاريف المزرعة — اختر المزرعة</div>
+    <div class="card" style="padding:2px 6px">${rows}</div>
+    <p class="note">مصاريف كل دورة تُقفل تلقائياً مع تصفيتها، وتبدأ الدورة الجديدة من الصفر.</p>`;
+}
+/* أيام عمل المزرعة: اتحاد تواريخ الفواتير (مسعّرة أو مسوّدة) وعمليات الثلج
+   الجارية، زائد أي يوم مصاريف مُضاف يدوياً حتى لو بلا فاتورة (سائق زار بلا حمولة). */
+function farmCostDays(farm){
+  const D=S.D;
+  const set=new Set();
+  (farm.openInv||[]).forEach(i=>set.add(i.date));
+  D.iceOps.filter(o=>o.farmId===farm.id&&(!farm.cycleStart||o.date>=farm.cycleStart)).forEach(o=>set.add(o.date));
+  farm.openCosts.filter(c=>c.cat!=='cash').forEach(c=>set.add(c.date));
+  return [...set].sort().reverse();
+}
+function costDayList(farm){
+  const D=S.D,days=farmCostDays(farm);
+  const rows=days.map(d=>{
+    const items=farm.openCosts.filter(c=>c.cat!=='cash'&&c.date===d);
+    const tot=sumM(items,c=>c.amount),closed=D.closedDays.has(farm.id+'|'+d);
+    return `<button type="button" class="drow" data-act="costDay" data-day="${d}">
+      <span class="tname">${arDate(d)}</span>${closed?' <span class="tag">مقفول</span>':''}
+      ${tot>0?`<b class="num">${money(tot)}</b>`:''}
+      <span class="go">‹</span></button>`}).join('');
+  const cashItems=farm.openCosts.filter(c=>c.cat==='cash'),cashTot=sumM(cashItems,c=>c.amount);
+  return `<button type="button" class="btn ghost sm" data-act="costBackFarm" style="margin-bottom:10px">‹ كل المزارع</button>
+  <div class="eyebrow">مصاريف ${esc(farm.name)}</div>
+  <div class="card" style="padding:2px 6px">
+    ${rows||'<div class="empty">لا توجد أيام مسجَّلة لسه</div>'}
+    <button type="button" class="drow" data-act="costCash">
+      <span class="tname">مصاريف وسحب نقدية</span>
+      ${cashTot>0?`<b class="num">${money(cashTot)}</b>`:''}
+      <span class="go">‹</span></button>
+  </div>
+  <div class="row" style="margin:12px 0 4px;align-items:flex-end">
+    <div class="field" style="margin:0;flex:1"><label>إضافة يوم <span class="hint">لسائق زار بلا فاتورة مثلاً</span></label>
+      <input type="date" id="costNewDay" value="${todayISO()}"></div>
+    <button type="button" class="btn ghost sm" data-act="costAddDay" style="flex:0 0 auto">فتح</button></div>
+  <div class="diff over" style="margin-top:14px"><span>إجمالي مصاريف الدورة</span><b>${money(farm.cycleExpenseTotal)}</b></div>
+  <p class="note">الإجمالي ده بيتحط تلقائي في خانة «مصاريف تشغيل» عند تصفية المزرعة، وتقدر تعدّله من هناك.</p>`;
+}
+function costItemsList(list,closed,labelFn){
+  if(!list.length)return '';
+  return list.map(c=>`<div class="diff"><span>${labelFn?esc(labelFn(c))+(c.note?' — '+esc(c.note):''):esc(c.note||CATLBL[c.cat]||'')}</span>
+    <b>${money(c.amount)}</b></div>
+    ${closed?'':`<div class="btnrow" style="margin:-4px 0 10px"><button type="button" class="btn ghost sm" data-act="editOp" data-id="${c.id}">تعديل</button>
+      <button type="button" class="btn danger sm" data-act="delOp" data-id="${c.id}">حذف</button></div>`}`).join('');
+}
+function costSimpleForm(farmId,day,cat,def){
+  return `<form data-form="costItem" data-cat="${cat}" data-farm="${farmId}" data-day="${day}" class="row" style="align-items:flex-end">
+    <div class="field" style="margin:0;flex:1"><label>إضافة مبلغ</label>
+      <input type="number" name="amount" step="0.01" inputmode="decimal" value="${def||''}" placeholder="0.00"></div>
+    <button class="btn sm" type="submit" style="flex:0 0 auto;margin-bottom:1px">تسجيل</button></form>`;
+}
+function costDriverRow(farmId,day,driverId,name,def){
+  return `<form data-form="costItem" data-cat="trip" data-farm="${farmId}" data-day="${day}" class="row" style="align-items:flex-end">
+    <input type="hidden" name="driverId" value="${driverId}">
+    <div class="field" style="margin:0;flex:1"><label>${esc(name)}</label>
+      <input type="number" name="amount" step="0.01" inputmode="decimal" value="${def||''}" placeholder="0.00"></div>
+    <button class="btn sm" type="submit" style="flex:0 0 auto;margin-bottom:1px">تسجيل</button></form>`;
+}
+function costDriverAddForm(farmId,day,def){
+  return `<form data-form="costItem" data-cat="trip" data-farm="${farmId}" data-day="${day}">
+    <div class="field"><label>إضافة سائق تاني <span class="hint">زار المزرعة بلا فاتورة مثلاً</span></label>
+      ${entPick('driverId','driver','')}</div>
+    <div class="field"><label>المبلغ</label>
+      <input type="number" name="amount" step="0.01" inputmode="decimal" value="${def||''}" placeholder="0.00"></div>
+    <button class="btn ghost sm" type="submit">إضافة</button></form>`;
+}
+function costNoteForm(farmId,day,cat,ph){
+  return `<form data-form="costItem" data-cat="${cat}" data-farm="${farmId}" data-day="${day}">
+    <div class="row"><div class="field" style="margin:0;flex:2"><input name="note" placeholder="${esc(ph)}" required></div>
+      <div class="field" style="margin:0;flex:1"><input type="number" name="amount" step="0.01" inputmode="decimal" placeholder="المبلغ"></div></div>
+    <button class="btn ghost sm" type="submit">إضافة</button></form>`;
+}
+function costDayView(farm,day){
+  const D=S.D,key=farm.id+'|'+day;
+  const closed=D.closedDays.has(key)&&S.cost.unlock!==key;
+  const items=c=>farm.openCosts.filter(x=>x.cat===c&&x.date===day);
+  const dayTotal=sumM(farm.openCosts.filter(x=>x.cat!=='cash'&&x.date===day),x=>x.amount);
+
+  const ice=items('ice');
+  const iceAuto=D.iceOps.filter(o=>o.farmId===farm.id&&o.date===day);
+  const iceAutoVal=Math.round(sumM(iceAuto,o=>(+o.qty||0)*(+o.unitPrice||0))*100)/100;
+  const iceSec=`<div class="eyebrow ice">ثلج</div><div class="card">
+    ${iceAuto.length?`<p class="note" style="margin:0 0 10px">مسجَّل من عمليات الثلج: ${sum(iceAuto,o=>o.qty)} بلاطة بقيمة ${money(iceAutoVal)} — بالسعر الافتراضي، وتقدر تعدّل المبلغ قبل التسجيل.</p>`:''}
+    ${costItemsList(ice,closed)}
+    ${closed?'':costSimpleForm(farm.id,day,'ice',iceAutoVal>0?iceAutoVal:'')}
+  </div>`;
+
+  const trip=items('trip');
+  const usedDrv=new Set(trip.map(x=>x.driverId));
+  const dayInvDrv=[...new Set(D.allInv.filter(i=>i.farmId===farm.id&&i.date===day&&i.driverId).map(i=>i.driverId))]
+    .filter(id=>!usedDrv.has(id));
+  const sarouh=D.routes.find(r=>(r.name||'').includes('سروح'));
+  const defFare=sarouh?+sarouh.fare||0:0;
+  const trpSec=`<div class="eyebrow drv">سيارات</div><div class="card">
+    ${costItemsList(trip,closed,x=>D.nameOf(x.driverId))}
+    ${closed?'':dayInvDrv.map(id=>costDriverRow(farm.id,day,id,D.nameOf(id),defFare)).join('')}
+    ${closed?'':costDriverAddForm(farm.id,day,defFare)}
+    ${(!closed&&!dayInvDrv.length&&!trip.length)?'<p class="note" style="margin-top:0">مفيش سائق مربوط بفاتورة النهاردة — أضف واحداً من الفورم فوق لو زار المزرعة.</p>':''}
+  </div>`;
+
+  const labor=items('labor');
+  const laborSec=`<div class="eyebrow">عمال</div><div class="card">
+    ${costItemsList(labor,closed)}
+    ${closed?'':costNoteForm(farm.id,day,'labor','بيان العمال')}
+  </div>`;
+
+  const misc=items('misc');
+  const miscSec=`<div class="eyebrow">نثريات</div><div class="card">
+    ${costItemsList(misc,closed)}
+    ${closed?'':costNoteForm(farm.id,day,'misc','بيان النثريات')}
+  </div>`;
+
+  const closeSec=closed
+    ?`<div class="card" style="text-align:center"><b>🔒 اليوم مقفول</b>
+       <p class="note">مصاريف هذا اليوم ثابتة. لتعديلها لازم تفتحه للتعديل أولاً.</p>
+       <button class="btn ghost sm" data-act="costUnlock">🔓 فتح اليوم للتعديل</button></div>`
+    :`<button class="btn brass" data-act="costClose" style="width:100%">🔒 إغلاق اليوم</button>
+      <p class="note" style="text-align:center">بعد الإغلاق محتاج تأكيد تاني عشان تعدّل.</p>`;
+
+  return `<button type="button" class="btn ghost sm" data-act="costBackDay" style="margin-bottom:10px">‹ أيام ${esc(farm.name)}</button>
+    <div class="rptname"><b>${esc(farm.name)}</b><span>مصاريف يوم ${arDate(day)} — إجمالي ${money(dayTotal)}</span></div>
+    ${iceSec}${trpSec}${laborSec}${miscSec}${closeSec}`;
+}
+function costCashForm(farmId){
+  return `<form data-form="costItem" data-cat="cash" data-farm="${farmId}" data-day="">
+    <div class="field"><label>نوع العملية</label><input name="note" placeholder="سحب نقدية / مصروف…" required></div>
+    <div class="field"><label>المبلغ</label><input type="number" name="amount" step="0.01" inputmode="decimal" placeholder="0.00"></div>
+    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    <button class="btn" type="submit">تسجيل</button></form>`;
+}
+function costCashView(farm){
+  const items=[...farm.openCosts].filter(c=>c.cat==='cash').sort((a,b)=>b.date.localeCompare(a.date)||b.seq-a.seq);
+  const tot=sumM(items,c=>c.amount);
+  const rows=items.map(c=>`<div class="diff"><span>${arDate(c.date)} — ${esc(c.note||'')}</span><b>${money(c.amount)}</b></div>
+    <div class="btnrow" style="margin:-4px 0 10px"><button type="button" class="btn ghost sm" data-act="editOp" data-id="${c.id}">تعديل</button>
+      <button type="button" class="btn danger sm" data-act="delOp" data-id="${c.id}">حذف</button></div>`).join('');
+  return `<button type="button" class="btn ghost sm" data-act="costBackDay" style="margin-bottom:10px">‹ أيام ${esc(farm.name)}</button>
+    <div class="eyebrow">مصاريف وسحب نقدية — ${esc(farm.name)}</div>
+    <div class="card">${rows||'<div class="empty">لا بنود لسه</div>'}
+      <div class="diff over"><span>الإجمالي</span><b>${money(tot)}</b></div></div>
+    <div class="card">${costCashForm(farm.id)}</div>`;
+}
+function fCosts(){
+  const D=S.D;
+  const farm=S.cost.farmId?D.farms.find(f=>f.id===S.cost.farmId):null;
+  if(!farm){if(S.cost.farmId)S.cost={farmId:'',day:'',unlock:''};return costFarmPick()}
+  if(S.cost.day==='CASH')return costCashView(farm);
+  if(S.cost.day)return costDayView(farm,S.cost.day);
+  return costDayList(farm);
 }
 function vArchive(){
   const D=S.D,l=[...D.settlements].sort((a,b)=>b.seq-a.seq);
@@ -2645,12 +2826,49 @@ function repFarmEnt(){
   if(!target)return `<div class="empty"><b>اختر مزرعة</b>افتح الفلتر فوق واختر مزرعة لعرض تقريرها.
     <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="farm">اختر مزرعة</button></div></div>`;
   const K=S.sub.farmEnt||'stmt';
-  const segK=seg('farmEnt',[["stmt","بكش"],["led","فواتير وتصفيات"],["ice","تلج"]],K,true);
+  const segK=seg('farmEnt',[["stmt","بكش"],["led","فواتير وتصفيات"],["ice","تلج"],["cost","مصاريف"]],K,true);
   let body;
   if(K==='ice')body=farmIceTab(target);
+  else if(K==='cost')body=farmCostReport(target);
   else if(K==='led')body=repAcct();
   else{S.sub.repbox='stmt';body=repBox()}
   return segK+`<div style="height:14px"></div>`+body;
+}
+/* تقرير مصاريف المزرعة: إجمالي (بند/يوم مجمَّع) أو تفصيل (كل حركة). يقتصر على
+   مصاريف الدورة الجارية — بمجرد التصفية تدخل «مصاريف تشغيل» كرقم واحد في الأرشيف. */
+function farmCostReport(farm){
+  const D=S.D,view=S.sub.costView||'sum';
+  const segV=seg('costView',[["sum","إجمالي"],["detail","تفصيل"]],view,true);
+  const costs=[...farm.openCosts].sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+  let body;
+  if(!costs.length){
+    body='<div class="empty">لا توجد مصاريف مسجَّلة للدورة الحالية</div>';
+  }else if(view==='detail'){
+    const rows=costs.map(c=>`<tr><td class="n">${arDate(c.date)}</td><td>${esc(CATLBL[c.cat]||c.cat)}</td>
+      <td>${esc(c.note||(c.driverId?D.nameOf(c.driverId):'')||'—')}</td><td class="n">${money(c.amount)}</td></tr>`).join('');
+    body=`<table><thead><tr><th>التاريخ</th><th>البند</th><th>بيان</th><th class="n">المبلغ</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="3">الإجمالي (${costs.length})</td><td class="n">${money(sumM(costs,c=>c.amount))}</td></tr></tfoot></table>`;
+  }else{
+    const CASHK='مصاريف عامة';
+    const byDay={};
+    costs.forEach(c=>{const d=c.cat==='cash'?CASHK:c.date;(byDay[d]=byDay[d]||[]).push(c)});
+    const days=Object.keys(byDay).filter(d=>d!==CASHK).sort();
+    const catSum=(arr,cat)=>sumM(arr.filter(c=>c.cat===cat),c=>c.amount);
+    const rows=days.map(d=>{const arr=byDay[d];
+      return `<tr><td class="n">${arDate(d)}</td><td class="n">${money(catSum(arr,'ice'))}</td>
+      <td class="n">${money(catSum(arr,'trip'))}</td><td class="n">${money(catSum(arr,'labor'))}</td>
+      <td class="n">${money(catSum(arr,'misc'))}</td><td class="n">${money(sumM(arr,c=>c.amount))}</td></tr>`}).join('');
+    const cashArr=byDay[CASHK]||[];
+    const cashRow=cashArr.length?`<tr><td>مصاريف وسحب نقدية</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">${money(sumM(cashArr,c=>c.amount))}</td></tr>`:'';
+    body=`<table><thead><tr><th>اليوم</th><th class="n">ثلج</th><th class="n">سيارات</th><th class="n">عمال</th><th class="n">نثريات</th><th class="n">الإجمالي</th></tr></thead>
+      <tbody>${rows}${cashRow}</tbody>
+      <tfoot><tr><td colspan="5">الإجمالي الكلي</td><td class="n">${money(sumM(costs,c=>c.amount))}</td></tr></tfoot></table>`;
+  }
+  S.print={title:`مصاريف المزرعة — ${farm.name}`,phone:farm.phone,html:body};
+  return `<div class="rptname"><b>${esc(farm.name)}</b><span>مصاريف الدورة الجارية</span></div>
+    ${segV}<div style="height:12px"></div>
+    <div class="card">${costs.length?`<div class="tscroll">${body}</div>`:body}</div>`;
 }
 function repMerchEnt(){
   const D=S.D,F=S.F;
@@ -3252,6 +3470,15 @@ function onClick(ev){
     case 'openSearch':return openSearch();
     case 'rare':S.rare=!S.rare;return render();
     case 'finGo':S.sub.fin=b.dataset.s;S.toTop=true;return render();
+    case 'costPick':S.cost={farmId:id,day:'',unlock:''};return render();
+    case 'costBackFarm':S.cost={farmId:'',day:'',unlock:''};return render();
+    case 'costBackDay':S.cost.day='';S.cost.unlock='';return render();
+    case 'costDay':S.cost.day=b.dataset.day;return render();
+    case 'costCash':S.cost.day='CASH';return render();
+    case 'costAddDay':{const el=$('#costNewDay');if(!el||!el.value)return toast("اختر تاريخاً","err");
+      S.cost.day=el.value;return render()}
+    case 'costClose':return costCloseDay();
+    case 'costUnlock':return costUnlockDay();
     case 'repPick':return repPick();
     case 'fToggle':S.fopen=!S.fopen;return render();
     case 'repSel':S.rep=b.dataset.r;S.page=0;S.toTop=true;S.fopen=false;
@@ -3349,7 +3576,11 @@ function fillA(btn){const f=btn.closest('form'),k=btn.dataset.kind;
 function wireSettle(root){
   const f=$('form[data-form=settle]',root),g=r=>$('[data-role='+r+']',f);
   f.farmId.addEventListener('change',()=>{const x=S.D.farms.find(y=>y.id===f.farmId.value);
-    g('total').value=x?Math.round(x.cycleTotal*100)/100:0;S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()});
+    g('total').value=x?Math.round(x.cycleTotal*100)/100:0;
+    /* مصاريف المزرعة (تبويب «مصاريف المزرعة») تتحط هنا تلقائياً كبداية —
+       رقم مقترح فقط، الخانة تفضل قابلة للتعديل زي ما كانت دايماً. */
+    g('expenses').value=x?Math.round(x.cycleExpenseTotal*100)/100:0;
+    S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()});
   /* لا إكمال آلي إلى ١٠٠: الرقمان مستقلان (٥/٧٠ نسبة صحيحة في السوق) */
   ['office','farmRatio'].forEach(r=>g(r).addEventListener('input',()=>{
     S.form.settle={...(S.form.settle||{}),commissionTouched:false};syncSettle()}));
@@ -3497,6 +3728,19 @@ async function onSubmit(ev){
       if(!p.driverId||!p.routeId)return toast("اختر السائق والرحلة","err");
       await append({type:'trip',date:p.date,driverId:p.driverId,routeId:p.routeId,fare:+p.fare||0,note:p.note});
       f.reset();return toast("تم تسجيل الرحلة","ok")}
+    if(kind==='costItem'){
+      const farmId=f.dataset.farm,cat=f.dataset.cat,day=f.dataset.day;
+      const date=cat==='cash'?p.date:day;
+      if(!date)return toast("اختر تاريخاً","err");
+      const key=farmId+'|'+date;
+      if(cat!=='cash'&&S.D.closedDays.has(key)&&S.cost.unlock!==key)return toast("اليوم مقفول للتعديل","err");
+      if(cat==='trip'&&!p.driverId)return toast("اختر السائق","err");
+      if((cat==='labor'||cat==='misc'||cat==='cash')&&!p.note?.trim())return toast("اكتب بياناً مختصراً","err");
+      const amt=+p.amount||0;
+      if(amt<=0)return toast("اكتب مبلغاً أكبر من صفر","err");
+      await append({type:'farm_cost',date,farmId,cat,amount:amt,note:p.note||'',
+        driverId:p.driverId||null});
+      f.reset();return toast("تم التسجيل","ok")}
     if(kind==='driver_advance'||kind==='driver_payment'||kind==='factory_payment'){
       const key=kind==='factory_payment'?'factoryId':'driverId';
       if(!p[key])return toast("اختر الجهة","err");
@@ -3590,7 +3834,7 @@ async function doSettle(f){
   if(!await requireOwner("اعتماد تصفية مزرعة"))return;
   if(!await ask("اعتماد تصفية «"+x.name+"»",`الإجمالي: ${money(c.total)} ج.م\nالمستحق النهائي: ${money(c.payable)} ج.م\nالدورة تُقفل ولا تُعدَّل بعد الاعتماد.`,{ok:"اعتماد"}))return;
   const rec=await append({type:'settlement',date:f.date.value||todayISO(),farmId:x.id,...c,
-    boxes:x.cycleBoxes,coveredIds:x.cycleInvoices.map(i=>i.id)});
+    boxes:x.cycleBoxes,coveredIds:x.cycleInvoices.map(i=>i.id),costIds:x.openCosts.map(oc=>oc.id)});
   S.lastReceipt={farmName:x.name,farmId:x.id,date:rec.date,count:x.cycleCount,boxes:x.cycleBoxes,
     ids:x.cycleInvoices.map(i=>i.id),...c};
   S.form.settle=null;render();toast("تمت التصفية والأرشفة","ok");
@@ -3607,6 +3851,19 @@ function showTape(id){const s=S.D.settlements.find(x=>x.id===id);if(!s)return;
     count:(s.coveredIds||[]).length,boxes:s.boxes,
     total:s.total,office:s.office,farmRatio:s.farmRatio,commission:s.commission,expenses:s.expenses,net:s.net,prevDebt:s.prevDebt,payable:s.payable};
   S.sub.fin='settle';S.tab='ops';S.sub.ops='acct';render()}
+async function costCloseDay(){
+  const {farmId,day}=S.cost;
+  if(!farmId||!day||day==='CASH')return;
+  if(!await ask("إغلاق يوم "+arDate(day),"مصاريف هذا اليوم هتتقفل ومش هتتعدَّل إلا بفتحه تاني.",{ok:"إغلاق"}))return;
+  await append({type:'farm_day_close',date:day,farmId});
+  toast("اتقفل اليوم","ok");
+}
+async function costUnlockDay(){
+  const {farmId,day}=S.cost;
+  if(!farmId||!day||day==='CASH')return;
+  if(!await ask("فتح يوم "+arDate(day)+" للتعديل","اليوم مقفول. متأكد إنك عايز تعدّل فيه؟",{ok:"فتح للتعديل"}))return;
+  S.cost.unlock=farmId+'|'+day;render();
+}
 
 /* ============ تعديل وحذف الحركات (بحركات جديدة) ============ */
 const OPF={
@@ -3618,11 +3875,16 @@ const OPF={
   driver_payment:[['date','التاريخ','date'],['driverId','السائق','ent','driver'],['amount','المبلغ','num'],['note','ملاحظة','text']],
   factory_payment:[['date','التاريخ','date'],['factoryId','المصنع','ent','ice'],['amount','المبلغ','num'],['note','ملاحظة','text']],
   ice_op:[['date','التاريخ','date'],['factoryId','المصنع','ent','ice'],['farmId','المزرعة','ent','farm'],['qty','البلاطات','num'],['unitPrice','السعر','num'],['note','ملاحظة','text']],
-  opening_cash:[['date','التاريخ','date'],['amount','المبلغ','text'],['note','ملاحظة','text']]
+  opening_cash:[['date','التاريخ','date'],['amount','المبلغ','text'],['note','ملاحظة','text']],
+  farm_cost:[['date','التاريخ','date'],['amount','المبلغ','num'],['note','بيان','text']]
 };
 function guardEdit(e){
   if(e.type==='settlement')return "التصفية تُلغى بزر «تراجع» من الأرشيف، لا بالتعديل.";
   if(e.type==='invoice'&&S.D.covered.has(e.id))return "الفاتورة داخل دورة مصفّاة — تراجع عن التصفية أولاً.";
+  if(e.type==='farm_cost'&&e.cat!=='cash'){
+    const key=e.farmId+'|'+e.date;
+    if(S.D.closedDays.has(key)&&(S.cost||{}).unlock!==key)return "اليوم مقفول — افتحه للتعديل من شاشة مصاريف المزرعة.";
+  }
   return null;
 }
 /* إدخال المبلغ فقط: أسرع فعل على المسوّدة — بلا فتح الفاتورة كاملة */
@@ -3646,7 +3908,7 @@ async function editOp(id){
   const fields=e.type==='box'?[['date','التاريخ','date'],...(BOXF[e.op]||[]),['note','ملاحظة','text']]:OPF[e.type];
   if(!fields)return toast("هذه الحركة لا تقبل التعديل","err");
   const cur=e.type==='box'?{...(e.params||{}),date:e.date,note:e.note}:e;
-  openSheet(`تعديل ${e.type==='box'?(BOXOP[e.op]||'حركة بكش'):(({invoice:'فاتورة',collection:'تحصيل',trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية سائق',factory_payment:'تصفية مصنع',ice_op:'عملية ثلج'})[e.type])}`,
+  openSheet(`تعديل ${e.type==='box'?(BOXOP[e.op]||'حركة بكش'):(({invoice:'فاتورة',collection:'تحصيل',trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية سائق',factory_payment:'تصفية مصنع',ice_op:'عملية ثلج',farm_cost:CATLBL[e.cat]||'بند مصروف'})[e.type])}`,
     "تُحفظ نسخة جديدة والقديمة تُعلَّم «معدَّلة» — لا يُمسح شيء من السجل.",
     `<form data-sheet="editOp" data-id="${id}">
       ${fields.map(([k,l,t,en,o])=>fieldHTML(k,l,t,en,o,cur[k]??"")).join('')}
@@ -3696,7 +3958,14 @@ async function onSheet(ev){
       const amt=+AR2EN(p.amount||'')||0;
       if(amt<=0)return toast("اكتب مبلغاً أكبر من صفر","err");
       const n={...e,amount:amt,replaces:id};delete n.seq;delete n.id;
-      await append(n);closeSheet();return toast("تم — الفاتورة دخلت الحسابات","ok")}
+      const rec=await append(n);
+      /* الفاتورة الجديدة استبدلت المسوّدة بـid مختلف، فحركة البكش الآلية اللي
+         اتسجّلت مع المسوّدة (invoiceId = الـid القديم) تفضل مربوطة بفاتورة ميتة
+         الآن — تظهر «بلا حركة بكش» غلط رغم وجود الحركة فعلاً. لازم نعيد الربط
+         بنفس منطق تعديل الفاتورة الكامل (kind==='editOp' فوق). */
+      const old=S.ledger.find(x=>x.type==='box'&&x.auto&&x.invoiceId===id&&!S.D.dead.has(x.id));
+      await syncInvoiceBox(rec,old?.id);
+      closeSheet();return toast("تم — الفاتورة دخلت الحسابات","ok")}
     if(kind==='openBal'){const e=S.entities.find(x=>x.id===id);
       await postOpening(e,p);closeSheet();return}
     if(kind==='editEnt'){const e=S.entities.find(x=>x.id===id);
@@ -3825,6 +4094,30 @@ function runTests(){
   d=D([inv('a',1000),{id:'s1',type:'settlement',farmId:'f1',total:1000,coveredIds:['a']},
        {type:'settlement_reversal',refId:'s1'}]);
   ok("التراجع يعيد المزرعة نشطة",d.farms[0].balance===1000&&d.farms[0].cycleCount===1);
+
+  /* مصاريف المزرعة: بند مصروف منفصل تماماً عن حساب المبيع/المزرعة المالي
+     (قاعدة ٥) — يظهر في openCosts/cycleExpenseTotal بس، ويتغطّى بالتصفية
+     بحقل costIds بنفس منطق coveredIds. */
+  const fc=(id,cat,amt,extra={})=>({id,type:'farm_cost',farmId:'f1',cat,amount:amt,...extra});
+  d=D([inv('a',1000,10),fc('c1','ice',150),fc('c2','trip',80,{driverId:'d1'}),
+       fc('c3','labor',60,{note:'شيّالة'}),fc('c4','cash',40,{note:'سحب'})]);
+  ok("بند المصروف لا يمسّ رصيد المبيع ولا المزرعة",d.merchants[0].balance===1000&&d.farms[0].balance===1000);
+  ok("إجمالي مصاريف الدورة = مجموع البنود",d.farms[0].cycleExpenseTotal===330);
+  ok("كل البنود غير المغطّاة تظهر في openCosts",d.farms[0].openCosts.length===4);
+
+  d=D([inv('a',1000,10),fc('c1','ice',150),
+       {id:'s1',type:'settlement',farmId:'f1',total:1000,coveredIds:['a'],costIds:['c1']}]);
+  ok("التصفية تغطّي بنود المصاريف المذكورة في costIds",d.farms[0].openCosts.length===0);
+  ok("إجمالي المصاريف يتصفّر بعد التصفية",d.farms[0].cycleExpenseTotal===0);
+
+  d=D([inv('a',1000,10),fc('c1','ice',150),
+       {id:'s1',type:'settlement',farmId:'f1',total:1000,coveredIds:['a'],costIds:['c1']},
+       {type:'settlement_reversal',refId:'s1'}]);
+  ok("التراجع عن التصفية يرجّع بند المصروف للدورة الجارية",d.farms[0].openCosts.length===1&&d.farms[0].cycleExpenseTotal===150);
+
+  d=D([{id:'k1',type:'farm_day_close',farmId:'f1',date:'2026-01-01'}]);
+  ok("إغلاق اليوم يُسجَّل في closedDays",d.closedDays.has('f1|2026-01-01'));
+  ok("يوم تاني لسه مقفول لا",!d.closedDays.has('f1|2026-01-02'));
 
   d=D([{type:'trip',driverId:'d1',fare:400},{type:'trip',driverId:'d1',fare:350},
        {type:'driver_advance',driverId:'d1',amount:200},{type:'driver_payment',driverId:'d1',amount:100}]);
