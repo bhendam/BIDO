@@ -772,7 +772,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.5.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.5.2";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2654,16 +2654,17 @@ function repDrv(){
   const rows=items.map(e=>{const v=e.type==='trip'?(+e.fare||+e.cost||0):(+e.amount||0);
     run+=e.type==='trip'?v:-v;
     return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.driverId))}</td><td>${nm[e.type]}</td>
-      <td>${esc(e.type==='trip'?(D.nameOf(e.routeId)||e.destination||'—'):(e.note||'—'))}</td>
+      <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'—'):'—'}</td>
+      <td>${esc(e.note||'—')}</td>
       <td class="n cin">${e.type==='trip'?money(v):''}</td>
       <td class="n cout">${e.type!=='trip'?money(v):''}</td>
       ${F.ent?`<td class="n" style="font-weight:600">${money(run)}</td>`:''}</tr>`}).join('');
   const tIn=sumM(items.filter(e=>e.type==='trip'),e=>e.fare??e.cost);
   const tOut=sumM(items.filter(e=>e.type!=='trip'),e=>e.amount);
-  const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th>
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th><th>ملاحظات</th>
     <th class="n">مستحق له</th><th class="n">مدفوع/سلف</th>${F.ent?'<th class="n">الرصيد</th>':''}</tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="4">الإجمالي (${items.length} حركة)</td>
+    <tfoot><tr><td colspan="5">الإجمالي (${items.length} حركة)</td>
       <td class="n">${money(tIn)}</td><td class="n">${money(tOut)}</td>
       ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
   const who=who0;
@@ -2695,9 +2696,10 @@ function driverDmgTab(driver){
   const rows=ents.filter(e=>legsOf(e).some(l=>l.cond==='damaged')).sort((a,b)=>b.seq-a.seq)
     .map(e=>{const d=sum(legsOf(e).filter(l=>l.cond==='damaged'),l=>l.count);
       return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(BOXOP[e.op]||'حركة')}</td>
-        <td>${e.dmgReason==='negligence'?'إهمال':'هلك عادي'}</td><td class="n cout">${d}</td></tr>`}).join('');
-  const tbl=`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>السبب</th><th class="n">العدد</th></tr></thead>
-    <tbody>${rows||'<tr><td colspan="4">لا تالف مسجَّل في المدى المحدد</td></tr>'}</tbody></table>`;
+        <td>${e.dmgReason==='negligence'?'إهمال':'هلك عادي'}</td><td class="n cout">${d}</td>
+        <td>${esc(e.note||'—')}</td></tr>`}).join('');
+  const tbl=`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>السبب</th><th class="n">العدد</th><th>ملاحظات</th></tr></thead>
+    <tbody>${rows||'<tr><td colspan="5">لا تالف مسجَّل في المدى المحدد</td></tr>'}</tbody></table>`;
   S.print={title:`تقرير التالف — ${driver.name}`,html:tbl,phone:driver.phone};
   return `<div class="eyebrow debt">تالف ${esc(driver.name)}</div>
     <div class="card">
