@@ -779,7 +779,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.6.2";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.6.3";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2825,9 +2825,38 @@ function repDrv(){
     <tfoot><tr><td>الإجمالي</td><td class="n">${money(sumM(tot,d=>d.tripsCost))}</td>
       <td class="n">${money(sumM(tot,d=>d.advances))}</td><td class="n">${money(sumM(tot,d=>d.paid))}</td>
       <td class="n">${money(sumM(tot,d=>d.balance))}</td></tr></tfoot></table>`;
-  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
+  /* إجمالي الفترة لكل سائق: مجموع حركاته داخل مدى الفلترة بس (من items أعلاه)،
+     غير جدول «الأرصدة» تحت اللي هو تراكمي من أول السجل. بيفيد في «كام استحق
+     الأسبوع ده» من غير ما يتلخبط بديون قديمة. بترتيب piaster صحيح (P/msum)
+     لا جمع عشري مباشر، وبنفس ترتيب tot (بالاسم أو بالتاريخ) — وبيعرض بس
+     السائقين اللي ليهم حركة فعلية في المدى، مش كل السائقين. */
+  const perAgg={};
+  items.forEach(e=>{if(!e.driverId)return;
+    const a=perAgg[e.driverId]||(perAgg[e.driverId]={trips:0,adv:0,pay:0});
+    if(e.type==='trip')a.trips+=P(e.fare??e.cost);
+    else if(e.type==='driver_advance')a.adv+=P(e.amount);
+    else if(e.type==='driver_payment')a.pay+=P(e.amount)});
+  const perIds=tot.map(d=>d.id).filter(id=>perAgg[id]);
+  const perRow=id=>{const a=perAgg[id],net=msum(a.trips/100,-a.adv/100,-a.pay/100);
+    return `<tr><td class="tname">${esc(D.nameOf(id))}</td><td class="n">${money(a.trips/100)}</td>
+      <td class="n">${money(a.adv/100)}</td><td class="n">${money(a.pay/100)}</td>
+      ${mcell(net,1)}</tr>`};
+  const perTrips=perIds.reduce((t,id)=>t+perAgg[id].trips,0)/100;
+  const perAdv=perIds.reduce((t,id)=>t+perAgg[id].adv,0)/100;
+  const perPay=perIds.reduce((t,id)=>t+perAgg[id].pay,0)/100;
+  const per=`<table><thead><tr><th>السائق</th><th class="n">أجور الفترة</th><th class="n">سلف الفترة</th>
+    <th class="n">مدفوع الفترة</th><th class="n">صافي الفترة</th></tr></thead>
+    <tbody>${perIds.map(perRow).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td class="n">${money(perTrips)}</td><td class="n">${money(perAdv)}</td>
+      <td class="n">${money(perPay)}</td>${mcell(msum(perTrips,-perAdv,-perPay),1)}</tr></tfoot></table>`;
+  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),
+    html:tbl+(perIds.length?"<h3>إجمالي الفترة</h3>"+per:"")+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
   return segTop+segSort+`<div class="eyebrow">حركات السائقين (${items.length})</div>
     <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
+    <div class="eyebrow">إجمالي الفترة</div>
+    <div class="card">${perIds.length?`<div class="tscroll">${per}</div>
+      <p class="note">صافي كل سائق من حركات المدى المختار بس — مش تراكمي زي الأرصدة تحت.</p>`
+      :'<div class="empty">لا حركات في المدى</div>'}</div>
     <div class="eyebrow">الأرصدة</div><div class="card"><div class="tscroll">${bal}</div>
     <p class="note">الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
 }
