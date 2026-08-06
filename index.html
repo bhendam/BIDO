@@ -772,7 +772,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.5.2";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.5.3";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2647,8 +2647,17 @@ function repDrv(){
   if(who0&&K==='dmg')return seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)
     +`<div style="height:14px"></div>`+driverDmgTab(who0);
   const segTop=who0?seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)+`<div style="height:14px"></div>`:'';
+  /* ترتيب السائقين: بالاسم (أبجدي، الافتراضي) أو بالتاريخ (تاريخ آخر حركة للسائق،
+     الأحدث أولاً) — يفيد في لقاء السائق النشط بسرعة بدل تصفّح كل القائمة.
+     يؤثر على جدول الأرصدة وعلى تجميع جدول الحركات معاً.
+     ملاحظة: الترتيب بتاريخ الحركة الفعلي (وليس ترتيب الإدخال في السجل)، ومن لا
+     حركة له يُرتَّب أخيراً بالاسم. */
+  const srt=who0?'name':(S.sub.drvSort||'name');
+  const segSort=who0?'':`<div style="height:10px"></div>${seg('drvSort',[["name","بالاسم"],["date","بالتاريخ"]],srt,true)}`;
   const items=D.live.filter(e=>['trip','driver_advance','driver_payment'].includes(e.type)&&inR(e)&&(!F.ent||e.driverId===F.ent))
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+    .sort((a,b)=>srt==='name'
+      ?(D.nameOf(a.driverId).localeCompare(D.nameOf(b.driverId),'ar')||a.date.localeCompare(b.date)||a.seq-b.seq)
+      :(a.date.localeCompare(b.date)||a.seq-b.seq));
   const nm={trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية'};
   let run=0;
   const rows=items.map(e=>{const v=e.type==='trip'?(+e.fare||+e.cost||0):(+e.amount||0);
@@ -2669,7 +2678,17 @@ function repDrv(){
       ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
   const who=who0;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
-  const tot=D.drivers.filter(d=>!F.ent||d.id===F.ent);
+  /* آخر تاريخ حركة لكل سائق — من كل السجل لا من المدى، حتى يبقى ترتيب جدول
+     الأرصدة (وهو أرصدة كلّية لا مدى) ثابتاً ومفهوماً. */
+  const lastD={};
+  D.live.forEach(e=>{if(!e.driverId)return;
+    if(!['trip','driver_advance','driver_payment'].includes(e.type))return;
+    if(!lastD[e.driverId]||e.date>lastD[e.driverId])lastD[e.driverId]=e.date});
+  const tot=(srt==='date'
+    ?D.drivers.slice().sort((a,b)=>{const x=lastD[a.id]||'',y=lastD[b.id]||'';
+        return x&&y?(y.localeCompare(x)||a.name.localeCompare(b.name,'ar'))
+             :x?-1:y?1:a.name.localeCompare(b.name,'ar')})
+    :D.drivers).filter(d=>!F.ent||d.id===F.ent);
   const bal=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
     <th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
     ${tot.map(d=>`<tr><td class="tname">${esc(d.name)}</td><td class="n">${money(d.tripsCost)}</td>
@@ -2679,7 +2698,7 @@ function repDrv(){
       <td class="n">${money(sumM(tot,d=>d.advances))}</td><td class="n">${money(sumM(tot,d=>d.paid))}</td>
       <td class="n">${money(sumM(tot,d=>d.balance))}</td></tr></tfoot></table>`;
   S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
-  return segTop+`<div class="eyebrow">حركات السائقين (${items.length})</div>
+  return segTop+segSort+`<div class="eyebrow">حركات السائقين (${items.length})</div>
     <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
     <div class="eyebrow">الأرصدة</div><div class="card"><div class="tscroll">${bal}</div>
     <p class="note">الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
