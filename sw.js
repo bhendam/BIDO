@@ -9,7 +9,7 @@
    عند تعديل أي ملف: غيّر رقم النسخة في VERSION حتى يأخذ
    المستخدمون التحديث بدل النسخة القديمة المخزَّنة.
    =========================================================== */
-const VERSION = 'v4.6.1';
+const VERSION = 'v4.6.2';
 const CACHE   = 'fish-ledger-' + VERSION;
 const FONTS   = 'fish-ledger-fonts';   // ثابت: الخطوط لا تتغيّر مع نسخ التطبيق
 
@@ -77,6 +77,12 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return;
 
   if (req.mode === 'navigate') {
+    /* باج مهم: قبل كده كنا نخزّن ردّ **أي** تصفّح مكان './index.html'. يعني لو فتحت
+       ملفاً تانياً في تبويب (زي sw.js وأنت بتفحص النسخة) بيتكتب كوده مكان الصفحة
+       المخزَّنة — فالتطبيق يفتح أوفلاين على كود بدل الشاشة. دلوقتي بنخزّن الصفحة
+       الرئيسية وحدها، وأي تصفّح تاني يعدّي للمتصفح عادي بلا اعتراض. */
+    const isApp = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+    if (!isApp) return;
     /* نطلبه بالرابط نصّاً مع cache:'reload' علشان نتخطّى كاش المتصفح كمان،
        مش كاش عامل الخدمة بس — الشبكة أولاً تبقى شبكة فعلاً. */
     e.respondWith(
