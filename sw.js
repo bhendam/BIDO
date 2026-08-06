@@ -9,7 +9,7 @@
    عند تعديل أي ملف: غيّر رقم النسخة في VERSION حتى يأخذ
    المستخدمون التحديث بدل النسخة القديمة المخزَّنة.
    =========================================================== */
-const VERSION = 'v4.6.0';
+const VERSION = 'v4.6.1';
 const CACHE   = 'fish-ledger-' + VERSION;
 const FONTS   = 'fish-ledger-fonts';   // ثابت: الخطوط لا تتغيّر مع نسخ التطبيق
 
@@ -22,12 +22,22 @@ const ASSETS = [
   './maskable-512.png'
 ];
 
-/* التثبيت: نخزّن ملفات التطبيق */
+/* التثبيت: نخزّن ملفات التطبيق.
+
+   cache:'reload' مهمة: GitHub Pages بيبعت Cache-Control بمدة صلاحية، فكاش
+   المتصفح (غير كاش عامل الخدمة ده) ممكن يرجّع index.html القديم لـaddAll —
+   فالنسخة الجديدة تخزّن الملف القديم وتفضل تعرضه رغم إن السيرفر عليه الجديد.
+   دي كانت أشهر حالة «التطبيق مش بيقبل التحديث».
+
+   وكمان بنخزّن كل ملف لوحده بدل addAll: لو ملف واحد فشل (أيقونة ناقصة مثلاً)
+   addAll بتفشل التثبيت كله فيفضل عامل الخدمة القديم شغّالاً ولا يحصل تحديث أبداً. */
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => Promise.all(ASSETS.map(u =>
+      fetch(new Request(u, { cache: 'reload' }))
+        .then(r => (r && r.ok) ? c.put(u, r) : null)
+        .catch(() => null)
+    ))).then(() => self.skipWaiting())
   );
 });
 
@@ -67,17 +77,25 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return;
 
   if (req.mode === 'navigate') {
+    /* نطلبه بالرابط نصّاً مع cache:'reload' علشان نتخطّى كاش المتصفح كمان،
+       مش كاش عامل الخدمة بس — الشبكة أولاً تبقى شبكة فعلاً. */
     e.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'reload' })
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put('./index.html', copy));
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put('./index.html', copy));
+          }
           return res;
         })
         .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
     );
     return;
   }
+
+  /* طلبات فيها ?query = طلبات فحص متعمَّدة (فحص السيرفر / إعادة تحميل ببصمة وقت)
+     — تعدّي للشبكة مباشرة ولا تتخزّن، وإلا امتلأ الكاش بنسخ بتواريخ لا تُستعمل. */
+  if (url.search) return;
 
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
@@ -90,7 +108,8 @@ self.addEventListener('fetch', e => {
   );
 });
 
-/* تحديث فوري عند طلب الصفحة */
+/* تحديث فوري عند طلب الصفحة · والردّ برقم النسخة لفحص «إيه النسخة الشغّالة فعلاً» */
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
+  if (e.data === 'version' && e.ports && e.ports[0]) e.ports[0].postMessage(VERSION);
 });

@@ -779,7 +779,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.6.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.6.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -3358,10 +3358,12 @@ function setSec(){
   return `<div class="eyebrow">تحديث التطبيق</div>
   <div class="card">
     <div class="diff"><span>النسخة المُشغَّلة الآن</span><b>${APPVER}</b></div>
-    <p class="note" style="margin-top:10px">لو رفعت نسخة جديدة على GitHub والتطبيق لسه بيوريك القديمة،
-      اضغط الزر ده: بيمسح الملفات المخزَّنة ويعيد التحميل من السيرفر.
-      <b>بياناتك ما بتتأثرش</b> — محفوظة في مكان تاني تماماً.</p>
-    <button class="btn ghost" data-act="forceUpdate" style="margin-top:10px">🔄 تحديث التطبيق الآن</button>
+    <p class="note" style="margin-top:10px">لو رفعت نسخة جديدة والتطبيق لسه بيوريك القديمة، ابدأ بـ«افحص السيرفر»:
+      بيقولك النسخة اللي فعلاً مرفوعة على السيرفر، فتعرف المشكلة في الرفع ولا في الملفات المخزَّنة.
+      <b>بياناتك ما بتتأثرش</b> في الحالتين — محفوظة في مكان تاني تماماً.</p>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn ghost" data-act="chkVer">🔎 افحص السيرفر</button>
+      <button class="btn ghost" data-act="forceUpdate">🔄 تحديث التطبيق الآن</button></div>
   </div>
   <div class="eyebrow debt">الأمان والصلاحيات</div>
   <div class="card">
@@ -3601,6 +3603,7 @@ function onClick(ev){
     case 'install':return doInstall();
     case 'installDiag':return installDiag();
     case 'forceUpdate':return forceUpdate();
+    case 'chkVer':return checkServerVer();
     case 'swRetry':return (async()=>{
       try{
         const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'});
@@ -4695,6 +4698,10 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
       w&&w.addEventListener('statechange',()=>{
         if(w.state==='installed'&&navigator.serviceWorker.controller)
           toast("فيه تحديث جاهز — اقفل التطبيق وافتحه","ok")})})
+    /* التطبيق المثبَّت بيفضل في الذاكرة أيام، وعامل الخدمة ما بيدوّرش على
+       تحديث إلا مع طلب صفحة جديد — فنسأل السيرفر كل مرة يرجع للواجهة. */
+    document.addEventListener('visibilitychange',()=>{
+      if(!document.hidden)reg.update().catch(()=>{})});
   }).catch(err=>{S.swErr=err.message;
     console.warn('SW register failed:',err);});
 }
@@ -4717,8 +4724,39 @@ async function forceUpdate(){
       await Promise.all(ks.map(k=>caches.delete(k)));
     }
     toast("تم المسح — جارٍ إعادة التحميل","ok");
-    setTimeout(()=>location.reload(),700);
+    /* location.reload() لوحدها ممكن تتخدم من كاش المتصفح نفسه (GitHub Pages
+       بيبعت مدة صلاحية)، فنعيد التحميل برابط فيه بصمة وقت — طلب جديد مؤكَّد. */
+    setTimeout(()=>{
+      const u=location.href.split('#')[0].split('?')[0];
+      location.replace(u+'?u='+Date.now());
+    },700);
   }catch(e){toast("تعذّر التحديث: "+(e.message||''),"err")}
+}
+/* فحص السيرفر: بيجيب index.html و sw.js من السيرفر بتخطّي كل الكاشات ويقرأ
+   رقم النسخة من نصّهما. ده بيفصل السؤالين اللي بيتلخبطوا:
+   «الملف اترفع صح؟» و«التطبيق شايف الملف الجديد؟» — من غير تخمين. */
+async function checkServerVer(){
+  const grab=async(f,re)=>{
+    const r=await fetch(f+'?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error(f+' — HTTP '+r.status);
+    return (await r.text()).match(re)?.[1]||null;
+  };
+  toast("جارٍ الفحص…");
+  let html=null,sw=null,err='';
+  try{html=await grab('index.html',/APPVER\s*=\s*"([^"]+)"/)}catch(e){err=e.message||'تعذّر الوصول'}
+  try{sw=await grab('sw.js',/VERSION\s*=\s*'v?([^']+)'/)}catch(e){if(!err)err=e.message||'تعذّر الوصول'}
+  const row=(k,v)=>`<div class="diff"><span>${k}</span><b>${esc(v||'—')}</b></div>`;
+  let verdict;
+  if(!html&&!sw)verdict=`<p class="note">متقدرش توصل للسيرفر دلوقتي${err?` (${esc(err)})`:''} — اتأكد إن فيه إنترنت وجرّب تاني.</p>`;
+  else if(html===APPVER)verdict=`<p class="note"><b>أنت على أحدث نسخة مرفوعة.</b> لو مستني تعديل جديد فهو لسه مترفعش على السيرفر — ارفع <b>index.html</b> و<b>sw.js</b> الاتنين مع بعض.</p>`;
+  else verdict=`<p class="note"><b>السيرفر عليه نسخة أحدث (${esc(html||'؟')}) وأنت شغّال على ${esc(APPVER)}.</b>
+    يعني الرفع تمام والمشكلة في الملفات المخزَّنة على الموبايل — اضغط «تحديث التطبيق الآن».</p>`;
+  const warn=(html&&sw&&html!==sw)?`<p class="note" style="color:var(--debt)">تنبيه: index.html على السيرفر نسخته ${esc(html)}
+    و sw.js نسخته ${esc(sw)} — الملفين لازم يكونوا بنفس الرقم. الأغلب إنك رفعت واحد ونسيت التاني.</p>`:'';
+  openSheet("فحص السيرفر","مقارنة بين اللي شغّال عندك واللي مرفوع فعلاً.",
+    `<div class="card">${row('النسخة الشغّالة عندك',APPVER)}
+      ${row('index.html على السيرفر',html)}${row('sw.js على السيرفر',sw)}
+      ${verdict}${warn}</div>`);
 }
 async function installDiag(){
   const R=[],add=(n,ok,hint,act)=>R.push({n,ok,hint:ok?'':hint,act:ok?null:act});
