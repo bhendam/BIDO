@@ -465,6 +465,13 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .repopt .rl{font-size:15.5px;font-weight:600}
 .repopt .rd2{font-size:13px;color:var(--muted)}
 .repopt .go{position:absolute;inset-inline-end:14px;top:14px;color:var(--accent);font-size:17px}
+/* صفّ التقرير في القائمة = زرار الاختيار + زرار التثبيت جنبه (زرار جوّه زرار HTML غلط) */
+.repline{display:flex;gap:6px;align-items:stretch;margin-bottom:8px}
+.repline .repopt{margin-bottom:0;flex:1;min-width:0}
+.pinb{flex:0 0 48px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
+  font-size:19px;color:var(--line-2);cursor:pointer;font-family:inherit}
+.pinb.on{color:var(--warn);border-color:var(--warn);background:var(--card)}
+.pinb:disabled{opacity:.35;cursor:default}
 
 /* ---------------- شريط الإيصال ---------------- */
 .tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:18px 17px;
@@ -772,7 +779,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.5.3";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.6.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -902,7 +909,9 @@ const S={tab:"home",
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,wipeLog:[],wipe:{kind:'ledger',backedUp:false},
   F:{from:monthStart(),to:todayISO(),ent:"",q:"",range:"month"},
-  cost:{farmId:"",day:"",unlock:""}};
+  cost:{farmId:"",day:"",unlock:""},
+  /* تفضيلات الوصول للتقارير — محفوظة في meta لا في السجل (مش بيانات محاسبية) */
+  recentRep:[],pinRep:[]};
 
 function derive(entities,ledger){
   /* الحركات الميتة: ملغاة أو مستبدلة بنسخة أحدث */
@@ -1048,6 +1057,8 @@ async function refresh(){
   S.sec=(await getMeta('security'))||S.sec;
   S.bk=(await getMeta('backup'))||S.bk;
   S.wipeLog=(await getMeta('wipeLog'))||[];
+  S.recentRep=(await getMeta('repRecent'))||[];
+  S.pinRep=(await getMeta('repPin'))||[];
   S.devId=(await getMeta('deviceId'))||"";
   if(!S.devId){S.devId=uid();await setMeta('deviceId',S.devId)}
   S.chainTip=S.ledger.length?S.ledger[S.ledger.length-1].hash||"":"";
@@ -2071,14 +2082,125 @@ const REPS=[
   ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','تقارير العمل']
 ];
 const repInfo=k=>REPS.find(r=>r[0]===k)||REPS[0];
+const repKnown=k=>REPS.some(r=>r[0]===k);
+
+/* كلمات يدوّر بها صاحب الشغل بالمعنى لا بالاسم الرسمي: «فلوس مزرعة» تودّي
+   لتقرير المزرعة، «سواق» تودّي للسائقين. مش معروضة في الشاشة — للبحث بس. */
+const REPKEY={
+  hand:'تسليم ورديه نهايه اليوم قفل ملخص استلام',
+  daily:'جرد مخزن بكش يومي رصيد افتتاحي ختامي عدد',
+  farmDaily:'مزرعه يوم واحد مبيعات ثلج بكش تاريخ معين',
+  colDaily:'تحصيل فلوس نقديه قبض مبايع تجار يوم',
+  farmEnt:'مزرعه كشف حساب فلوس مستحق فواتير تصفيه بكش ثلج مربي',
+  merchEnt:'مبيع تاجر صاله كشف حساب فلوس مديونيه دين تحصيل بكش',
+  drv:'سائق سواق سايق عربيه نقل رحلات سروح سلف اجره تالف',
+  ice:'ثلج بلاطات مصنع تلج سعر',
+  boxAll:'بكش صناديق عهده حركه شيل رجع',
+  farmsAll:'مزارع كل ارصده مستحقات عموما',
+  merchAll:'مبايع تجار كل ارصده مديونيه ديون عموما',
+  drvAll:'سائقين سواقين كل ارصده عموما',
+  iceAll:'مصانع ثلج تلج كل ارصده عموما',
+  audit:'جرد فرق عد فعلي دفتري نقص زياده',
+  dmg:'تالف كسر خرده اهمال سائقين نسبه',
+  all:'كل العمليات سجل حركات تعديل حذف بحث ارشيف'};
+
+/* تطبيع عربي بسيط: التشكيل والتطويل والهمزات والتاء المربوطة والألف المقصورة —
+   علشان «مزرعه» و«مزرعة» و«المزرعه» كلها تلاقي نفس النتيجة. */
+const arNorm=s=>String(s||'').replace(/[ً-ْـ]/g,'')
+  .replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[ؤئ]/g,'ء')
+  .toLowerCase().trim();
+
+const PINMAX=6;   /* أكتر من كده الشريط المختصر يبقى قائمة تانية بلا فايدة */
+/* تفضيل عرض لا بيانات محاسبية: لو الحفظ فشل لأي سبب، الاختيار يشتغل في الجلسة
+   الحالية ولا يوقف فتح التقرير. مايصحّش استثناء هنا يكسر تبديل التقارير. */
+const saveRepPref=(k,v)=>{try{const p=setMeta(k,v);if(p&&p.catch)p.catch(()=>{})}catch(_){}};
+function togglePinRep(k){
+  const cur=(S.pinRep||[]).filter(repKnown);
+  if(cur.includes(k))S.pinRep=cur.filter(x=>x!==k);
+  else{if(cur.length>=PINMAX)return false;S.pinRep=[...cur,k]}
+  saveRepPref('repPin',S.pinRep);
+  return true;
+}
+function pushRecentRep(k){
+  S.recentRep=[k,...(S.recentRep||[]).filter(x=>x!==k&&repKnown(x))].slice(0,6);
+  saveRepPref('repRecent',S.recentRep);
+}
+/* كل تغيير لـS.rep يمرّ من هنا — علشان «آخر ما فتحت» تشمل كمان الدخول للتقرير
+   من صفحة الجهة أو من البحث، مش من القائمة بس. */
+const setRep=k=>{S.rep=k;pushRecentRep(k)};
+/* اختيار تقرير — نقطة واحدة يستدعيها الشريط المختصر والقائمة معاً */
+function selectRep(k){
+  if(!repKnown(k))return;
+  setRep(k);S.page=0;S.toTop=true;S.fopen=false;
+  if(REPNOENT.has(k))S.F.ent='';
+  if((k==='farmDaily'||k==='colDaily')&&S.F.from!==S.F.to){
+    const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
+  closeSheet();render();
+  /* تقرير جهة واحدة بلا جهة مختارة = شاشة إرشاد فاضية وخطوة زيادة في الفلتر،
+     فنفتح مُختار الجهة على طول. ولو المختار حالياً من نوع تاني (مبيع في تقرير
+     مزرعة) نفتحه برضه بدل ما يفضل الفلتر غلط بصمت. */
+  if(REPNEEDENT.has(k)){
+    const et=repEt(k),cur=S.F.ent?S.D.ent(S.F.ent):null;
+    if(!cur||cur.type!==et)openFilterPick(et);
+  }
+}
 function repPick(){
-  const cur=S.rep||'hand',gs=[...new Set(REPS.map(r=>r[3]))];
-  openSheet("اختر التقرير","كل التقارير هنا — اختر واحداً وارجع للنتيجة.",
-    gs.map(g=>`<div class="drillsec">${g}</div>`+
-      REPS.filter(r=>r[3]===g).map(([k,l,d])=>
-        `<button type="button" class="repopt ${k===cur?'on':''}" data-act="repSel" data-r="${k}">
-          <span class="rl">${l}</span><span class="rd2">${d}</span>
-          ${k===cur?'<span class="go">✓</span>':''}</button>`).join('')).join(''));
+  const cur=S.rep||'hand';
+  const pins=()=>(S.pinRep||[]).filter(repKnown);
+  const recs=()=>(S.recentRep||[]).filter(k=>repKnown(k)&&k!==cur&&!pins().includes(k)).slice(0,4);
+  const row=k=>{const [,l,d]=repInfo(k),on=pins().includes(k),full=pins().length>=PINMAX;
+    return `<div class="repline">
+      <button type="button" class="repopt ${k===cur?'on':''}" data-rsel="${k}">
+        <span class="rl">${l}</span><span class="rd2">${d}</span>
+        ${k===cur?'<span class="go">✓</span>':''}</button>
+      <button type="button" class="pinb${on?' on':''}" data-rpin="${k}"${!on&&full?' disabled':''}
+        aria-label="تثبيت في الشريط المختصر" title="تثبيت في الشريط المختصر">${on?'★':'☆'}</button></div>`};
+  const draw=q=>{
+    const t=arNorm(q);
+    if(t){
+      const f=REPS.filter(r=>arNorm(r[1]+' '+r[2]+' '+r[3]+' '+(REPKEY[r[0]]||'')).includes(t));
+      return f.length?`<div class="drillsec">نتائج «${esc(q.trim())}» (${f.length})</div>`+f.map(r=>row(r[0])).join('')
+        :`<div class="empty">مفيش تقرير بـ«${esc(q.trim())}» — جرّب كلمة زي: فلوس · بكش · ثلج · تالف · تحصيل · جرد</div>`;
+    }
+    let h='';
+    if(pins().length)h+=`<div class="drillsec">المثبّتة ★</div>`+pins().map(row).join('');
+    if(recs().length)h+=`<div class="drillsec">آخر ما فتحت</div>`+recs().map(row).join('');
+    return h+[...new Set(REPS.map(r=>r[3]))].map(g=>`<div class="drillsec">${g}</div>`+
+      REPS.filter(r=>r[3]===g).map(r=>row(r[0])).join('')).join('');
+  };
+  const d=$('#dlg');
+  /* بلا focus تلقائي: القائمة نفسها هي الطريق الأسرع في الغالب، وفتح كيبورد
+     الموبايل من غير طلب بيغطّيها. الكتابة اختيار مش إجبار. */
+  d.innerHTML=`<div class="sheet"><h3>اختر التقرير</h3>
+    <p class="sub">دوّر بالاسم أو بالمعنى — أو ثبّت (★) اللي بتفتحه كل يوم</p>
+    <div class="field"><input id="rpq" placeholder="بحث… (فلوس · بكش · ثلج · تالف)" autocomplete="off" enterkeyhint="search"></div>
+    <div id="rplist" style="max-height:54vh;overflow:auto">${draw('')}</div>
+    <p class="note" id="rpnote" style="margin:8px 0 0">${pins().length>=PINMAX?`وصلت ${PINMAX} مثبّتة — شيل واحداً قبل ما تثبّت غيره.`:'★ = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'}</p>
+    <button type="button" class="btn ghost" id="rpx" style="margin-top:10px">إلغاء</button></div>`;
+  d.classList.add('on');
+  const close=()=>{d.classList.remove('on');d.innerHTML='';d.onclick=null};
+  const q=$('#rpq');
+  const redraw=()=>{$('#rplist').innerHTML=draw(q.value);
+    $('#rpnote').textContent=pins().length>=PINMAX
+      ?`وصلت ${PINMAX} مثبّتة — شيل واحداً قبل ما تثبّت غيره.`
+      :'★ = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'};
+  q.addEventListener('input',redraw);
+  d.onclick=ev=>{
+    if(ev.target===d||ev.target.id==='rpx')return close();
+    const p=ev.target.closest('[data-rpin]');
+    if(p){if(togglePinRep(p.dataset.rpin))redraw();return}
+    const b=ev.target.closest('[data-rsel]');if(!b)return;
+    close();selectRep(b.dataset.rsel);
+  };
+}
+/* الشريط المختصر فوق رأس التقرير: المثبّتة، ولو مفيش مثبّت فآخر ما فتحته.
+   بيظهر من اتنين فأكتر — زرار واحد مش اختصار. */
+function repQuick(){
+  const cur=S.rep||'hand',pins=(S.pinRep||[]).filter(repKnown);
+  const ks=pins.length?pins:(S.recentRep||[]).filter(repKnown).slice(0,4);
+  if(ks.length<2)return '';
+  return `<div class="qr" style="margin:0 0 10px">${ks.map(k=>
+    `<button data-act="repSel" data-r="${k}" aria-selected="${k===cur}">${pins.length?'★ ':''}${repInfo(k)[1]}</button>`).join('')}</div>`;
 }
 /* سطر الفلتر: ملخّص في سطر، ويتوسّع بالضغط */
 const fsum=()=>{
@@ -2091,7 +2213,7 @@ function vRep(){
   const r=S.rep||'hand',[,lbl,desc]=repInfo(r);
   const head=`<button class="rephead" data-act="repPick">
     <span class="rh1"><b>${lbl}</b><span class="go">تغيير ▾</span></span>
-    <span class="rh2">${desc}</span></button>`;
+    <span class="rh2">${desc}</span></button>`+repQuick();
   if(r==='hand')return head+handover()+repActions();
   S.sub.repbox=r;
   const fn={all:repAll,drv:repDrv,ice:repIce,drvAll:repDrv,iceAll:repIce,
@@ -2112,11 +2234,17 @@ function repActions(){
 }
 /* تقارير عامة بلا فلترة جهة — «عموماً» يعني كل الجهات، فإخفاء الحقل أوضح من عرضه معطّلاً */
 const REPNOENT=new Set(['farmsAll','merchAll','drvAll','iceAll']);
+/* نوع الجهة اللي يفلتر بها كل تقرير — مستخرَج من filterBar علشان selectRep
+   يقدر يفتح مُختار الجهة الصحيح بنفس الخريطة بلا تكرار. */
+const REPET={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
+  drv:'driver',ice:'ice',all:'farmerchant',farmEnt:'farm',merchEnt:'merchant',
+  farmDaily:'farm',colDaily:'merchant',boxAll:'loc'};
+const repEt=k=>REPET[k]||'farmerchant';
+/* تقارير لا تعرض شيئاً بلا جهة مختارة — دي اللي نفتح لها المُختار تلقائياً */
+const REPNEEDENT=new Set(['farmEnt','merchEnt','farmDaily']);
 function filterBar(){
   const F=S.F,D=S.D;
-  const etype={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
-    drv:'driver',ice:'ice',all:'farmerchant',farmEnt:'farm',merchEnt:'merchant',
-    farmDaily:'farm',colDaily:'merchant',boxAll:'loc'}[S.rep]||'farmerchant';
+  const etype=repEt(S.rep);
   const R=[["today","اليوم"],["week","٧ أيام"],["month","هذا الشهر"],["all","الكل"],["custom","مخصص"]];
   const cur=F.ent?D.ent(F.ent):null;
   const noEnt=REPNOENT.has(S.rep);
@@ -2174,10 +2302,10 @@ function openSearch(){
     close();
     if(b.dataset.sv2==='ent'){
       S.F.ent=b.dataset.id;S.F.range='all';S.F.from='';S.F.to='';
-      S.rep={farm:'farmEnt',merchant:'merchEnt',driver:'drv',ice:'ice'}[b.dataset.t]||'farmEnt';
+      setRep({farm:'farmEnt',merchant:'merchEnt',driver:'drv',ice:'ice'}[b.dataset.t]||'farmEnt');
       S.tab='rep';S.toTop=true;render();
     }else{
-      S.rep='all';S.F={from:'',to:'',ent:'',q:'',range:'all',type:''};
+      setRep('all');S.F={from:'',to:'',ent:'',q:'',range:'all',type:''};
       S.openRec=b.dataset.id;S.tab='rep';S.toTop=true;render();
     }
   };
@@ -3488,17 +3616,17 @@ function onClick(ev){
     case 'setMore':S.setp=(S.setp||0)+1;return render();
     case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
     case 'settleFarm':S.form.settle={farmId:id};return go('ops',{ops:'acct',fin:'settle'});
-    case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';S.rep='farmEnt';S.page=0;S.fopen=false;return go('rep');
+    case 'repFarm':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';setRep('farmEnt');S.page=0;S.fopen=false;return go('rep');
     case 'goFarms':return go('ops',{ops:'acct',fin:'settle'});
     case 'goDrafts':return go('ops',{ops:'acct',fin:'draft'});
     case 'goBox':return go('ops',{ops:'box',box:'bal'});
     case 'goBoxMove':return go('ops',{ops:'box',box:'move',boxop:'sale_move'});
     case 'goBoxAdj':return go('ops',{ops:'box',box:'adj',boxop:'opening_box'});
     case 'goDmg':return go('ops',{ops:'drv',drv:'dmg'});
-    case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';S.rep='merchEnt';S.page=0;S.fopen=false;return go('rep');
-    case 'repDriver':S.F.ent=id;S.rep='drv';S.page=0;S.fopen=false;return go('rep');
-    case 'repFactory':S.F.ent=id;S.rep='ice';S.page=0;S.fopen=false;return go('rep');
-    case 'repEntity':S.F.ent=id;S.rep='boxAll';S.page=0;S.fopen=false;return go('rep');
+    case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';setRep('merchEnt');S.page=0;S.fopen=false;return go('rep');
+    case 'repDriver':S.F.ent=id;setRep('drv');S.page=0;S.fopen=false;return go('rep');
+    case 'repFactory':S.F.ent=id;setRep('ice');S.page=0;S.fopen=false;return go('rep');
+    case 'repEntity':S.F.ent=id;setRep('boxAll');S.page=0;S.fopen=false;return go('rep');
     case 'allType':S.F.type=b.dataset.t;S.page=0;return render();
     case 'fPick':return openFilterPick(b.dataset.et);
     case 'fClear':S.F.ent='';S.page=0;return render();
@@ -3518,11 +3646,7 @@ function onClick(ev){
     case 'costUnlock':return costUnlockDay();
     case 'repPick':return repPick();
     case 'fToggle':S.fopen=!S.fopen;return render();
-    case 'repSel':S.rep=b.dataset.r;S.page=0;S.toTop=true;S.fopen=false;
-      if(REPNOENT.has(S.rep))S.F.ent='';
-      if((S.rep==='farmDaily'||S.rep==='colDaily')&&S.F.from!==S.F.to){
-        const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
-      closeSheet();return render();
+    case 'repSel':return selectRep(b.dataset.r);
     case 'handRange':{const t=todayISO();
       const M={today:[t,t],yest:[addDays(t,-1),addDays(t,-1)],week:[addDays(t,-6),t],month:[monthStart(),t]};
       const[a,c]=M[b.dataset.r];S.F.from=a;S.F.to=c;S.F.range=b.dataset.r==='yest'?'custom':b.dataset.r;
@@ -3566,7 +3690,7 @@ function onClick(ev){
     case 'delOp':return delOp(id);
     case 'toggleEnt':S.openEnt=S.openEnt===id?null:id;return render();
     case 'entRep':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';
-      S.rep=ENTREP[b.dataset.t][0];S.page=0;S.fopen=false;return go('rep');
+      setRep(ENTREP[b.dataset.t][0]);S.page=0;S.fopen=false;return go('rep');
     case 'editEnt':return editEnt(id);
     case 'addOpen':return addOpen(id);
     case 'delEnt':return delEnt(id);
