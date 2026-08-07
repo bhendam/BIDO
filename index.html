@@ -779,7 +779,7 @@ const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeh
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.6.3";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.6.4";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2918,9 +2918,36 @@ function repIce(){
     <tfoot><tr><td>الإجمالي</td><td class="n">${sum(fs,f=>f.blocks)}</td>
       <td class="n">${money(sumM(fs,f=>f.value))}</td><td class="n">${money(sumM(fs,f=>f.paid))}</td>
       <td class="n">${money(sumM(fs,f=>f.balance))}</td></tr></tfoot></table>`;
-  S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),html:tbl+"<h3>أرصدة المصانع</h3>"+bal,phone:who?.phone};
+  /* إجمالي الفترة لكل مصنع: نفس فكرة السائقين — مجموع حركاته داخل مدى الفلترة
+     بس (من items أعلاه)، غير جدول «أرصدة المصانع» تحت اللي تراكمي من أول
+     السجل. بترتيب piaster صحيح (P/msum) لا جمع عشري مباشر، وبيعرض بس
+     المصانع اللي ليها حركة فعلية في المدى. */
+  const perAgg={};
+  items.forEach(e=>{if(!e.factoryId)return;
+    const a=perAgg[e.factoryId]||(perAgg[e.factoryId]={blocks:0,value:0,paid:0});
+    if(e.type==='factory_payment')a.paid+=P(e.amount);
+    else{a.blocks+=(+e.qty||0);a.value+=P((+e.qty||0)*(+e.unitPrice||0))}});
+  const perIds=fs.map(f=>f.id).filter(id=>perAgg[id]);
+  const perRow=id=>{const a=perAgg[id],net=msum(a.value/100,-a.paid/100);
+    return `<tr><td class="tname">${esc(D.nameOf(id))}</td><td class="n">${a.blocks}</td>
+      <td class="n">${money(a.value/100)}</td><td class="n">${money(a.paid/100)}</td>
+      ${mcell(net)}</tr>`};
+  const perBlocks=perIds.reduce((t,id)=>t+perAgg[id].blocks,0);
+  const perValue=perIds.reduce((t,id)=>t+perAgg[id].value,0)/100;
+  const perPaid=perIds.reduce((t,id)=>t+perAgg[id].paid,0)/100;
+  const per=`<table><thead><tr><th>المصنع</th><th class="n">بلاطات الفترة</th><th class="n">قيمة الفترة</th>
+    <th class="n">مدفوع الفترة</th><th class="n">صافي الفترة</th></tr></thead>
+    <tbody>${perIds.map(perRow).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي</td><td class="n">${perBlocks}</td><td class="n">${money(perValue)}</td>
+      <td class="n">${money(perPaid)}</td>${mcell(msum(perValue,-perPaid))}</tr></tfoot></table>`;
+  S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),
+    html:tbl+(perIds.length?"<h3>إجمالي الفترة</h3>"+per:"")+"<h3>أرصدة المصانع</h3>"+bal,phone:who?.phone};
   return `<div class="eyebrow">حركات الثلج (${items.length})</div>
     <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
+    <div class="eyebrow">إجمالي الفترة</div>
+    <div class="card">${perIds.length?`<div class="tscroll">${per}</div>
+      <p class="note">صافي كل مصنع من حركات المدى المختار بس — مش تراكمي زي أرصدة المصانع تحت.</p>`
+      :'<div class="empty">لا حركات في المدى</div>'}</div>
     <div class="eyebrow">أرصدة المصانع</div><div class="card"><div class="tscroll">${bal}</div></div>`;
 }
 
