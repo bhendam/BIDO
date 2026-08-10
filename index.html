@@ -79,7 +79,24 @@
   --debt-soft:var(--debt-bg); --mist:var(--bg);
   --accent:var(--primary); --accent-soft:var(--primary-bg); --tint:var(--bg);
 
+  /* ==== سلّم المقاسات ====
+     كان في الملف ٢١ حجم خط مختلف (11 · 11.5 · 12 · 12.5 · 13 · 13.5 · 14 …).
+     العين ما بتحسّش الفرق بين 13 و13.5 كفرق معنى — بتحسّه كعشوائية. ٦ درجات
+     بس، كل درجة لها شغلانة واضحة، والمسافات كلها مضاعفات ٤. */
+  --fs-xs:12px;      /* وسوم · رؤوس جداول · سطور مساعدة */
+  --fs-s:13.5px;     /* نص ثانوي · أزرار صغيرة · عناوين أقسام فرعية */
+  --fs-m:15px;       /* نص الأساس · صفوف الجداول */
+  --fs-l:17px;       /* عناوين · أزرار أساسية · حقول الإدخال (١٦ فأكثر يمنع تكبير iOS) */
+  --fs-xl:21px;      /* أرقام بارزة */
+  --fs-2xl:27px;     /* رقم البطاقة الرئيسي */
+  /* مقاسات صناديق الأيقونات — مش من سلّم النص */
+  --ic-sm:18px; --ic-md:20px; --ic-lg:22px; --ic-xl:34px;
+  /* المسافات — مضاعفات ٤ */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+
   --r:14px;
+  /* الظل للعناصر الطافية وحدها (الشيت · الزر العائم · التوست · شريط الحفظ).
+     الأسطح الثابتة بحدّ فقط: حدّ + ظل معاً على كل بطاقة = ضوضاء بصرية. */
   --shadow:0 1px 2px rgba(17,26,31,.04), 0 1px 3px rgba(17,26,31,.06);
   --dlgbg:rgba(17,26,31,.5);
   --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,system-ui,-apple-system,sans-serif;
@@ -91,8 +108,10 @@ body[data-theme=box]    {--accent:var(--c-box);--accent-soft:#EEEAF8}
 body[data-theme=drivers]{--accent:var(--c-drv);--accent-soft:var(--warn-bg)}
 body[data-theme=ice]    {--accent:var(--c-ice);--accent-soft:var(--info-bg)}
 
+/* الوضع الغامق: تلقائي من النظام أو يدوي من الإعدادات.
+   فجراً في السوق الشاشة الفاتحة بتبهر، والمستخدم مش هيروح يغيّر إعداد النظام كله. */
 @media (prefers-color-scheme:dark){
-  :root{
+  html:not([data-mode=light]){
     --ink:#E8ECEE; --ink-2:#BDC9CF; --muted:#94A3AA; --faint:#6C7B83;
     --line:#26343B; --line-2:#33454E; --bg:#0E1519; --card:#161F24; --card-2:#1D282E;
     --primary:#3FB0C0; --primary-bg:#0E3238;
@@ -104,15 +123,28 @@ body[data-theme=ice]    {--accent:var(--c-ice);--accent-soft:var(--info-bg)}
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
     --dlgbg:rgba(0,0,0,.66);
   }
-  body[data-theme=box]{--accent-soft:#241C3D}
+  html:not([data-mode=light]) body[data-theme=box]{--accent-soft:#241C3D}
 }
+html[data-mode=dark]{
+    --ink:#E8ECEE; --ink-2:#BDC9CF; --muted:#94A3AA; --faint:#6C7B83;
+    --line:#26343B; --line-2:#33454E; --bg:#0E1519; --card:#161F24; --card-2:#1D282E;
+    --primary:#3FB0C0; --primary-bg:#0E3238;
+    --debt:#F08A93;   --debt-bg:#3A1A1E;
+    --credit:#5FC79B; --credit-bg:#0F3125;
+    --warn:#DCA94F;   --warn-bg:#33270F;
+    --info:#5CAEE0;   --info-bg:#0F2C3F;
+    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
+    --dlgbg:rgba(0,0,0,.66);
+}
+html[data-mode=dark] body[data-theme=box]{--accent-soft:#241C3D}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
   font-family:var(--font);
   background:var(--tint);
   color:var(--ink);
-  font-size:16px;
+  font-size:var(--fs-m);
   line-height:1.65;          /* العربي يحتاج فسحة أكبر بين السطور */
   letter-spacing:0;
   -webkit-font-smoothing:antialiased;
@@ -139,35 +171,38 @@ header{
   padding:calc(10px + env(safe-area-inset-top)) 16px 0;
   border-bottom:1px solid var(--line);
 }
-.brand{display:flex;align-items:center;gap:11px;padding-bottom:11px}
-.brand h1{margin:0;font-size:17px;font-weight:600;line-height:1.3}
+.brand{display:flex;align-items:center;gap:12px;padding-bottom:12px}
+.brand h1{margin:0;font-size:var(--fs-l);font-weight:600;line-height:1.3}
 .brand .mark{width:36px;height:36px;border-radius:10px;flex:0 0 auto;background:var(--accent);
-  display:grid;place-items:center;font-size:17px;overflow:hidden;color:#fff}
+  display:grid;place-items:center;font-size:var(--fs-l);overflow:hidden;color:#fff}
 .brand .mark.own{background:none}
 .brand .mark img,.brand .mark svg{width:100%;height:100%;object-fit:cover;display:block}
 #hsearch{margin-inline-start:auto;background:var(--card-2);border:1px solid var(--line);
-  width:42px;height:42px;border-radius:12px;font-size:18px;cursor:pointer;color:var(--ink-2);
+  width:42px;height:42px;border-radius:12px;font-size:var(--ic-sm);cursor:pointer;color:var(--ink-2);
   display:grid;place-items:center;flex:0 0 auto}
-.brand .today{margin-inline-start:12px;text-align:left;font-size:12px;color:var(--muted)}
-.brand .today b{display:block;font-size:14px;color:var(--ink-2);font-weight:600;
+.brand .today{margin-inline-start:12px;text-align:left;font-size:var(--fs-xs);color:var(--muted)}
+.brand .today b{display:block;font-size:var(--fs-s);color:var(--ink-2);font-weight:600;
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
-.hdr-sub{margin-top:1px;font-size:12.5px;color:var(--muted);font-weight:400}
+.hdr-sub{margin-top:1px;font-size:var(--fs-xs);color:var(--muted);font-weight:400}
+/* السطر ده للتشخيص، مش محتاج يقعد على شاشات الشغل — بيقصّر الترويسة
+   ويسيب مساحة أكبر للمحتوى في العمليات والتقارير. */
+.hdr-sub:empty{display:none}
 .band{height:4px;background:var(--accent);margin:0 -16px}
 
 /* ---------------- التخطيط ---------------- */
-main{padding:16px 13px 8px;max-width:820px;margin:0 auto}
-.sec-title{font-size:15px;font-weight:600;color:var(--ink);margin:26px 2px 10px;
-  display:flex;align-items:center;gap:9px}
+main{padding:16px 12px 8px;max-width:820px;margin:0 auto}
+.sec-title{font-size:var(--fs-m);font-weight:600;color:var(--ink);margin:24px 2px 8px;
+  display:flex;align-items:center;gap:8px}
 .sec-title.s-acct span.n{background:var(--c-acct)}
 .sec-title.s-box span.n{background:var(--c-box)}
 .sec-title.s-drv span.n{background:var(--c-drv)}
 .sec-title.s-ice span.n{background:var(--c-ice)}
 .sec-title span.n{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:7px;
-  display:grid;place-items:center;font-size:12px;font-weight:600;font-family:var(--num)}
+  display:grid;place-items:center;font-size:var(--fs-xs);font-weight:600;font-family:var(--num)}
 main>.sec-title:first-child{margin-top:4px}
 
-.eyebrow{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;
-  color:var(--ink-2);margin:24px 2px 10px;letter-spacing:0}
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-s);font-weight:600;
+  color:var(--ink-2);margin:24px 2px 8px;letter-spacing:0}
 .eyebrow::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--accent);flex:0 0 auto}
 .eyebrow.brass::before{background:var(--warn)}
 .eyebrow.debt::before{background:var(--debt)}
@@ -178,67 +213,67 @@ main>.sec-title:first-child{margin-top:4px}
 .eyebrow.box::before{background:var(--c-box)}
 .eyebrow.ice::before{background:var(--c-ice)}
 .eyebrow.drv::before{background:var(--c-drv)}
-.eyebrow .free{font-weight:400;color:var(--muted);font-size:13px}
+.eyebrow .free{font-weight:400;color:var(--muted);font-size:var(--fs-s)}
 main>.eyebrow:first-child{margin-top:4px}
 
 /* اسم الجهة في بداية تقرير مركّز عليها (مزرعة/مبيع/سائق..) — عنوان كبير وواضح
    في نص الصفحة، مختلف عن .eyebrow (شريط قسم فرعي) */
 .rptname{text-align:center;margin:2px 2px 20px}
-.rptname b{display:block;font-size:22px;font-weight:700;color:var(--ink);line-height:1.35}
-.rptname span{display:block;font-size:13.5px;color:var(--muted);margin-top:5px}
+.rptname b{display:block;font-size:var(--fs-xl);font-weight:700;color:var(--ink);line-height:1.35}
+.rptname span{display:block;font-size:var(--fs-s);color:var(--muted);margin-top:4px}
 main>.rptname:first-child{margin-top:4px}
 
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:15px;box-shadow:var(--shadow);margin-bottom:12px}
-.row{display:flex;gap:11px}.row>*{flex:1;min-width:0}
-.note{font-size:13px;color:var(--muted);margin:11px 2px 0;line-height:1.6}
+  padding:16px;margin-bottom:12px}
+.row{display:flex;gap:12px}.row>*{flex:1;min-width:0}
+.note{font-size:var(--fs-s);color:var(--muted);margin:12px 2px 0;line-height:1.6}
 
 /* ---------------- بطاقات اللوحة ---------------- */
 .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:14px 15px;box-shadow:var(--shadow);width:100%;text-align:right;position:relative;
-  overflow:hidden;display:block;font-family:inherit;cursor:pointer;margin-bottom:11px;color:var(--ink)}
+  padding:12px 16px;width:100%;text-align:right;position:relative;
+  overflow:hidden;display:block;font-family:inherit;cursor:pointer;margin-bottom:12px;color:var(--ink)}
 .tile::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:5px;background:var(--c-acct)}
 .tile.debt::after{background:var(--debt)}
 .tile.brass::after{background:var(--warn)}
 .tile.paid::after{background:var(--c-drv)}
 .tile.ice::after{background:var(--c-ice)}
 .tile.box::after{background:var(--c-box)}
-.tile .lbl{font-size:13.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:6px}
-.tile .lbl .car{margin-inline-start:auto;color:var(--faint);font-size:13px}
-.tile .val{font-size:27px;font-weight:600;margin-top:3px;line-height:1.25;color:var(--ink);
+.tile .lbl{font-size:var(--fs-s);color:var(--muted);font-weight:500;display:flex;align-items:center;gap:4px}
+.tile .lbl .car{margin-inline-start:auto;color:var(--faint);font-size:var(--fs-s)}
+.tile .val{font-size:var(--fs-2xl);font-weight:600;margin-top:3px;line-height:1.25;color:var(--ink);
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
-.tile .val.sm{font-size:21px}
-.tile .sub{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.55}
+.tile .val.sm{font-size:var(--fs-xl)}
+.tile .sub{font-size:var(--fs-s);color:var(--muted);margin-top:3px;line-height:1.55}
 .tile[aria-expanded=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid2 .tile{margin-bottom:0}
-.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--card-2);margin-top:11px}
+.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--card-2);margin-top:12px}
 .bar i{display:block;height:100%}
 
 .drill{background:var(--card);border:1px solid var(--accent);border-top:0;
-  border-radius:0 0 var(--r) var(--r);margin:-11px 0 12px;padding:2px 13px 4px}
-.drow{display:flex;align-items:center;gap:9px;padding:13px 2px;border-bottom:1px solid var(--line);
-  width:100%;background:none;border-inline:0;border-top:0;font-family:inherit;font-size:15px;
+  border-radius:0 0 var(--r) var(--r);margin:-12px 0 12px;padding:2px 12px 4px}
+.drow{display:flex;align-items:center;gap:8px;padding:12px 2px;border-bottom:1px solid var(--line);
+  width:100%;background:none;border-inline:0;border-top:0;font-family:inherit;font-size:var(--fs-m);
   text-align:right;cursor:pointer;color:var(--ink);min-height:50px}
 .drow:last-child{border-bottom:0}
-.drillsec{font-size:12.5px;font-weight:600;color:var(--muted);padding:10px 2px 4px;
+.drillsec{font-size:var(--fs-xs);font-weight:600;color:var(--muted);padding:8px 2px 4px;
   border-bottom:1px solid var(--line)}
 .drow b{margin-inline-start:auto;font-family:var(--num);font-variant-numeric:tabular-nums;
-  direction:ltr;font-size:16px;font-weight:600}
-.drow .go{color:var(--faint);font-size:18px}
+  direction:ltr;font-size:var(--fs-l);font-weight:600}
+.drow .go{color:var(--faint);font-size:var(--ic-sm)}
 
 /* ---------------- الجداول ---------------- */
-table{width:100%;border-collapse:collapse;font-size:14.5px;text-align:center}
-th{text-align:center;font-size:12.5px;color:var(--muted);font-weight:600;
-  padding:10px 8px;background:var(--card-2);white-space:nowrap;border-bottom:1px solid var(--line-2)}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-m);text-align:center}
+th{text-align:center;font-size:var(--fs-xs);color:var(--muted);font-weight:600;
+  padding:8px 8px;background:var(--card-2);white-space:nowrap;border-bottom:1px solid var(--line-2)}
 th:first-child{border-start-start-radius:8px}
 th:last-child{border-start-end-radius:8px}
-td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);text-align:center}
+td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);text-align:center}
 tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 40%,transparent)}
 tr:last-child td{border-bottom:0}
 td.n,th.n{text-align:center}
-td.n{font-size:15px;font-variant-numeric:tabular-nums}
-tfoot td{font-weight:600;border-top:2px solid var(--ink-2);background:var(--card-2);font-size:15px}
+td.n{font-size:var(--fs-m);font-variant-numeric:tabular-nums}
+tfoot td{font-weight:600;border-top:2px solid var(--ink-2);background:var(--card-2);font-size:var(--fs-m)}
 tfoot tr:nth-child(even) td{background:var(--card-2)}
 .tname{font-weight:600}
 .money-neg{color:var(--credit)}
@@ -246,45 +281,46 @@ tfoot tr:nth-child(even) td{background:var(--card-2)}
 .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -3px;padding:0 3px}
 .tscroll table{min-width:max-content}
 
-.empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:14.5px;
+.empty{text-align:center;padding:28px 16px;color:var(--muted);font-size:var(--fs-m);
   background:var(--card-2);border:1px dashed var(--line-2);border-radius:12px;line-height:1.7}
-.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px;font-weight:600}
+.empty b{display:block;color:var(--ink);font-size:var(--fs-l);margin-bottom:4px;font-weight:600}
 
 /* ---------------- النماذج ---------------- */
-label{display:block;font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 6px 2px}
-label .hint{font-weight:400;color:var(--muted);font-size:13px}
-input,select,textarea,button{font-family:inherit;font-size:16.5px;letter-spacing:0}
-input,select,textarea{width:100%;padding:13px 13px;border:1.5px solid var(--line-2);border-radius:11px;
+label{display:block;font-size:var(--fs-s);font-weight:600;color:var(--ink-2);margin:0 0 4px 2px}
+label .hint{font-weight:400;color:var(--muted);font-size:var(--fs-s)}
+input,select,textarea,button{font-family:inherit;font-size:var(--fs-l);letter-spacing:0}
+input,select,textarea{width:100%;padding:12px 12px;border:1.5px solid var(--line-2);border-radius:11px;
   background:var(--card);color:var(--ink);appearance:none;min-height:50px}
 input::placeholder{color:var(--faint)}
 input[type=number],input[inputmode=decimal],input[inputmode=numeric],input[type=date]{text-align:right}
 input:focus,select:focus,textarea:focus{outline:3px solid var(--accent);outline-offset:1px;
   border-color:var(--accent)}
-.field{margin-bottom:14px}
+.field{margin-bottom:12px}
 .field.locked input{background:var(--accent-soft);border-style:dashed;font-weight:600;color:var(--ink)}
-.with-btn{display:flex;gap:9px}.with-btn input{flex:1}
-.with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:14px}
+.with-btn{display:flex;gap:8px}.with-btn input{flex:1}
+.with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:12px}
 
 button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing:0}
-.btn{background:var(--primary);color:#fff;padding:14px 16px;width:100%;font-size:16px;min-height:52px}
+.btn{background:var(--primary);color:#fff;padding:12px 16px;width:100%;
+  font-size:var(--fs-l);line-height:1.3;min-height:52px}
 .btn:active{transform:translateY(1px)}
 .btn.brass{background:var(--warn)}
 .btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line-2)}
 .btn.wa{background:var(--wa)}
 .btn.dark{background:var(--ink)}
 .btn.danger{background:var(--debt-bg);color:var(--debt);border:1.5px solid var(--debt)}
-.btn.sm{padding:11px 14px;font-size:14px;width:auto;min-height:46px}
-.btnrow{display:flex;gap:9px;margin-bottom:12px}.btnrow .btn{flex:1}
+.btn.sm{padding:12px 12px;font-size:var(--fs-s);width:auto;min-height:46px}
+.btnrow{display:flex;gap:8px;margin-bottom:12px}.btnrow .btn{flex:1}
 
 /* اختيار الجهات: أسماء ظاهرة بلمسة واحدة */
 .pick{margin:0}
 .pkrow{display:flex;flex-wrap:wrap;gap:8px}
 .pchip{background:var(--card);border:1.5px solid var(--line-2);border-radius:22px;
-  padding:11px 16px;font-size:15px;min-height:46px;color:var(--ink);font-family:inherit;
+  padding:12px 16px;font-size:var(--fs-m);min-height:46px;color:var(--ink);font-family:inherit;
   cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pchip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
 .pchip.pksearch{background:var(--card-2);border-style:dashed;color:var(--ink-2);font-weight:600}
-#pklist .drow{border-bottom:1px solid var(--line);gap:10px}
+#pklist .drow{border-bottom:1px solid var(--line);gap:8px}
 #pklist .drow .tname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #pklist .drow span:nth-child(2){margin-inline-start:auto}
 
@@ -292,52 +328,52 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .fent .btn{min-height:50px}
 
 .rarebtn{width:100%;background:none;border:1px dashed var(--line-2);color:var(--muted);
-  padding:10px;border-radius:10px;font-family:inherit;font-size:13.5px;margin-top:10px;cursor:pointer}
+  padding:8px;border-radius:10px;font-family:inherit;font-size:var(--fs-s);margin-top:8px;cursor:pointer}
 
 /* روابط ثانوية في الحسابات */
 .finlinks{display:flex;gap:8px;margin:-4px 0 16px;overflow-x:auto;scrollbar-width:none}
 .finlinks::-webkit-scrollbar{display:none}
 .finlinks button{flex:0 0 auto;background:none;border:0;border-bottom:2px solid transparent;
-  color:var(--muted);padding:8px 4px;font-family:inherit;font-size:14px;cursor:pointer;
-  display:flex;align-items:center;gap:6px;min-height:40px}
+  color:var(--muted);padding:8px 4px;font-family:inherit;font-size:var(--fs-s);cursor:pointer;
+  display:flex;align-items:center;gap:4px;min-height:40px}
 .finlinks button[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-.finlinks button span{background:var(--card-2);color:var(--muted);font-size:12px;font-weight:600;
-  padding:1px 7px;border-radius:20px;font-family:var(--num)}
+.finlinks button span{background:var(--card-2);color:var(--muted);font-size:var(--fs-xs);font-weight:600;
+  padding:1px 8px;border-radius:20px;font-family:var(--num)}
 .finlinks button span.warn{background:var(--debt-bg);color:var(--debt)}
 
 /* حقل بزر مايك */
 .withmic{display:flex;gap:8px}
 .withmic input{flex:1}
 .mic{flex:0 0 auto;width:50px;min-height:50px;border-radius:11px;background:var(--card-2);
-  border:1.5px solid var(--line-2);font-size:19px;cursor:pointer}
+  border:1.5px solid var(--line-2);font-size:var(--ic-md);cursor:pointer}
 .mic.rec{background:var(--debt);border-color:var(--debt);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.55}}
 
 /* شريط الانتباه في الرئيسية: القرارات قبل الأرقام */
 .attn{width:100%;background:var(--debt-bg);border:1.5px solid var(--debt);border-radius:var(--r);
-  padding:13px 15px;margin-bottom:12px;display:flex;flex-direction:column;gap:3px;
+  padding:12px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:3px;
   font-family:inherit;text-align:right;cursor:pointer;color:var(--debt)}
-.attn .a1{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:600}
+.attn .a1{display:flex;align-items:center;gap:8px;font-size:var(--fs-m);font-weight:600}
 .attn .ab{background:var(--debt);color:#fff;min-width:24px;height:24px;border-radius:12px;
-  display:grid;place-items:center;font-size:13px;font-family:var(--num);margin-inline-start:auto}
-.attn .a2{font-size:13px;opacity:.9}
+  display:grid;place-items:center;font-size:var(--fs-s);font-family:var(--num);margin-inline-start:auto}
+.attn .a2{font-size:var(--fs-s);opacity:.9}
 .allok{background:var(--credit-bg);border:1px solid var(--credit);color:var(--credit);
-  border-radius:var(--r);padding:12px 15px;margin-bottom:12px;font-size:14.5px;font-weight:600}
+  border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:var(--fs-m);font-weight:600}
 
 /* بطاقات ورقة التسليم */
-.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
-.hcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 13px;
-  box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.hcell{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 12px;
+  position:relative;overflow:hidden}
 .hcell::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--line-2)}
 .hcell.ok::after{background:var(--credit)}
 .hcell.out::after{background:var(--debt)}
 .hcell.in::after{background:var(--credit)}
 .hcell.brass::after{background:var(--warn)}
-.hcell .hl{font-size:12.5px;color:var(--muted);font-weight:500}
-.hcell .hv{font-size:22px;font-weight:600;margin-top:2px;line-height:1.2}
-.hcell .hs{font-size:12px;color:var(--muted);margin-top:2px}
-.hcell .hd{margin-top:6px}
-.dlt{font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block}
+.hcell .hl{font-size:var(--fs-xs);color:var(--muted);font-weight:500}
+.hcell .hv{font-size:var(--fs-xl);font-weight:600;margin-top:2px;line-height:1.2}
+.hcell .hs{font-size:var(--fs-xs);color:var(--muted);margin-top:2px}
+.hcell .hd{margin-top:4px}
+.dlt{font-size:var(--fs-xs);font-weight:600;padding:2px 8px;border-radius:20px;display:inline-block}
 .dlt.up{background:var(--credit-bg);color:var(--credit)}
 .dlt.down{background:var(--debt-bg);color:var(--debt)}
 .dlt.same{background:var(--card-2);color:var(--muted)}
@@ -347,23 +383,23 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 
 /* شريط آخر ٣ عمليات فوق النماذج */
 .last3{background:var(--card-2);border:1px solid var(--line);border-radius:11px;
-  padding:8px 12px 10px;margin-bottom:14px}
-.l3h{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:5px}
-.l3r{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:13.5px;
+  padding:8px 12px 8px;margin-bottom:12px}
+.l3h{font-size:var(--fs-xs);color:var(--muted);font-weight:600;margin-bottom:4px}
+.l3r{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:var(--fs-s);
   border-bottom:1px solid var(--line)}
 .l3r:last-child{border-bottom:0}
-.l3d{color:var(--faint);font-size:12px;flex:0 0 auto}
+.l3d{color:var(--faint);font-size:var(--fs-xs);flex:0 0 auto}
 .l3t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
 .l3v{flex:0 0 auto;font-weight:600;color:var(--ink)}
 
 /* شاشة القرارات في الرئيسية */
 .attn{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
-.attnh{padding:11px 14px;font-size:13.5px;font-weight:600;color:var(--ink-2);
+  overflow:hidden;margin-bottom:16px}
+.attnh{padding:12px 12px;font-size:var(--fs-s);font-weight:600;color:var(--ink-2);
   background:var(--card-2);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
-.attnh span{background:var(--warn);color:#fff;font-size:12px;padding:1px 8px;border-radius:20px;font-family:var(--num)}
+.attnh span{background:var(--warn);color:#fff;font-size:var(--fs-xs);padding:1px 8px;border-radius:20px;font-family:var(--num)}
 .attnrow{width:100%;background:none;border:0;border-bottom:1px solid var(--line);
-  padding:12px 14px;display:flex;flex-direction:column;gap:3px;font-family:inherit;
+  padding:12px 12px;display:flex;flex-direction:column;gap:3px;font-family:inherit;
   text-align:right;cursor:pointer;color:var(--ink);position:relative}
 .attnrow:last-child{border-bottom:0}
 .attnrow::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px}
@@ -371,15 +407,15 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .attnrow.t-bad::before{background:var(--debt)}
 .attnrow.t-info::before{background:var(--info)}
 .attnrow .ar1{display:flex;align-items:center;gap:8px}
-.attnrow .ar1 b{font-size:15px;font-weight:600}
-.attnrow .av{margin-inline-start:auto;font-size:14px;color:var(--muted);font-family:var(--num);direction:rtl}
-.attnrow .ar2{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.attnrow .ar1 b{font-size:var(--fs-m);font-weight:600}
+.attnrow .av{margin-inline-start:auto;font-size:var(--fs-s);color:var(--muted);font-family:var(--num);direction:rtl}
+.attnrow .ar2{display:flex;align-items:center;gap:8px;font-size:var(--fs-s);color:var(--muted)}
 .attnrow .ar2 .go{margin-inline-start:auto;color:var(--faint)}
 .allok{background:var(--credit-bg);color:var(--credit);border:1px solid var(--credit);
-  border-radius:var(--r);padding:14px;text-align:center;font-size:14.5px;font-weight:600;margin-bottom:16px}
+  border-radius:var(--r);padding:12px;text-align:center;font-size:var(--fs-m);font-weight:600;margin-bottom:16px}
 
 /* وسم المجال: نقطة لونية صغيرة تقول «ده بكش» أو «ده ثلج» بلا كلام */
-.dom{display:inline-flex;align-items:center;gap:6px}
+.dom{display:inline-flex;align-items:center;gap:4px}
 .dom::before{content:"";width:8px;height:8px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
 .dom.d-acct::before{background:var(--c-acct)}
 .dom.d-box::before {background:var(--c-box)}
@@ -393,16 +429,16 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .zero{color:var(--faint)}
 
 /* اقتراحات الأعداد المتكرّرة */
-.qn{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.qn{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .qn button{background:var(--card-2);border:1.5px solid var(--line);border-radius:20px;
-  padding:8px 16px;font-size:15px;font-family:var(--num);font-variant-numeric:tabular-nums;
+  padding:8px 16px;font-size:var(--fs-m);font-family:var(--num);font-variant-numeric:tabular-nums;
   color:var(--ink-2);min-height:42px;cursor:pointer}
 .qn button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
 
 /* تبويب فصل المجموعات فوق الاقتراحات */
-.pkg{display:flex;gap:5px;background:var(--card-2);padding:4px;border-radius:11px;
-  border:1px solid var(--line);margin-bottom:10px}
-.pkg button{flex:1;background:none;border:0;padding:9px 10px;border-radius:8px;font-size:14px;
+.pkg{display:flex;gap:4px;background:var(--card-2);padding:4px;border-radius:11px;
+  border:1px solid var(--line);margin-bottom:8px}
+.pkg button{flex:1;background:none;border:0;padding:8px 8px;border-radius:8px;font-size:var(--fs-s);
   color:var(--muted);font-family:inherit;min-height:42px;cursor:pointer}
 .pkg button[aria-pressed=true]{background:var(--card);color:var(--ink);font-weight:600;
   box-shadow:0 1px 3px rgba(10,31,42,.12)}
@@ -410,10 +446,10 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .pchip.pkwh[aria-pressed=true]{background:var(--accent);color:#fff}
 
 /* نسبة المكتب كرقمين: ٤ / ٩٦ */
-.ratio{display:flex;align-items:center;gap:10px}
-.ratio input{flex:1;text-align:center;font-size:19px;font-weight:600;
+.ratio{display:flex;align-items:center;gap:8px}
+.ratio input{flex:1;text-align:center;font-size:var(--fs-xl);font-weight:600;
   font-family:var(--num);font-variant-numeric:tabular-nums}
-.ratio span{font-size:21px;color:var(--muted);font-weight:600}
+.ratio span{font-size:var(--fs-xl);color:var(--muted);font-weight:600}
 
 /* أعمدة الداخل والخارج في التقارير */
 .cin{color:var(--credit);font-weight:600}
@@ -422,132 +458,133 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .money-pos{color:var(--debt);font-weight:600}
 
 /* ---------------- التبويبات ---------------- */
-.seg{display:flex;gap:5px;background:var(--card-2);padding:5px;border-radius:13px;margin-bottom:16px;
+.seg{display:flex;gap:4px;background:var(--card-2);padding:4px;border-radius:13px;margin-bottom:16px;
   overflow-x:auto;scrollbar-width:none;border:1px solid var(--line)}
 .seg::-webkit-scrollbar{display:none}
-.seg button{flex:1 0 auto;background:none;color:var(--muted);padding:11px 14px;font-size:14.5px;
+.seg button{flex:1 0 auto;background:none;color:var(--muted);padding:12px 12px;font-size:var(--fs-m);
   border-radius:9px;white-space:nowrap;min-height:46px}
 .seg button[aria-selected=true]{background:var(--card);color:var(--ink);font-weight:600;
   box-shadow:0 1px 3px rgba(10,31,42,.14)}
 .opsseg button::before{content:"";width:9px;height:9px;border-radius:50%;display:inline-block;
-  margin-inline-end:7px;vertical-align:middle;background:currentColor;opacity:.35}
+  margin-inline-end:8px;vertical-align:middle;background:currentColor;opacity:.35}
 .opsseg button.o-acct[aria-selected=true]{color:var(--c-acct)}
 .opsseg button.o-box[aria-selected=true]{color:var(--c-box)}
 .opsseg button.o-drv[aria-selected=true]{color:var(--c-drv)}
 .opsseg button.o-ice[aria-selected=true]{color:var(--c-ice)}
 .opsseg button[aria-selected=true]::before{opacity:1}
-.seg.inner{background:none;padding:0;gap:7px;border:0}
+.seg.inner{background:none;padding:0;gap:8px;border:0}
 .seg.inner button{flex:0 0 auto;border:1.5px solid var(--line-2);background:var(--card);
-  padding:9px 15px;font-size:14px;border-radius:22px;min-height:44px}
+  padding:8px 16px;font-size:var(--fs-s);border-radius:22px;min-height:44px}
 .seg.inner button[aria-selected=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
-.qr{display:flex;gap:7px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.qr{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
 .qr::-webkit-scrollbar{display:none}
 .qr button{flex:0 0 auto;background:var(--card);border:1.5px solid var(--line-2);color:var(--muted);
-  padding:9px 14px;border-radius:22px;font-size:14px;min-height:44px}
+  padding:8px 12px;border-radius:22px;font-size:var(--fs-s);min-height:44px}
 .qr button[aria-selected=true]{background:var(--ink);color:var(--card);border-color:var(--ink);font-weight:600}
 /* رأس التقرير وسطر الفلتر */
 .rephead{width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:13px 15px;margin-bottom:10px;display:flex;flex-direction:column;gap:3px;
-  font-family:inherit;text-align:right;cursor:pointer;box-shadow:var(--shadow)}
+  padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;
+  font-family:inherit;text-align:right;cursor:pointer}
 .rephead .rh1{display:flex;align-items:center;gap:8px}
-.rephead .rh1 b{font-size:17px;font-weight:600}
-.rephead .rh1 .go{margin-inline-start:auto;font-size:13px;color:var(--accent);font-weight:600}
-.rephead .rh2{font-size:13px;color:var(--muted)}
+.rephead .rh1 b{font-size:var(--fs-l);font-weight:600}
+.rephead .rh1 .go{margin-inline-start:auto;font-size:var(--fs-s);color:var(--accent);font-weight:600}
+.rephead .rh2{font-size:var(--fs-s);color:var(--muted)}
 .filtline{width:100%;background:var(--card-2);border:1px solid var(--line);border-radius:11px;
-  padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;
-  font-family:inherit;font-size:13.5px;color:var(--ink-2);text-align:right;cursor:pointer;min-height:46px}
+  padding:12px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  font-family:inherit;font-size:var(--fs-s);color:var(--ink-2);text-align:right;cursor:pointer;min-height:46px}
 .filtline span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .filtline .go{color:var(--accent);font-weight:600}
 .repopt{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
-  padding:13px 15px;margin-bottom:8px;display:flex;flex-direction:column;gap:2px;
+  padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:2px;
   font-family:inherit;text-align:right;cursor:pointer;color:var(--ink);position:relative}
 .repopt.on{border-color:var(--accent);background:var(--accent-soft)}
-.repopt .rl{font-size:15.5px;font-weight:600}
-.repopt .rd2{font-size:13px;color:var(--muted)}
-.repopt .go{position:absolute;inset-inline-end:14px;top:14px;color:var(--accent);font-size:17px}
+.repopt .rl{font-size:var(--fs-m);font-weight:600}
+.repopt .rd2{font-size:var(--fs-s);color:var(--muted)}
+.repopt .go{position:absolute;inset-inline-end:14px;top:14px;color:var(--accent);font-size:var(--fs-l)}
 /* صفّ التقرير في القائمة = زرار الاختيار + زرار التثبيت جنبه (زرار جوّه زرار HTML غلط) */
-.repline{display:flex;gap:6px;align-items:stretch;margin-bottom:8px}
+.repline{display:flex;gap:4px;align-items:stretch;margin-bottom:8px}
 .repline .repopt{margin-bottom:0;flex:1;min-width:0}
 .pinb{flex:0 0 48px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
-  font-size:19px;color:var(--line-2);cursor:pointer;font-family:inherit}
+  font-size:var(--ic-md);color:var(--line-2);cursor:pointer;font-family:inherit}
 .pinb.on{color:var(--warn);border-color:var(--warn);background:var(--card)}
 .pinb:disabled{opacity:.35;cursor:default}
 
 /* ---------------- شريط الإيصال ---------------- */
-.tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:18px 17px;
+.tape{background:var(--card);border:1.5px solid var(--warn);border-radius:6px;padding:16px 16px;
   margin-bottom:12px;position:relative}
 .tape::before,.tape::after{content:"";position:absolute;inset-inline:-1px;height:9px;
   background:radial-gradient(circle at 5.5px -2px,var(--bg) 6.5px,#0000 7px) repeat-x;background-size:11px 9px}
 .tape::before{top:-2px;transform:rotate(180deg)}
 .tape::after{bottom:-2px}
-.tape h3{margin:0 0 3px;font-size:16px;font-weight:600}
-.tape .who{font-size:13.5px;color:var(--muted);margin-bottom:14px}
-.tline{display:flex;align-items:baseline;gap:7px;padding:7px 0;font-size:15px}
+.tape h3{margin:0 0 3px;font-size:var(--fs-l);font-weight:600}
+.tape .who{font-size:var(--fs-s);color:var(--muted);margin-bottom:12px}
+.tline{display:flex;align-items:baseline;gap:8px;padding:8px 0;font-size:var(--fs-m)}
 .tline .k{color:var(--ink-2);white-space:nowrap}
 .tline .dots{flex:1;border-bottom:1.5px dotted var(--line-2);transform:translateY(-4px)}
 .tline .v{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-weight:600;white-space:nowrap}
 .tline.minus .v{color:var(--debt)}
-.tline.rule{border-top:1.5px solid var(--line-2);margin-top:7px;padding-top:11px}
-.tline.total{margin-top:10px;padding:14px 14px;background:var(--ink);color:#fff;border-radius:10px}
+.tline.rule{border-top:1.5px solid var(--line-2);margin-top:8px;padding-top:12px}
+.tline.total{margin-top:8px;padding:12px 12px;background:var(--ink);color:#fff;border-radius:10px}
 .tline.total .k{color:#B9CFD6;font-weight:600}
 .tline.total .dots{border-bottom-color:#3A5E6B}
-.tline.total .v{font-size:21px;color:#fff}
+.tline.total .v{font-size:var(--fs-xl);color:#fff}
 
 /* ---------------- بطاقات الحركات (مضغوطة) ----------------
    العمليات قد تتجاوز ٥٠ في اليوم: سطر واحد لكل حركة، والتفاصيل بالضغط. */
-.rec{border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:var(--card);overflow:hidden}
+.rec{border:1px solid var(--line);border-radius:10px;margin-bottom:4px;background:var(--card);overflow:hidden}
 .rec.void{opacity:.55}
 .rec.draft .rechead .dday{background:var(--brass-soft);color:var(--warn);font-weight:600;
-  padding:3px 9px;border-radius:8px;font-size:13px;flex:0 0 auto}
+  padding:3px 8px;border-radius:8px;font-size:var(--fs-s);flex:0 0 auto}
 .rec.open{border-color:var(--accent)}
 .rechead{display:flex;flex-direction:column;gap:3px;width:100%;background:none;border:0;
-  padding:11px 13px;font-family:inherit;text-align:right;cursor:pointer;color:var(--ink)}
+  padding:12px 12px;font-family:inherit;text-align:right;cursor:pointer;color:var(--ink)}
 .rec.open .rechead{background:var(--card-2)}
 .rechead .r1,.rechead .r2{display:flex;align-items:center;gap:8px;width:100%}
-.rechead .r1 b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rechead .rv{margin-inline-start:auto;font-size:16px;font-weight:600;flex:0 0 auto;
+.rechead .r1 b{font-size:var(--fs-m);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rechead .rv{margin-inline-start:auto;font-size:var(--fs-l);font-weight:600;flex:0 0 auto;
   font-variant-numeric:tabular-nums;direction:ltr;white-space:nowrap}
-.rechead .rm{font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+.rechead .rm{font-size:var(--fs-s);color:var(--muted);overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;flex:1 1 auto;min-width:0}
-.rechead .rd{font-size:12.5px;color:var(--faint);flex:0 0 auto;direction:ltr;
+.rechead .rd{font-size:var(--fs-xs);color:var(--faint);flex:0 0 auto;direction:ltr;
   font-variant-numeric:tabular-nums}
 .rechead .tag{flex:0 0 auto}
-.recbody{padding:10px 12px 12px;border-top:1px solid var(--line)}
-.rec .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 12px 3px}
-.rec .top b{font-size:15px;font-weight:600}
-.rec .top .date{margin-inline-start:auto;font-size:12.5px;color:var(--muted);
+.recbody{padding:8px 12px 12px;border-top:1px solid var(--line)}
+.rec .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 12px 3px}
+.rec .top b{font-size:var(--fs-m);font-weight:600}
+.rec .top .date{margin-inline-start:auto;font-size:var(--fs-xs);color:var(--muted);
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
 .rec .top+.meta{padding:0 12px}
-.rec .top~.acts{padding:0 12px 12px;margin-top:9px}
-.rec .meta{font-size:13.5px;color:var(--muted);line-height:1.6}
-.rec .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.tag{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:20px;
+.rec .top~.acts{padding:0 12px 12px;margin-top:8px}
+.rec .meta{font-size:var(--fs-s);color:var(--muted);line-height:1.6}
+.rec .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.tag{font-size:var(--fs-xs);font-weight:600;padding:3px 8px;border-radius:20px;
   background:var(--accent-soft);color:var(--accent)}
 .tag.void{background:var(--debt-bg);color:var(--debt)}
 .tag.brass{background:var(--warn-bg);color:var(--warn)}
 .tag.dmg{background:var(--debt-bg);color:var(--debt)}
 .tag.edit{background:var(--card-2);color:var(--ink-2)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font-size:14px;padding:9px 14px;border-radius:22px;background:var(--card-2);
-  border:1px solid var(--line);display:flex;align-items:center;gap:7px;min-height:44px}
-.chip .n{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--muted);font-size:13.5px;direction:ltr}
+.chip{font-size:var(--fs-s);padding:8px 12px;border-radius:22px;background:var(--card-2);
+  border:1px solid var(--line);display:flex;align-items:center;gap:8px;min-height:44px}
+.chip .n{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--fs-s);direction:ltr}
 .more{width:100%;background:var(--card);border:1.5px dashed var(--line-2);color:var(--ink-2);
-  padding:14px;border-radius:12px;margin-bottom:12px;font-size:14.5px;min-height:50px}
+  padding:12px;border-radius:12px;margin-bottom:12px;font-size:var(--fs-m);min-height:50px}
 
-.diff{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;
-  border-radius:11px;background:var(--card-2);margin-bottom:9px;font-size:14.5px;color:var(--ink)}
-.diff b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-size:16px;white-space:nowrap}
+.diff{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 12px;
+  border-radius:11px;background:var(--card-2);margin-bottom:8px;font-size:var(--fs-m);color:var(--ink)}
+.diff b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-size:var(--fs-l);white-space:nowrap}
 .diff.short{background:var(--debt-bg);color:var(--debt)}
 .diff.over{background:var(--credit-bg);color:var(--credit)}
 
 /* ---------------- التنقّل ---------------- */
 nav{position:fixed;inset-inline:0;bottom:0;z-index:50;background:var(--card);
   border-top:1px solid var(--line-2);display:flex;padding:5px 2px calc(5px + env(safe-area-inset-bottom))}
-nav button{flex:1;background:none;padding:7px 1px;color:var(--muted);display:flex;flex-direction:column;
-  align-items:center;gap:3px;font-size:11.5px;font-weight:500;min-height:52px}
-nav button .ic{font-size:21px;line-height:1;filter:grayscale(1);opacity:.55}
+nav button{flex:1;background:none;padding:8px 1px;color:var(--muted);display:flex;flex-direction:column;
+  align-items:center;gap:3px;font-size:var(--fs-xs);font-weight:500;min-height:52px}
+nav button .ic{font-size:var(--ic-lg);line-height:0;opacity:.62;display:grid;place-items:center}
 nav button[aria-selected=true]{color:var(--accent);font-weight:600}
-nav button[aria-selected=true] .ic{filter:none;opacity:1}
+nav button[aria-selected=true] .ic{opacity:1}
+nav button[aria-selected=true] .ico{stroke-width:2.1}
 
 /* ---------------- التنبيهات والحوارات ---------------- */
 /* زر التسجيل الطافي: خيارات تطلع فوقه بدل شاشة كاملة —
@@ -561,15 +598,15 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
   width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;border:0;
   box-shadow:0 10px 26px -8px rgba(10,31,42,.55);display:grid;place-items:center;cursor:pointer;
   pointer-events:auto;transition:transform .2s}
-#fab span{font-size:34px;line-height:1;font-weight:300;margin-top:-3px}
+#fab span{font-size:var(--ic-xl);line-height:1;font-weight:300;margin-top:-3px}
 #fab:active{transform:scale(.93)}
 #fabwrap.on #fab{transform:rotate(45deg)}
 #fabmenu{position:absolute;inset-inline-end:18px;
   bottom:calc(162px + env(safe-area-inset-bottom));display:flex;flex-direction:column;
-  align-items:flex-end;gap:11px;pointer-events:none}
-#fabmenu button{display:flex;align-items:center;gap:11px;background:var(--card);color:var(--ink);
-  border:1.5px solid var(--line-2);border-radius:30px;padding:9px 10px 9px 18px;font-family:inherit;
-  font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px -8px rgba(10,31,42,.5);
+  align-items:flex-end;gap:12px;pointer-events:none}
+#fabmenu button{display:flex;align-items:center;gap:12px;background:var(--card);color:var(--ink);
+  border:1.5px solid var(--line-2);border-radius:30px;padding:8px 8px 8px 16px;font-family:inherit;
+  font-size:var(--fs-m);font-weight:600;cursor:pointer;box-shadow:0 6px 18px -8px rgba(10,31,42,.5);
   opacity:0;transform:translateY(14px) scale(.9);transition:opacity .16s,transform .16s;
   pointer-events:none;min-height:50px;white-space:nowrap}
 #fabwrap.on #fabmenu button{opacity:1;transform:none;pointer-events:auto}
@@ -577,17 +614,18 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 #fabwrap.on #fabmenu button:nth-child(2){transition-delay:.07s}
 #fabwrap.on #fabmenu button:nth-child(3){transition-delay:.04s}
 #fabwrap.on #fabmenu button:nth-child(4){transition-delay:.01s}
-#fabmenu button i{font-style:normal;font-size:20px;width:38px;height:38px;border-radius:50%;
+#fabmenu button i{font-style:normal;font-size:var(--ic-md);width:38px;height:38px;border-radius:50%;
   display:grid;place-items:center;flex:0 0 auto}
 #fabmenu .f-acct i{background:var(--primary-bg);color:var(--c-acct)}
 #fabmenu .f-box  i{background:#EEEAF8;color:var(--c-box)}
 #fabmenu .f-drv  i{background:var(--warn-bg);color:var(--c-drv)}
 #fabmenu .f-ice  i{background:var(--info-bg);color:var(--c-ice)}
-@media (prefers-color-scheme:dark){#fabmenu .f-box i{background:#241C3D}}
+@media (prefers-color-scheme:dark){html:not([data-mode=light]) #fabmenu .f-box i{background:#241C3D}}
+html[data-mode=dark] #fabmenu .f-box i{background:#241C3D}
 
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:95;
-  display:flex;flex-direction:column;gap:9px;pointer-events:none;align-items:center}
-.toast{background:var(--ink);color:#fff;padding:13px 18px;border-radius:24px;font-size:14.5px;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;align-items:center}
+.toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:24px;font-size:var(--fs-m);
   font-weight:500;box-shadow:0 14px 34px -12px rgba(10,31,42,.65);animation:pop .22s ease;max-width:100%}
 .toast.err{background:var(--debt)}
 .toast.ok{background:var(--credit)}
@@ -595,23 +633,83 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 
 #modal,#dlg{position:fixed;inset:0;z-index:99;background:var(--dlgbg);display:none;
   align-items:flex-end;justify-content:center}
-#dlg{z-index:120;align-items:center;padding:18px}
+#dlg{z-index:120;align-items:center;padding:16px}
 #modal.on,#dlg.on{display:flex}
 .sheet{background:var(--card);width:100%;max-width:580px;border-radius:20px 20px 0 0;
   padding:18px 17px calc(22px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;animation:up .2s ease}
 #dlg .sheet{border-radius:18px;max-width:440px;padding:20px}
 @keyframes up{from{transform:translateY(26px)}}
-.sheet h3{margin:0 0 5px;font-size:18px;font-weight:600}
-.sheet .sub{font-size:14px;color:var(--muted);margin:0 0 16px;line-height:1.65}
+.sheet h3{margin:0 0 4px;font-size:var(--fs-l);font-weight:600}
+.sheet .sub{font-size:var(--fs-s);color:var(--muted);margin:0 0 16px;line-height:1.65}
 
-.errbox{border:1.5px solid var(--debt);background:var(--debt-bg);border-radius:14px;padding:17px;color:var(--debt);font-size:15px;line-height:1.7}
-.errbox b{display:block;margin-bottom:7px;font-size:16.5px}
+.errbox{border:1.5px solid var(--debt);background:var(--debt-bg);border-radius:14px;padding:16px;color:var(--debt);font-size:var(--fs-m);line-height:1.7}
+.errbox b{display:block;margin-bottom:8px;font-size:var(--fs-l)}
+
+
+/* ---------------- الأيقونات ----------------
+   SVG سطرية بدل الإيموجي: شكل واحد على كل الأجهزة، وتاخد لون القسم من
+   currentColor بدل ما تفرض ألوانها وتكسر قاعدة «اللون نادر ومعناه ثابت». */
+.ico{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;display:block;pointer-events:none;
+  vertical-align:middle}
+.ico .fl{fill:var(--card)}
+
+/* ---------------- الحقل الغلط ----------------
+   التوست وحده بيسيب المستخدم يدوّر على الغلط في نموذج طويل. */
+input.bad,select.bad,textarea.bad{border-color:var(--debt);background:var(--debt-bg)}
+.field.badfld>label{color:var(--debt)}
+.pick.badfld{outline:2px solid var(--debt);outline-offset:5px;border-radius:12px}
+input,select,textarea,.field,.pick{scroll-margin-block:96px}
+
+/* ---------------- السطر المسجَّل للتو ----------------
+   التوست بيروح في ٢٫٨ ثانية والسوق ضوضاء — فالحركة الجديدة تفضل مميّزة
+   في «آخر ٣»، وعليها زر تراجع يشيلها بشاهدة إلغاء (السجل يفضل تراكمي). */
+.l3r.l3new{background:var(--credit-bg);border-radius:9px;padding-inline:8px;
+  animation:l3f 2.4s ease}
+@keyframes l3f{0%,14%{box-shadow:0 0 0 2px var(--credit)}100%{box-shadow:0 0 0 2px transparent}}
+.l3r.l3new .l3t{font-weight:600;color:var(--ink)}
+.l3undo{flex:0 0 auto;background:var(--card);border:1.5px solid var(--debt);color:var(--debt);
+  border-radius:20px;padding:3px 12px;font-size:var(--fs-xs);font-weight:600;font-family:inherit;
+  min-height:34px;cursor:pointer}
+
+/* ---------------- محاذاة الجداول ----------------
+   الاسم يمين والأرقام وسط جدولي: العين بتمسح عمود الأسماء رأسياً أسرع
+   لما كل الأسماء تبدأ من نفس الحافة. */
+td.tname{text-align:right}
+th:first-child:not(.n),td:first-child:not(.n){text-align:right;padding-inline-start:12px}
+
+
+/* أيقونة داخل زر مع نص: تقعد على خط الكتابة بمسافة ثابتة */
+button>.ico{display:inline-block;vertical-align:-.17em;margin-inline-end:8px}
+.ic>.ico,#hsearch>.ico,.mic>.ico,#fabmenu i>.ico{margin:0;vertical-align:middle}
+.mic{display:grid;place-items:center}
+.pchip>.ico{display:inline-block;vertical-align:-.16em;margin-inline-end:4px}
+.note>.ico,.lbl>.ico,.meta>.ico{display:inline-block;vertical-align:-.16em;margin-inline-end:4px;
+  color:var(--muted)}
+
+/* ---------------- زر الحفظ في متناول الإبهام ----------------
+   نماذج الفاتورة والتصفية أطول من الشاشة، فالزر كان يحتاج تمرير كل مرة.
+   sticky يخلّيه ظاهر طول ما النموذج مفتوح، وبيرجع مكانه الطبيعي في آخره. */
+form[data-form] button.btn[type=submit]:not(.sm){
+  position:sticky;bottom:calc(72px + env(safe-area-inset-bottom));z-index:22;
+  box-shadow:0 -6px 12px -6px var(--bg),0 10px 24px -12px rgba(10,31,42,.55)}
+#modal form button.btn[type=submit]{position:static;box-shadow:none}
+/* الزر العائم بيطلع فوق شريط الحفظ بدل ما يقعد عليه */
+body[data-hasform] #fab{bottom:calc(148px + env(safe-area-inset-bottom))}
+body[data-hasform] #fabmenu{bottom:calc(218px + env(safe-area-inset-bottom))}
+
+/* ---------------- رأس الجدول ملتصق ----------------
+   في كشف حساب طويل بتنسى العمود ده إيه. --hdrh بتتقاس من الترويسة عند الرسم.
+   الجداول اللي جوّه .tscroll مستثناة: الحاوية بتاعتها scroll container
+   فالـsticky بيتحسب بالنسبة لها ومش بيشتغل. */
+thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
+.tscroll thead th{position:static}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(min-width:640px){
-  main{padding:20px 18px 8px}
+  main{padding:20px 16px 8px}
   .grid2{grid-template-columns:1fr 1fr}
-  table{font-size:15px}
+  table{font-size:var(--fs-m)}
 }
 
 /* ==========================================================================
@@ -644,6 +742,7 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
   #print tbody tr:nth-child(even) td{background:#F6F6F6!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   #print td.n,#print th.n{text-align:center;font-variant-numeric:tabular-nums}
+  #print td.tname,#print th:first-child:not(.n),#print td:first-child:not(.n){text-align:right}
   #print tfoot td{font-weight:700;border-top:1.6pt solid #000;background:#EDEDED!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
 
@@ -657,29 +756,57 @@ nav button[aria-selected=true] .ic{filter:none;opacity:1}
 </style>
 </head>
 <body>
+<svg id="spr" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3.4 10.6 12 3.4l8.6 7.2"/><path d="M5.6 9.6V20h12.8V9.6"/><path d="M9.8 20v-5.4h4.4V20"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.6" y="3.6" width="7" height="7" rx="1.7"/><rect x="13.4" y="3.6" width="7" height="7" rx="1.7"/><rect x="3.6" y="13.4" width="7" height="7" rx="1.7"/><rect x="13.4" y="13.4" width="7" height="7" rx="1.7"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4.2 3.8v16h15.6"/><rect x="7.4" y="11.6" width="3.4" height="5"/><rect x="13.4" y="7.4" width="3.4" height="9.2"/></symbol>
+<symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7.2h16M4 12h16M4 16.8h16"/><circle cx="9" cy="7.2" r="2.2" class="fl"/><circle cx="15.4" cy="12" r="2.2" class="fl"/><circle cx="8" cy="16.8" r="2.2" class="fl"/></symbol>
+<symbol id="i-money" viewBox="0 0 24 24"><rect x="2.6" y="5.6" width="18.8" height="12.8" rx="2.4"/><circle cx="12" cy="12" r="3.1"/><path d="M6.2 9.4v5.2M17.8 9.4v5.2"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3.3 20.4 7.6v8.8L12 20.7 3.6 16.4V7.6z"/><path d="M3.6 7.6 12 11.9l8.4-4.3"/><path d="M12 11.9v8.8"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><rect x="2.6" y="6.8" width="10.8" height="9"/><path d="M13.4 9.8h3.7l3.3 3.2v2.8h-7z"/><circle cx="7" cy="17.6" r="1.9" class="fl"/><circle cx="17" cy="17.6" r="1.9" class="fl"/></symbol>
+<symbol id="i-ice" viewBox="0 0 24 24"><path d="M12 3.2v17.6M4.4 7.6l15.2 8.8M19.6 7.6 4.4 16.4"/><path d="m9.4 5.2 2.6 2.2 2.6-2.2M9.4 18.8l2.6-2.2 2.6 2.2"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M7 8.6V3.7h10v4.9"/><rect x="3.6" y="8.6" width="16.8" height="7.4" rx="1.9"/><path d="M7 13.7h10v6.6H7z"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.6" y="3.6" width="11.8" height="11.8" rx="2.1"/><path d="M15.4 15.4v3a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V8.6a2 2 0 0 1 2-2h3"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15.2V3.6"/><path d="m8 7.4 4-3.8 4 3.8"/><path d="M5 12.4v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3.2" width="6" height="10.4" rx="3"/><path d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0"/><path d="M12 17.9v2.7"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.4 6.6h15.2"/><path d="M9.4 6.6V4.4h5.2v2.2"/><path d="M6.4 6.6 7.4 20.2h9.2L17.6 6.6"/><path d="M10.4 10.2v6M13.6 10.2v6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.6" y="10.4" width="14.8" height="9.6" rx="2.3"/><path d="M8 10.4V7.8a4 4 0 0 1 8 0v2.6"/></symbol>
+<symbol id="i-unlock" viewBox="0 0 24 24"><rect x="4.6" y="10.4" width="14.8" height="9.6" rx="2.3"/><path d="M8 10.4V7.8a4 4 0 0 1 7.6-1.7"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3.6h8.3L19 8.3v12.1H6z"/><path d="M14.3 3.6v4.7H19"/><path d="M8.8 12.6h7M8.8 16.1h5"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.6" y="5.4" width="16.8" height="14.6" rx="2.3"/><path d="M3.6 10h16.8M8.4 3.4v4M15.6 3.4v4"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M7.4 3.8 9.8 8l-2 2a12.2 12.2 0 0 0 6.2 6.2l2-2 4.2 2.4-1 2.6a2 2 0 0 1-2.2 1.2C10.4 19.6 4.4 13.6 3.7 6.9A2 2 0 0 1 4.9 4.7z"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21c4.3-5.1 6.4-8.4 6.4-11A6.4 6.4 0 0 0 5.6 10c0 2.6 2.1 5.9 6.4 11z"/><circle cx="12" cy="9.8" r="2.4"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M4.4 4.4h15.2v10.9l-4.4 4.9H4.4z"/><path d="M8 9.2h8M8 12.6h5"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.2 12a8.2 8.2 0 1 1-2.5-5.9"/><path d="M20.3 4v4.5h-4.5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.4 19.4 6v6c0 4.2-3 7.1-7.4 8.6C7.6 19.1 4.6 16.2 4.6 12V6z"/><path d="m9 11.9 2.2 2.2 4.2-4.2"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24"><path d="M9.6 3.6h4.8"/><path d="M10.4 3.6v6L5.3 18.2a1.6 1.6 0 0 0 1.4 2.4h10.6a1.6 1.6 0 0 0 1.4-2.4L13.6 9.6v-6"/><path d="M7.9 14.6h8.2"/></symbol>
+<symbol id="i-install" viewBox="0 0 24 24"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.4"/><path d="M12 7.4v6.6"/><path d="m9.4 11.4 2.6 2.6 2.6-2.6"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><path d="M9.6 3.8 7.8 20.2M16.4 3.8l-1.8 16.4M4.2 8.8h15.6M3.8 15.2h15.6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.7" cy="10.7" r="6.4"/><path d="m15.4 15.4 4.4 4.4"/></symbol>
+</svg>
 <header>
   <div class="brand">
     <div class="mark" id="hdrLogo">🐟</div>
     <div><h1 id="hdrName">دفتر السماكة</h1><div class="hdr-sub" id="hdrSub">—</div></div>
-    <button id="hsearch" data-act="openSearch" aria-label="بحث">🔎</button>
+    <button id="hsearch" data-act="openSearch" aria-label="بحث"><svg class="ico"><use href="#i-search"/></svg></button>
     <div class="today"><span>اليوم</span><b id="hdrDate">—</b></div>
   </div>
   <div class="band"></div>
 </header>
 <main id="app"><div class="empty">جارٍ تحضير الدفتر…</div></main>
 <nav id="nav">
-  <button data-tab="home" aria-selected="true"><span class="ic">🏠</span>الرئيسية</button>
-  <button data-tab="ops"><span class="ic">📦</span>العمليات</button>
-  <button data-tab="rep"><span class="ic">📈</span>التقارير</button>
-  <button data-tab="set"><span class="ic">⚙️</span>الإعدادات</button>
+  <button data-tab="home" aria-selected="true"><span class="ic"><svg class="ico"><use href="#i-home"/></svg></span>الرئيسية</button>
+  <button data-tab="ops"><span class="ic"><svg class="ico"><use href="#i-grid"/></svg></span>العمليات</button>
+  <button data-tab="rep"><span class="ic"><svg class="ico"><use href="#i-chart"/></svg></span>التقارير</button>
+  <button data-tab="set"><span class="ic"><svg class="ico"><use href="#i-set"/></svg></span>الإعدادات</button>
 </nav>
 <div id="fabwrap">
   <div id="fabbd" data-act="fabClose"></div>
   <div id="fabmenu">
-    <button data-act="fabGo" data-go="ops|ops|acct|fin|invoice" class="f-acct"><span>حسابات</span><i>💰</i></button>
-    <button data-act="fabGo" data-go="ops|ops|box"     class="f-box"><span>بكش</span><i>📦</i></button>
-    <button data-act="fabGo" data-go="ops|ops|drv"     class="f-drv"><span>سائقين</span><i>🚚</i></button>
-    <button data-act="fabGo" data-go="ops|ops|ice"     class="f-ice"><span>ثلج</span><i>🧊</i></button>
+    <button data-act="fabGo" data-go="ops|ops|acct|fin|invoice" class="f-acct"><span>حسابات</span><i><svg class="ico"><use href="#i-money"/></svg></i></button>
+    <button data-act="fabGo" data-go="ops|ops|box"     class="f-box"><span>بكش</span><i><svg class="ico"><use href="#i-box"/></svg></i></button>
+    <button data-act="fabGo" data-go="ops|ops|drv"     class="f-drv"><span>سائقين</span><i><svg class="ico"><use href="#i-truck"/></svg></i></button>
+    <button data-act="fabGo" data-go="ops|ops|ice"     class="f-ice"><span>ثلج</span><i><svg class="ico"><use href="#i-ice"/></svg></i></button>
   </div>
   <button id="fab" data-act="fabToggle" aria-label="تسجيل عملية" aria-expanded="false"><span>+</span></button>
 </div>
@@ -714,6 +841,8 @@ const BRANDMARK=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" a
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,9);
+/* أيقونة سطرية من الشريط: <use> بيوفّر تكرار الرسم، والأيقونة بتاخد لون النص */
+const IC=n=>`<svg class="ico" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const nf=new Intl.NumberFormat('en-US',{maximumFractionDigits:2});
 const money=n=>nf.format(Math.round((+n||0)*100)/100);
@@ -776,10 +905,31 @@ function dialog({title,text,ok="تأكيد",cancel="إلغاء",input,danger}){
 }
 const ask=(title,text,o={})=>dialog({title,text,...o});
 const askPin=(title)=>dialog({title,input:{type:'password',mode:'numeric',placeholder:'••••'},ok:"دخول"});
-function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2800)}
+/* اهتزاز قصير مع كل نتيجة: في سوق فجراً بضوضاء عالية وشاشة مبلولة، التوست
+   وحده ما بيوصلش — الاهتزاز بيقول «اتسجّلت» أو «فيه غلط» من غير ما يبص. */
+/*
+  الوضع الغامق: 'auto' يتبع النظام · 'light' · 'dark'.
+  التطبيق بيقرأ من data-mode على <html>، ولون شريط المتصفح بيتظبط معاه
+  عشان الشاشة ما تبقاش نصّها غامق ونصّها فاتح في التطبيق المثبَّت.
+*/
+function applyMode(){
+  const m=S.mode||'auto',de=document.documentElement;
+  if(m==='auto'){if(de.dataset)delete de.dataset.mode}
+  else if(de.dataset)de.dataset.mode=m;
+  let dark=m==='dark';
+  if(m==='auto'){try{dark=!!(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches)}catch(_){}}
+  try{const mt=document.querySelector('meta[name=theme-color]');
+    if(mt)mt.setAttribute('content',dark?'#0E1519':'#08222E')}catch(_){}
+}
+function buzz(k){
+  if(!S.hap||!navigator.vibrate)return;
+  try{navigator.vibrate(k==='err'?[24,42,24]:12)}catch(_){}
+}
+function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;
+  $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.6.4";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.9.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -826,6 +976,13 @@ async function append(e){
   rec.seq=await rq(st('ledger','readwrite').add(rec));
   /* تحديث تراكمي في الذاكرة بدل إعادة قراءة السجل كاملاً من القرص عند كل كتابة */
   S.ledger.push(rec);S.chainTip=rec.hash;
+  /* آخر حركة اتسجّلت من الجهاز ده في الجلسة دي: تتلوّن في «آخر ٣» ٢٠ ثانية
+     ومعاها زر تراجع. الحالة في الذاكرة فقط، فما بتعيشش بعد قفل التطبيق. */
+  if(rec.type!=='void')S.flash={id:rec.id,until:Date.now()+20000};
+  clearTimeout(S._ft);
+  S._ft=setTimeout(()=>{S.flash=null;
+    /* ما نرسمش والمستخدم بيكتب في نموذج — الرسم بيهدم الـDOM */
+    const ae=document.activeElement;if(!(ae&&ae.form))render()},20400);
   S.D=derive(S.entities,S.ledger);render();backupNudge();
   return rec}
 /* الأمان عند الحدود: لا يدخل رمز HTML إلى المخزن أصلاً — لا من المستخدم ولا من ملف مستورد */
@@ -906,6 +1063,7 @@ const S={tab:"home",
     rep:"box",repbox:"stmt",set:"farm",setg:"data",acct:"all",dacct:"driver"},
   rep:"hand",
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
+  hap:true,flash:null,mode:'auto',
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,wipeLog:[],wipe:{kind:'ledger',backedUp:false},
   F:{from:monthStart(),to:todayISO(),ent:"",q:"",range:"month"},
@@ -1054,6 +1212,8 @@ async function refresh(){
   S.entities=await getAll('entities');S.ledger=await getAll('ledger');
   S.co=(await getMeta('company'))||S.co;
   S.autoBox=(await getMeta('autoBox'))??true;
+  S.hap=(await getMeta('haptics'))??true;
+  S.mode=(await getMeta('mode'))||'auto';applyMode();
   S.sec=(await getMeta('security'))||S.sec;
   S.bk=(await getMeta('backup'))||S.bk;
   S.wipeLog=(await getMeta('wipeLog'))||[];
@@ -1097,16 +1257,23 @@ function render(){
   const sy=window.scrollY;
   $('#hdrDate').textContent=arDate(todayISO());
   $('#hdrName').textContent=S.co.name||"دفتر السماكة";
-  $('#hdrSub').textContent=`نسخة ${APPVER} · يعمل بدون إنترنت`;
+  $('#hdrSub').textContent=(S.tab==='home'||S.tab==='set')?`نسخة ${APPVER} · يعمل بدون إنترنت`:'';
   const hl=$('#hdrLogo');
   hl.className='mark'+(S.co.logo?'':' own');
   hl.innerHTML=S.co.logo?`<img src="${S.co.logo}" alt="">`:BRANDMARK;
   document.body.dataset.theme = S.tab==='ops'
     ?({acct:'acct',box:'box',drv:'drivers',ice:'ice'})[S.sub.ops]||'' : '';
   $$('#nav button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===S.tab)));
+  /* ارتفاع الترويسة بيتغيّر (اسم طويل/سطر النسخة)، فبنقيسه ونحطه في متغيّر
+     عشان رأس الجدول الملتصق يقف تحتها بالظبط لا فوقها ولا تحتها بفراغ. */
+  try{const hd=document.querySelector('header');
+    if(hd&&hd.offsetHeight)document.documentElement.style.setProperty('--hdrh',hd.offsetHeight+'px')}catch(_){}
   const app=$('#app');
   /* حاجز أخطاء: خطأ في شاشة واحدة كان يترك التطبيق أبيض بلا مخرج */
-  try{ app.innerHTML=({home:vHome,ops:vOps,rep:vRep,set:vSet})[S.tab](); }
+  try{ app.innerHTML=({home:vHome,ops:vOps,rep:vRep,set:vSet})[S.tab]();
+    /* في وجود نموذج بيبقى فيه شريط حفظ ملتصق، فالزر العائم يطلع فوقه */
+    if(/<form data-form=/.test(app.innerHTML))document.body.dataset.hasform='1';
+    else delete document.body.dataset.hasform; }
   catch(err){
     console.error(err);
     app.innerHTML=`<div class="errbox"><b>حصل خطأ في عرض هذه الشاشة</b>
@@ -1154,7 +1321,7 @@ function picker(name,kind,sel,o={}){
   return hid+`<button type="button" class="pkbtn ${cur?'has':''}" data-act="pickOpen"
     data-name="${name}" data-kind="${kind}">
     <span class="pkv">${esc(cur?cur.name:(o.ph||PICKPH[kind]||'اختر…'))}</span>
-    <span class="pkg">🔍 بحث</span></button>`;
+    <span class="pkg">${IC('search')}بحث</span></button>`;
 }
 /* ============ اختيار الجهات ============
    الاختيار من قائمة منسدلة على الموبايل بطيء ويخفي الخيارات.
@@ -1217,7 +1384,7 @@ function entPick(name,type,sel,o={}){
       ${outside?`<button type="button" class="pchip" data-pv="${outside.id}" aria-pressed="true">${esc(outside.name)} <span style="opacity:.7">· ${GTAG[outside.type]||''}</span></button>`:''}
       ${show.map(chip).join('')}
       ${o.optional?`<button type="button" class="pchip" data-pv="" aria-pressed="${!sel}">بدون</button>`:''}
-      ${many?`<button type="button" class="pchip pksearch" data-act="pkOpen" data-pk="${id}">🔎 بحث في ${items.length}</button>`:''}
+      ${many?`<button type="button" class="pchip pksearch" data-act="pkOpen" data-pk="${id}">${IC('search')}بحث في ${items.length}</button>`:''}
     </div>
     ${items.length?'':`<div class="empty" style="padding:14px">لا يوجد — أضف من «الإعدادات»</div>`}</div>`;
 }
@@ -1233,7 +1400,7 @@ function openPicker(pkId){
     return f.slice(0,80).map(i=>`<button type="button" class="drow" data-pv="${i.id}">
       <span class="tname">${esc(i.name)}</span>
       <span class="tag">${GTAG[i.type]||''}</span>
-      ${i.place?`<span style="color:var(--muted);font-size:13px">${esc(i.place)}</span>`:''}
+      ${i.place?`<span style="color:var(--muted);font-size:var(--fs-s)">${esc(i.place)}</span>`:''}
       <span class="go">${i.id===cur?'✓':'‹'}</span></button>`).join('')||`<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
   };
   const d=$('#dlg');
@@ -1340,7 +1507,7 @@ function vHome(){
       <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join('')}
   </div>`:`<div class="allok">✓ مافيش حاجة محتاجة انتباه — كله ماشي</div>`}
   ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:14px">
-    <div class="lbl">📲 ثبّت التطبيق على الجهاز</div>
+    <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز</div>
     <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
     <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
   ${secT(1,'الحسابات','acct')}
@@ -1360,13 +1527,13 @@ function vHome(){
       D.activeFarms.sort((a,b)=>b.cycleTotal-a.cycleTotal).map(f=>
       `<button class="drow" data-act="settleFarm" data-id="${f.id}"><span class="tname">${esc(f.name)}
         ${f.cycleStart?`<span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</span>
-        <span style="color:var(--muted);font-size:12px">${f.cycleCount} فاتورة</span>
+        <span style="color:var(--muted);font-size:var(--fs-xs)">${f.cycleCount} فاتورة</span>
         <b>${money(f.cycleTotal)}</b><span class="go">‹</span></button>`).join(''):''}
     ${(()=>{const done=D.farms.filter(f=>!f.cycleCount);
       return done.length?`<div class="drillsec">مصفّاة — اضغط لمراجعة الحساب</div>`+
         done.map(f=>`<button class="drow" data-act="repFarm" data-id="${f.id}">
           <span class="tname">${esc(f.name)}</span>
-          <span style="color:var(--muted);font-size:12px">${f.settlements.length} تصفية</span>
+          <span style="color:var(--muted);font-size:var(--fs-xs)">${f.settlements.length} تصفية</span>
           <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):''})()}
   </div>`:''}
 
@@ -1391,14 +1558,14 @@ function vHome(){
   </div>
   ${d.cm?custodyList(D.mBox):''}${d.cf?custodyList(D.fBox):''}
   <div class="card" style="margin-top:10px">
-    <div class="lbl" style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px">عهدة المخزن</div>
+    <div class="lbl" style="font-size:var(--fs-xs);color:var(--muted);font-weight:600;margin-bottom:8px">عهدة المخزن</div>
     <div class="row">
-      <div><div class="sub" style="font-size:11.5px;color:var(--muted)">سليم</div>
-        <div class="val num" style="font-size:20px;font-weight:700;color:var(--paid)">${D.wh.intact}</div></div>
-      <div><div class="sub" style="font-size:11.5px;color:var(--muted)">تالف</div>
-        <div class="val num" style="font-size:20px;font-weight:700;color:var(--debt)">${D.wh.damaged}</div></div>
-      <div><div class="sub" style="font-size:11.5px;color:var(--muted)">الإجمالي</div>
-        <div class="val num" style="font-size:20px;font-weight:700">${D.wh.total}</div></div>
+      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">سليم</div>
+        <div class="val num" style="font-size:var(--fs-xl);font-weight:700;color:var(--paid)">${D.wh.intact}</div></div>
+      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">تالف</div>
+        <div class="val num" style="font-size:var(--fs-xl);font-weight:700;color:var(--debt)">${D.wh.damaged}</div></div>
+      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">الإجمالي</div>
+        <div class="val num" style="font-size:var(--fs-xl);font-weight:700">${D.wh.total}</div></div>
     </div>
   </div>
 
@@ -1418,12 +1585,12 @@ function vHome(){
   </button>
   ${d.ice?`<div class="drill">${D.factories.length?D.factories.map(f=>
     `<button class="drow" data-act="repFactory" data-id="${f.id}"><span class="tname">${esc(f.name)}</span>
-      <span style="color:var(--muted);font-size:12px">${f.blocks} بلاطة</span>
+      <span style="color:var(--muted);font-size:var(--fs-xs)">${f.blocks} بلاطة</span>
       <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):'<div class="empty" style="margin:8px 0">لا يوجد مصانع</div>'}</div>`:''}
 
   <div class="btnrow" style="margin-top:18px">
-    <button class="btn wa" data-act="shareDaily">📤 ملخص اليوم واتساب</button>
-    <button class="btn ghost" data-act="printDaily">🖨️ طباعة PDF</button>
+    <button class="btn wa" data-act="shareDaily">${IC('share')}ملخص اليوم واتساب</button>
+    <button class="btn ghost" data-act="printDaily">${IC('print')}طباعة PDF</button>
   </div>`;
 }
 const pct=(a,b)=>b>0?Math.max(0,Math.round(a/b*100)):0;
@@ -1431,7 +1598,7 @@ function custodyList(arr){
   const l=arr.filter(x=>x.box.total||x.box.loss);
   return `<div class="drill">`+(l.length?l.sort((a,b)=>b.box.total-a.box.total).map(x=>
     `<button class="drow" data-act="repEntity" data-id="${x.id}"><span class="tname">${esc(x.name)}</span>
-      <span style="color:var(--muted);font-size:11.5px">${x.box.loss?`فاقد ${x.box.loss}`:''}${x.box.intact<0?' · عندنا':''}</span>
+      <span style="color:var(--muted);font-size:var(--fs-xs)">${x.box.loss?`فاقد ${x.box.loss}`:''}${x.box.intact<0?' · عندنا':''}</span>
       <b style="color:${x.box.intact<0?'var(--credit)':'inherit'}">${x.box.intact}</b><span class="go">‹</span></button>`).join(''):`<div class="empty" style="margin:8px 0">لا عهدة</div>`)+`</div>`;
 }
 
@@ -1442,8 +1609,8 @@ function vFin(){
   const D=S.D,nd=D.drafts.length,na=D.activeFarms.length,nr=D.settlements.length;
   const cur=S.sub.fin;
   const main=`<div class="seg" data-seg="fin">
-    <button data-sub="invoice" aria-selected="${cur==='invoice'}">🧾 فاتورة بيع</button>
-    <button data-sub="collect" aria-selected="${cur==='collect'}">💰 تحصيل</button></div>`;
+    <button data-sub="invoice" aria-selected="${cur==='invoice'}">${IC('doc')}فاتورة بيع</button>
+    <button data-sub="collect" aria-selected="${cur==='collect'}">${IC('money')}تحصيل</button></div>`;
   const links=`<div class="finlinks">
     <button data-act="finGo" data-s="settle" aria-selected="${cur==='settle'}">
       تصفية مزرعة${na?`<span>${na}</span>`:''}</button>
@@ -1498,7 +1665,7 @@ function vDrafts(){
       <span class="r2"><span class="rm">من ${esc(D.nameOf(e.farmId))}${e.note?` · ${esc(e.note)}`:''}</span>
         <span class="tag void">بلا مبلغ</span></span></button>
     ${open?`<div class="recbody"><div class="acts">
-      <button class="btn sm" data-act="amountOnly" data-id="${e.id}">💵 اكتب المبلغ</button>
+      <button class="btn sm" data-act="amountOnly" data-id="${e.id}">${IC('money')}اكتب المبلغ</button>
       <button class="btn ghost sm" data-act="editOp" data-id="${e.id}">تعديل الفاتورة</button>
       <button class="btn danger sm" data-act="delOp" data-id="${e.id}">حذف</button></div></div>`:''}
     </div>`}).join('');
@@ -1545,9 +1712,9 @@ function fSettle(){
     <div data-role="tape"></div>
     <button class="btn brass" type="submit">اعتماد وتصفية الدورة</button></form></div>
   ${S.lastReceipt?`<div class="eyebrow brass">آخر تصفية</div>${tapeHTML(S.lastReceipt)}
-    <div class="btnrow"><button class="btn ghost" data-act="printReceipt">🖨️ إيصال مختصر</button>
-      <button class="btn dark" data-act="printReceiptFull">📋 إيصال مفصّل</button></div>
-    <button class="btn wa" data-act="shareReceipt">📤 إرسال واتساب</button>
+    <div class="btnrow"><button class="btn ghost" data-act="printReceipt">${IC('print')}إيصال مختصر</button>
+      <button class="btn dark" data-act="printReceiptFull">${IC('copy')}إيصال مفصّل</button></div>
+    <button class="btn wa" data-act="shareReceipt">${IC('share')}إرسال واتساب</button>
     <p class="note">المفصّل بيعرض كل فاتورة بالمبيع وعدد البكش وإجماليها، وتحتها حساب التصفية.</p>`:''}`;
 }
 function tapeHTML(r){
@@ -1704,10 +1871,10 @@ function costDayView(farm,day){
   </div>`;
 
   const closeSec=closed
-    ?`<div class="card" style="text-align:center"><b>🔒 اليوم مقفول</b>
+    ?`<div class="card" style="text-align:center"><b>${IC('lock')}اليوم مقفول</b>
        <p class="note">مصاريف هذا اليوم ثابتة. لتعديلها لازم تفتحه للتعديل أولاً.</p>
-       <button class="btn ghost sm" data-act="costUnlock">🔓 فتح اليوم للتعديل</button></div>`
-    :`<button class="btn brass" data-act="costClose" style="width:100%">🔒 إغلاق اليوم</button>
+       <button class="btn ghost sm" data-act="costUnlock">${IC('unlock')}فتح اليوم للتعديل</button></div>`
+    :`<button class="btn brass" data-act="costClose" style="width:100%">${IC('lock')}إغلاق اليوم</button>
       <p class="note" style="text-align:center">بعد الإغلاق محتاج تأكيد تاني عشان تعدّل.</p>`;
 
   return `<button type="button" class="btn ghost sm" data-act="costBackDay" style="margin-bottom:10px">‹ أيام ${esc(farm.name)}</button>
@@ -1750,7 +1917,7 @@ function vArchive(){
       <div class="meta">إجمالي <b class="num">${money(s.total)}</b> · عمولة <span class="num">${money(s.commission)}</span> (${s.office}/${s.farmRatio}) · مصاريف <span class="num">${money(s.expenses)}</span></div>
       <div class="meta" style="color:var(--ink)">المستحق: <b class="num">${money(s.payable)}</b> ج.م · ${s.coveredIds.length} فاتورة</div>
       <div class="acts"><button class="btn ghost sm" data-act="tapeAgain" data-id="${s.id}">الإيصال</button>
-      <button class="btn ghost sm" data-act="archFull" data-id="${s.id}">📋 مفصّل</button>
+      <button class="btn ghost sm" data-act="archFull" data-id="${s.id}">${IC('copy')}مفصّل</button>
       ${dead?'':`<button class="btn danger sm" data-act="undoSettle" data-id="${s.id}">تراجع</button>`}</div></div>`}).join('');
 }
 
@@ -1803,7 +1970,7 @@ function opsBox(){
   const op=S.sub.boxop;
   return head+`<div style="height:10px"></div>`+seg('boxop',ops,op,true)
     +(g==='adj'?`<button class="rarebtn" data-act="rare">${rare?'▴ إخفاء العمليات النادرة':'▾ عمليات نادرة (تصحيح رصد · بلا طرف)'}</button>`:'')
-    +`<p class="note" style="margin:12px 0">🔒 حركات البكش لا تمسّ مديونية مبيع ولا مستحق مزرعة.</p>`
+    +`<p class="note" style="margin:12px 0">${IC('lock')}حركات البكش لا تمسّ مديونية مبيع ولا مستحق مزرعة.</p>`
     +boxLog([op],3)
     +(op==='audit'?auditForm():boxForm(op,'تسجيل الحركة',op==='sale_move'?invPicker():''));
 }
@@ -1862,10 +2029,10 @@ function bxBal(){
      <td class="n" style="font-weight:600;color:${h.box.intact<0?'var(--credit)':'inherit'}">${h.box.intact}</td>
      <td class="n cout">${h.box.loss||''}</td></tr>`).join('');
   return `<div class="card"><div class="row" style="text-align:center">
-    <div><div class="note" style="margin:0">سليم بالمخزن</div><div class="num" style="font-size:20px;font-weight:700;color:var(--paid)">${w.intact}</div></div>
-    <div><div class="note" style="margin:0">تالف بالمخزن</div><div class="num" style="font-size:20px;font-weight:700;color:var(--debt)">${w.damaged}</div></div>
-    <div><div class="note" style="margin:0">بالخارج</div><div class="num" style="font-size:20px;font-weight:700">${D.custody.all-w.total}</div></div>
-    <div><div class="note" style="margin:0">إجمالي العهدة</div><div class="num" style="font-size:20px;font-weight:700">${D.custody.all}</div></div></div>
+    <div><div class="note" style="margin:0">سليم بالمخزن</div><div class="num" style="font-size:var(--fs-xl);font-weight:700;color:var(--paid)">${w.intact}</div></div>
+    <div><div class="note" style="margin:0">تالف بالمخزن</div><div class="num" style="font-size:var(--fs-xl);font-weight:700;color:var(--debt)">${w.damaged}</div></div>
+    <div><div class="note" style="margin:0">بالخارج</div><div class="num" style="font-size:var(--fs-xl);font-weight:700">${D.custody.all-w.total}</div></div>
+    <div><div class="note" style="margin:0">إجمالي العهدة</div><div class="num" style="font-size:var(--fs-xl);font-weight:700">${D.custody.all}</div></div></div>
     ${w.intact<0||w.damaged<0?`<p class="note">رصيد المخزن سالب — يعني صرفاً سبق تسجيل رصيده الافتتاحي أو شرائه. سجّل «رصيد بكش افتتاحي» للمخزن من «جرد وتسويات» لضبط نقطة البداية.</p>`:''}</div>
   <div class="eyebrow">أرصدة الجهات</div>
   <div class="card">${rows?`<div class="tscroll"><table>
@@ -1959,15 +2126,15 @@ function drvDamage(){
     <td class="n cout" style="font-weight:600">${x.open||''}</td>
     <td class="n">${x.cleared||''}</td><td class="n">${x.wear||''}</td></tr>`).join('');
   return `<div class="card">
-    <p class="note" style="margin:0 0 12px">🔢 عدّاد متابعة فقط — <b>مش مديونية ولا عهدة</b>.
+    <p class="note" style="margin:0 0 12px">${IC('hash')}عدّاد متابعة فقط — <b>مش مديونية ولا عهدة</b>.
       الصناديق التالفة نفسها بتدخل حساب المخزن عادي، والرقم ده لمتابعة أمانة السائق.</p>
     <div class="row" style="text-align:center">
       <div><div class="note" style="margin:0">مفتوح بإهمال</div>
-        <div class="num" style="font-size:23px;font-weight:600;color:var(--debt)">${openTot}</div></div>
+        <div class="num" style="font-size:var(--fs-xl);font-weight:600;color:var(--debt)">${openTot}</div></div>
       <div><div class="note" style="margin:0">مصفّى</div>
-        <div class="num" style="font-size:23px;font-weight:600">${negTot-openTot}</div></div>
+        <div class="num" style="font-size:var(--fs-xl);font-weight:600">${negTot-openTot}</div></div>
       <div><div class="note" style="margin:0">هلك عادي</div>
-        <div class="num" style="font-size:23px;font-weight:600;color:var(--muted)">${wearTot}</div></div></div>
+        <div class="num" style="font-size:var(--fs-xl);font-weight:600;color:var(--muted)">${wearTot}</div></div></div>
   </div>
   ${rows?`<div class="card"><div class="tscroll"><table>
     <thead><tr><th>السائق</th><th class="n">مفتوح</th><th class="n">مصفّى</th><th class="n">هلك عادي</th></tr></thead>
@@ -2221,15 +2388,15 @@ function vRep(){
     boxAll:repBoxAll,farmsAll:repFarmsAll,merchAll:repMerchAll,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
   const line=`<button class="filtline" data-act="fToggle">
-    <span>🔎 ${esc(fsum())}</span><span class="go">${S.fopen?'▴':'✎'}</span></button>`;
+    <span>${IC('search')}${esc(fsum())}</span><span class="go">${S.fopen?'▴':'✎'}</span></button>`;
   return head+line+(S.fopen?filterBar():'')+fn()+repActions();
 }
 function repActions(){
   const F=S.F;
   return `<div class="btnrow" style="margin-top:16px">
-    <button class="btn ghost" data-act="printRep">🖨️ طباعة / PDF</button>
-    <button class="btn wa" data-act="waRep">📤 واتساب</button></div>
-    ${F.ent&&F.ent!==WH?`<button class="btn dark" data-act="combined">📋 كشف مجمّع للطباعة</button>
+    <button class="btn ghost" data-act="printRep">${IC('print')}طباعة / PDF</button>
+    <button class="btn wa" data-act="waRep">${IC('share')}واتساب</button></div>
+    ${F.ent&&F.ent!==WH?`<button class="btn dark" data-act="combined">${IC('copy')}كشف مجمّع للطباعة</button>
       <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}`;
 }
 /* تقارير عامة بلا فلترة جهة — «عموماً» يعني كل الجهات، فإخفاء الحقل أوضح من عرضه معطّلاً */
@@ -2277,14 +2444,14 @@ function openSearch(){
     if(ents.length)out.push(`<div class="drillsec">جهات (${ents.length})</div>`+
       ents.slice(0,20).map(([x,lbl,ty])=>`<button type="button" class="drow" data-sv2="ent" data-id="${x.id}" data-t="${ty}">
         <span class="tname">${esc(x.name)}</span>
-        <span style="color:var(--muted);font-size:12.5px">${lbl}${x.place?' · '+esc(x.place):''}</span>
+        <span style="color:var(--muted);font-size:var(--fs-xs)">${lbl}${x.place?' · '+esc(x.place):''}</span>
         <span class="go">‹</span></button>`).join(''));
     const ops=D.live.filter(e=>searchStr(e).includes(t)).sort((a,b)=>b.seq-a.seq);
     if(ops.length)out.push(`<div class="drillsec">حركات (${ops.length})</div>`+
       ops.slice(0,20).map(e=>`<button type="button" class="drow" data-sv2="op" data-id="${e.id}">
         <span class="tname">${esc(({invoice:'فاتورة',collection:'تحصيل',settlement:'تصفية',trip:'رحلة',
           ice_op:'ثلج',driver_advance:'سلفة',box:BOXOP[e.op]||'بكش'})[e.type]||e.type)}</span>
-        <span style="color:var(--muted);font-size:12.5px">${esc(searchStr(e).slice(0,40))}</span>
+        <span style="color:var(--muted);font-size:var(--fs-xs)">${esc(searchStr(e).slice(0,40))}</span>
         <span class="go num">${arDate(e.date)}</span></button>`).join(''));
     return out.join('')||`<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
   };
@@ -2327,7 +2494,7 @@ function openFilterPick(etype){
       if(!f.length)return '';
       return `<div class="drillsec">${lbl} (${f.length})</div>`+f.slice(0,60).map(i=>
         `<button type="button" class="drow" data-fv="${i.id}"><span class="tname">${esc(i.name)}</span>
-          ${i.place?`<span style="color:var(--muted);font-size:12.5px">${esc(i.place)}</span>`:''}
+          ${i.place?`<span style="color:var(--muted);font-size:var(--fs-xs)">${esc(i.place)}</span>`:''}
           <span class="go">${i.id===S.F.ent?'✓':'‹'}</span></button>`).join('');
     }).join('')||`<div class="empty">لا نتائج</div>`;
   };
@@ -2424,7 +2591,7 @@ function handover(){
   return `<div class="qr" style="margin-bottom:14px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
       aria-selected="${from===({today:todayISO(),yest:addDays(todayISO(),-1),
         week:addDays(todayISO(),-6),month:monthStart()})[k]&&to===todayISO()||(k==='yest'&&from===to&&from===addDays(todayISO(),-1))||(k==='today'&&from===to&&from===todayISO())}">${l}</button>`).join('')}
-    <button data-act="fToggle">📅 مخصّص</button></div>
+    <button data-act="fToggle">${IC('cal')}مخصّص</button></div>
   ${S.fopen?filterBar():''}
   <div class="eyebrow">${one?'حركة يوم '+arDate(from):`حركة ${arDate(from)} — ${arDate(to)}`}
 </div>
@@ -2465,7 +2632,7 @@ function handover(){
     </tbody><tfoot><tr><td>إجمالي عهدة البكش بالخارج</td>
       <td class="n">${D.custody.merchants+D.custody.farms} صندوق</td></tr></tfoot></table></div></div>
 
-  <button class="btn dark" data-act="handPrint" style="margin-top:14px">📋 طباعة ورقة التسليم كاملة</button>`;
+  <button class="btn dark" data-act="handPrint" style="margin-top:14px">${IC('print')}طباعة ورقة التسليم كاملة</button>`;
 }
 function handIssuesHTML(){
   const I=handIssues(S.F.from||todayISO(),S.F.to||S.F.from||todayISO());
@@ -2530,7 +2697,7 @@ function repAcct(){
     ["col",isM?"تحصيلات":"تصفيات"]],K,true);
   return segK+`<div style="height:14px"></div>
     <div class="eyebrow">كشف حساب ${esc(target.name)}${K!=='all'?` — ${K==='inv'?'الفواتير':(isM?'التحصيلات':'التصفيات')}`:''}</div>
-    <div class="card">${target.place?`<div class="note" style="margin:0 0 8px">📍 ${esc(target.place)}${target.phone?` · ☎ ${esc(target.phone)}`:''}</div>`:''}
+    <div class="card">${target.place?`<div class="note" style="margin:0 0 8px">${IC('pin')}${esc(target.place)}${target.phone?` · ${IC('phone')}${esc(target.phone)}`:''}</div>`:''}
     ${rows?`<div class="tscroll">${head}</div>`:'<div class="empty">لا حركات في المدى المحدد</div>'}
     <div class="diff ${target.balance<0?'over':''}" style="margin-top:12px">
       <span>الرصيد النقدي ${target.balance<0?(isM?'— دفعة مقدّمة له':'— مدفوع بالزيادة'):(isM?'— عليه':'— لها')}</span>
@@ -2918,36 +3085,9 @@ function repIce(){
     <tfoot><tr><td>الإجمالي</td><td class="n">${sum(fs,f=>f.blocks)}</td>
       <td class="n">${money(sumM(fs,f=>f.value))}</td><td class="n">${money(sumM(fs,f=>f.paid))}</td>
       <td class="n">${money(sumM(fs,f=>f.balance))}</td></tr></tfoot></table>`;
-  /* إجمالي الفترة لكل مصنع: نفس فكرة السائقين — مجموع حركاته داخل مدى الفلترة
-     بس (من items أعلاه)، غير جدول «أرصدة المصانع» تحت اللي تراكمي من أول
-     السجل. بترتيب piaster صحيح (P/msum) لا جمع عشري مباشر، وبيعرض بس
-     المصانع اللي ليها حركة فعلية في المدى. */
-  const perAgg={};
-  items.forEach(e=>{if(!e.factoryId)return;
-    const a=perAgg[e.factoryId]||(perAgg[e.factoryId]={blocks:0,value:0,paid:0});
-    if(e.type==='factory_payment')a.paid+=P(e.amount);
-    else{a.blocks+=(+e.qty||0);a.value+=P((+e.qty||0)*(+e.unitPrice||0))}});
-  const perIds=fs.map(f=>f.id).filter(id=>perAgg[id]);
-  const perRow=id=>{const a=perAgg[id],net=msum(a.value/100,-a.paid/100);
-    return `<tr><td class="tname">${esc(D.nameOf(id))}</td><td class="n">${a.blocks}</td>
-      <td class="n">${money(a.value/100)}</td><td class="n">${money(a.paid/100)}</td>
-      ${mcell(net)}</tr>`};
-  const perBlocks=perIds.reduce((t,id)=>t+perAgg[id].blocks,0);
-  const perValue=perIds.reduce((t,id)=>t+perAgg[id].value,0)/100;
-  const perPaid=perIds.reduce((t,id)=>t+perAgg[id].paid,0)/100;
-  const per=`<table><thead><tr><th>المصنع</th><th class="n">بلاطات الفترة</th><th class="n">قيمة الفترة</th>
-    <th class="n">مدفوع الفترة</th><th class="n">صافي الفترة</th></tr></thead>
-    <tbody>${perIds.map(perRow).join('')}</tbody>
-    <tfoot><tr><td>الإجمالي</td><td class="n">${perBlocks}</td><td class="n">${money(perValue)}</td>
-      <td class="n">${money(perPaid)}</td>${mcell(msum(perValue,-perPaid))}</tr></tfoot></table>`;
-  S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),
-    html:tbl+(perIds.length?"<h3>إجمالي الفترة</h3>"+per:"")+"<h3>أرصدة المصانع</h3>"+bal,phone:who?.phone};
+  S.print={title:"تقرير الثلج"+(who?` — ${who.name}`:""),html:tbl+"<h3>أرصدة المصانع</h3>"+bal,phone:who?.phone};
   return `<div class="eyebrow">حركات الثلج (${items.length})</div>
     <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
-    <div class="eyebrow">إجمالي الفترة</div>
-    <div class="card">${perIds.length?`<div class="tscroll">${per}</div>
-      <p class="note">صافي كل مصنع من حركات المدى المختار بس — مش تراكمي زي أرصدة المصانع تحت.</p>`
-      :'<div class="empty">لا حركات في المدى</div>'}</div>
     <div class="eyebrow">أرصدة المصانع</div><div class="card"><div class="tscroll">${bal}</div></div>`;
 }
 
@@ -3277,7 +3417,7 @@ function drawWipe(){
      <input id="wipeWord" autocomplete="off" placeholder="تصفية"></div>
 
    <label style="margin-bottom:8px">٤ · التنفيذ</label>
-   <button class="btn danger" data-act="wipeGo">🗑️ تصفية نهائية</button>`);
+   <button class="btn danger" data-act="wipeGo">${IC('trash')}تصفية نهائية</button>`);
 }
 async function doWipe(){
   const el=$('#wipeWord');
@@ -3361,7 +3501,7 @@ function setData(){
         ${bal?`<span class="rv">${esc(bal)}</span>`:''}
         <span class="rd">${open?'▴':'▾'}</span></button>
       ${open?`<div class="recbody">
-        ${x.phone?`<div class="meta">☎ <a href="tel:${esc(x.phone)}" style="color:var(--accent)">${esc(x.phone)}</a></div>`:''}
+        ${x.phone?`<div class="meta">${IC('phone')}<a href="tel:${esc(x.phone)}" style="color:var(--accent)">${esc(x.phone)}</a></div>`:''}
         ${op||bx.intact?`<div class="meta">افتتاحي نقدي ${money(op)} · عهدة بكش ${bx.intact}</div>`:''}
         <div class="acts">
           <button class="btn ghost sm" data-act="editEnt" data-id="${x.id}">تعديل</button>
@@ -3391,20 +3531,33 @@ function setCo(){
     <button class="btn ghost" type="submit">حفظ بيانات الشركة</button></form></div>
 <div class="eyebrow">الترحيل الآلي</div>
   <div class="card" style="display:flex;align-items:center;gap:12px">
-    <div style="flex:1"><b style="font-size:13.5px">ترحيل بكش الفاتورة آلياً</b>
+    <div style="flex:1"><b style="font-size:var(--fs-s)">ترحيل بكش الفاتورة آلياً</b>
       <div class="note" style="margin:2px 0 0">مع كل فاتورة بيع تُنشأ حركة «بكش بيع سمك» من المزرعة إلى المبيع بنفس عدد الصناديق، وتتبع الفاتورة في التعديل والحذف.</div></div>
     <button class="btn sm ${S.autoBox?'':'ghost'}" data-act="toggleAuto">${S.autoBox?'مفعّل':'موقوف'}</button>
   </div>
+<div class="eyebrow">شكل الشاشة</div>
+  <div class="card">
+    <div style="margin-bottom:9px"><b style="font-size:var(--fs-s)">الوضع الغامق</b>
+      <div class="note" style="margin:2px 0 0">فجراً في السوق الشاشة الفاتحة بتبهر. «تلقائي» بيمشي مع إعداد الموبايل.</div></div>
+    <div class="seg inner">${[['auto','تلقائي'],['light','فاتح'],['dark','غامق']].map(([k,l])=>
+      `<button type="button" data-act="setMode" data-id="${k}" aria-selected="${(S.mode||'auto')===k}">${l}</button>`).join('')}</div>
+  </div>
+<div class="eyebrow">الاهتزاز</div>
+  <div class="card" style="display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><b style="font-size:var(--fs-s)">اهتزاز عند الحفظ والخطأ</b>
+      <div class="note" style="margin:2px 0 0">اهتزازة قصيرة مع كل تسجيل ناجح، وأطول مع الخطأ — عشان تعرف إن الحركة اتسجّلت من غير ما تبص على الشاشة في السوق.</div></div>
+    <button class="btn sm ${S.hap?'':'ghost'}" data-act="toggleHap">${S.hap?'مفعّل':'موقوف'}</button>
+  </div>
 <div class="eyebrow">التثبيت</div>
   <div class="card" style="display:flex;align-items:center;gap:12px">
-    <div style="flex:1"><b style="font-size:13.5px">${isStandalone()?'التطبيق مثبَّت ✓':'التطبيق يعمل في المتصفح'}</b>
+    <div style="flex:1"><b style="font-size:var(--fs-s)">${isStandalone()?'التطبيق مثبَّت ✓':'التطبيق يعمل في المتصفح'}</b>
       <div class="note" style="margin:2px 0 0">${isStandalone()
         ?'شغّال كتطبيق مستقل — من غير شريط المتصفح.'
         :'التثبيت بيخليه يفتح لوحده وسط تطبيقات الجهاز بدل تبويب في كروم.'}</div></div>
     ${isStandalone()?'':`<button class="btn sm" data-act="install">تثبيت</button>`}
   </div>
   ${isStandalone()?'':`<div class="card">
-    <button class="btn ghost" data-act="installDiag">🔎 لماذا لا يظهر خيار التثبيت؟</button>
+    <button class="btn ghost" data-act="installDiag">${IC('search')}لماذا لا يظهر خيار التثبيت؟</button>
     ${S.diag&&S.diag.kind==='install'?diagHTML():''}
     <p class="note">يفحص شروط كروم واحداً واحداً ويقول لك الناقص بالضبط.</p>
   </div>`}`;
@@ -3418,13 +3571,13 @@ function setSec(){
       بيقولك النسخة اللي فعلاً مرفوعة على السيرفر، فتعرف المشكلة في الرفع ولا في الملفات المخزَّنة.
       <b>بياناتك ما بتتأثرش</b> في الحالتين — محفوظة في مكان تاني تماماً.</p>
     <div class="btnrow" style="margin-top:10px">
-      <button class="btn ghost" data-act="chkVer">🔎 افحص السيرفر</button>
-      <button class="btn ghost" data-act="forceUpdate">🔄 تحديث التطبيق الآن</button></div>
+      <button class="btn ghost" data-act="chkVer">${IC('search')}افحص السيرفر</button>
+      <button class="btn ghost" data-act="forceUpdate">${IC('refresh')}تحديث التطبيق الآن</button></div>
   </div>
   <div class="eyebrow debt">الأمان والصلاحيات</div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <div style="flex:1"><b style="font-size:13.5px">الرقم السري للأونر</b>
+      <div style="flex:1"><b style="font-size:var(--fs-s)">الرقم السري للأونر</b>
         <div class="note" style="margin:2px 0 0">${S.sec.pin?'مُعيَّن — التصفية والتراجع والتعديل والحذف والجرد تطلبه.':'غير مُعيَّن — كل العمليات مفتوحة لأي مستخدم.'}</div></div>
       <button class="btn sm ${S.sec.pin?'ghost':''}" data-act="setPin">${S.sec.pin?'تغيير':'تعيين'}</button>
     </div>
@@ -3438,8 +3591,8 @@ function setSec(){
 <div class="eyebrow">سلامة السجل</div>
   <div class="card">
     <div class="btnrow" style="margin:0">
-      <button class="btn ghost" data-act="verify">🔐 فحص سلسلة التوقيع</button>
-      <button class="btn ghost" data-act="runTests">🧪 اختبارات الحسابات</button></div>
+      <button class="btn ghost" data-act="verify">${IC('shield')}فحص سلسلة التوقيع</button>
+      <button class="btn ghost" data-act="runTests">${IC('flask')}اختبارات الحسابات</button></div>
     ${diagHTML()}
     <div class="row" style="margin-top:12px;text-align:center">
       <div><div class="note" style="margin:0">حركات</div><b class="num">${S.ledger.length}</b></div>
@@ -3458,7 +3611,7 @@ function setBk(){
       <button class="btn ghost" data-act="exportJSON">⬇️ تنزيل نسخة</button>
       <button class="btn ghost" data-act="importJSON">⬆️ استعادة / دمج</button></div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
-      <div style="flex:1"><b style="font-size:13px">نسخة تلقائية كل ${S.bk.every||50} حركة</b>
+      <div style="flex:1"><b style="font-size:var(--fs-s)">نسخة تلقائية كل ${S.bk.every||50} حركة</b>
         <div class="note" style="margin:2px 0 0">تنزّل الملف تلقائياً على الجهاز.</div></div>
       <button class="btn sm ${S.bk.auto?'':'ghost'}" data-act="toggleBk">${S.bk.auto?'مفعّل':'موقوف'}</button></div>
     <p class="note">المزامنة بين جهازين: نزّل نسخة من الأول واستوردها في الثاني. السجل تراكمي فالدمج بلا تعارض — الحركات المكرّرة تُتجاهل والباقي يندمج بالترتيب.
@@ -3466,27 +3619,27 @@ function setBk(){
   </div>
 <div class="eyebrow debt">منطقة الخطر</div>
   <div class="card" style="border-color:var(--debt)">
-    <b style="font-size:14.5px;color:var(--debt)">تصفية الحسابات نهائياً</b>
+    <b style="font-size:var(--fs-m);color:var(--debt)">تصفية الحسابات نهائياً</b>
     <p class="note" style="margin-top:4px">مسح الحركات لبداية موسم جديد، أو مسح كل شيء من الأول.
       إجراء لا رجعة فيه — التطبيق هيسألك عن النسخة الاحتياطية قبل التنفيذ.</p>
     ${(S.wipeLog||[]).length?`<div class="diff" style="margin-top:10px"><span>آخر تصفية</span>
       <b>${arDate(S.wipeLog[S.wipeLog.length-1].at.slice(0,10))} · ${S.wipeLog[S.wipeLog.length-1].ledger} حركة</b></div>`:''}
-    <button class="btn danger" data-act="wipeOpen" style="margin-top:10px">🗑️ تصفية الحسابات</button>
+    <button class="btn danger" data-act="wipeOpen" style="margin-top:10px">${IC('trash')}تصفية الحسابات</button>
   </div>`;
 }
 function diagHTML(){
   const d=S.diag;if(!d)return '';
   if(d.kind==='install')return `<div style="margin-top:12px">${d.rows.map(r=>
-    `<div class="diff ${r.ok?'over':'short'}" style="padding:9px 12px;font-size:13.5px;align-items:flex-start">
-      <span>${esc(r.n)}${r.hint?`<br><span style="font-size:12.5px;opacity:.85">${esc(r.hint)}</span>`:''}</span>
+    `<div class="diff ${r.ok?'over':'short'}" style="padding:9px 12px;font-size:var(--fs-s);align-items:flex-start">
+      <span>${esc(r.n)}${r.hint?`<br><span style="font-size:var(--fs-xs);opacity:.85">${esc(r.hint)}</span>`:''}</span>
       <b>${r.ok?'✓':'✗'}</b></div>
       ${r.act==='swRetry'?`<button class="btn" data-act="swRetry" style="margin:0 0 10px">
-        ⚙️ سجّل عامل الخدمة الآن</button>`:''}`).join('')}</div>`;
+        ${IC('set')}سجّل عامل الخدمة الآن</button>`:''}`).join('')}</div>`;
   if(d.kind==='chain')return `<div class="diff ${d.ok?'over':'short'}" style="margin-top:12px">
     <span>${d.ok?'السلسلة سليمة':'انكسرت السلسلة عند الحركة رقم '+d.bad.seq}</span>
     <b>${d.total-d.unsigned}/${d.total} موقَّعة</b></div>
     ${d.unsigned?`<p class="note">${d.unsigned} حركة قديمة بلا توقيع (سُجّلت قبل تفعيل الميزة) — طبيعي.</p>`:''}`;
-  return `<div style="margin-top:12px">${d.rows.map(r=>`<div class="diff ${r.ok?'over':'short'}" style="padding:7px 11px;font-size:12px">
+  return `<div style="margin-top:12px">${d.rows.map(r=>`<div class="diff ${r.ok?'over':'short'}" style="padding:7px 11px;font-size:var(--fs-xs)">
     <span>${esc(r.n)}</span><b>${r.ok?'✓':'✗'}</b></div>`).join('')}</div>`;
 }
 /* ---------- بطاقة حركة + أزرار تعديل/حذف ---------- */
@@ -3512,7 +3665,7 @@ function recHTML(e,title,meta,val,acts){
         <span class="rd num">${arDate(e.date)}</span>
       </span></button>
     ${open?`<div class="recbody">
-      ${e.note?`<div class="meta">📝 ${esc(e.note)}</div>`:''}
+      ${e.note?`<div class="meta">${IC('note')}${esc(e.note)}</div>`:''}
       ${dead?'<div class="meta">حركة ملغاة — للمراجعة فقط</div>'
       :`<div class="acts">${acts||''}
         <button class="btn ghost sm" data-act="editOp" data-id="${e.id}">تعديل</button>
@@ -3536,10 +3689,13 @@ function lastOps(types,opFilter){
     return[D.nameOf(e.driverId||e.factoryId||e.entityId),
       e.count!==undefined?e.count+' ص':money(e.amount)];
   };
+  const fl=S.flash&&Date.now()<S.flash.until?S.flash.id:null;
   return `<div class="last3"><div class="l3h">آخر ٣ عمليات</div>
-    ${items.map(e=>{const[a,b]=line(e);
-      return `<div class="l3r"><span class="l3d num">${arDate(e.date).slice(0,5)}</span>
-        <span class="l3t">${esc(a)}</span><span class="l3v num">${esc(b)}</span></div>`}).join('')}</div>`;
+    ${items.map(e=>{const[a,b]=line(e),nw=e.id===fl;
+      return `<div class="l3r${nw?' l3new':''}"><span class="l3d num">${nw?'دلوقتي':arDate(e.date).slice(0,5)}</span>
+        <span class="l3t">${esc(a)}</span><span class="l3v num">${esc(b)}</span>${
+        nw?`<button type="button" class="l3undo" data-act="undoLast" data-id="${e.id}">تراجع</button>`:''
+        }</div>`}).join('')}</div>`;
 }
 function logList(types,title,limit=6){
   const D=S.D;
@@ -3756,6 +3912,11 @@ function onClick(ev){
     case 'exportJSON':return exportJSON();
     case 'toggleAuto':return (async()=>{S.autoBox=!S.autoBox;await setMeta('autoBox',S.autoBox);
       await refresh();toast(S.autoBox?"الترحيل الآلي مفعّل":"الترحيل الآلي موقوف","ok")})();
+    case 'setMode':return (async()=>{S.mode=id;await setMeta('mode',id);applyMode();
+      await refresh();toast({auto:"الشاشة بتمشي مع إعداد الموبايل",light:"الوضع الفاتح",dark:"الوضع الغامق"}[id],"ok")})();
+    case 'toggleHap':return (async()=>{S.hap=!S.hap;await setMeta('haptics',S.hap);
+      await refresh();if(S.hap)buzz('ok');toast(S.hap?"الاهتزاز مفعّل":"الاهتزاز موقوف","ok")})();
+    case 'undoLast':return undoLast(id);
     case 'toggleBk':return (async()=>{S.bk={...S.bk,auto:!S.bk.auto};await setMeta('backup',S.bk);
       await refresh();toast(S.bk.auto?"النسخ التلقائي مفعّل":"النسخ التلقائي موقوف","ok")})();
     case 'setPin':return setPin();
@@ -3891,12 +4052,36 @@ function micListen(input){
 /* حقل رقمي بزر مايك */
 const micField=(name,extra='')=>`<div class="withmic">
   <input type="text" name="${name}" inputmode="decimal" ${extra}>
-  <button type="button" class="mic" data-act="mic" aria-label="إدخال بالصوت">🎤</button></div>`;
+  <button type="button" class="mic" data-act="mic" aria-label="إدخال بالصوت">${IC('mic')}</button></div>`;
 
 /* لوحة المفاتيح العربية تكتب ٠١٢٣ — نطبّعها في الحقول الرقمية فقط حتى لا تصير NaN */
 const AR2EN=s=>String(s).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
   .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[،٫]/g,'.');
 const D0=id=>S.D.nameOf(id);
+/*
+  خطأ عند الحقل نفسه لا في التوست وحده.
+  في نموذج طويل (فاتورة/تصفية) التوست بيطلع تحت والحقل الغلط ممكن يكون
+  برّه الشاشة، فالمستخدم بيدوّر. هنا بنعلّم الحقل ونمرّر له ونركّز عليه.
+  مُختار الجهات إدخاله مخفي داخل .pick فبنعلّم الحاوية بدل الحقل المخفي.
+*/
+function fieldErr(f,name,msg){
+  let el=f&&f.elements?f.elements[name]:null;
+  if(el&&!el.tagName)el=el[0]||null;
+  if(el){
+    const fld=(el.closest&&(el.closest('.field')||el.closest('.pick')))||null;
+    const hid=el.type==='hidden';
+    if(!hid){el.classList.add('bad');el.setAttribute('aria-invalid','true')}
+    if(fld)fld.classList.add('badfld');
+    const tgt=hid?(fld||el.parentElement):el;
+    try{tgt&&tgt.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}
+    if(!hid){try{el.focus({preventScroll:true})}catch(_){try{el.focus()}catch(__){}}}
+    const clr=()=>{el.classList.remove('bad');el.removeAttribute('aria-invalid');
+      if(fld)fld.classList.remove('badfld')};
+    el.addEventListener('input',clr,{once:true});
+    if(fld)fld.addEventListener('click',clr,{once:true});
+  }
+  return toast(msg,"err");
+}
 const readForm=f=>{const o={};[...f.elements].forEach(el=>{
   if(!el.name)return;
   const numeric=el.type==='number'||el.inputMode==='decimal'||el.inputMode==='numeric';
@@ -3909,7 +4094,7 @@ async function onSubmit(ev){
   try{
     if(kind==='entity'){
       const t=f.dataset.etype;
-      if(!p.name?.trim())return toast("اكتب الاسم","err");
+      if(!p.name?.trim())return fieldErr(f,'name',"اكتب الاسم");
       if(S.entities.some(e=>e.type===t&&!e.deleted&&e.name===p.name.trim()))return toast("الاسم مسجَّل بالفعل","err");
       const ent=await putEntity({id:uid(),type:t,name:p.name.trim(),place:p.place||"",
         phone:(p.phone||"").replace(/\s/g,""),price:+p.price||0,fare:+p.fare||0,createdAt:new Date().toISOString()});
@@ -3919,7 +4104,7 @@ async function onSubmit(ev){
       S.co={name:p.name||"دفتر السماكة",phone:(p.phone||"").replace(/[^\d]/g,""),logo:S.co.logo||""};
       await setMeta('company',S.co);await refresh();return toast("تم حفظ بيانات الشركة","ok")}
     if(kind==='invoice'){
-      if(!p.farmId||!p.merchantId)return toast("اختر المزرعة والمبيع","err");
+      if(!p.farmId||!p.merchantId)return fieldErr(f,p.farmId?'merchantId':'farmId',"اختر المزرعة والمبيع");
       const amt=+p.amount||0;
       /* خطأ شائع في الإدخال السريع: نفس الفاتورة تتسجّل مرتين */
       const dup=S.D.live.find(e=>e.type==='invoice'&&e.date===p.date
@@ -3940,12 +4125,12 @@ async function onSubmit(ev){
         :(amt>0?(S.autoBox&&inv.boxes>0?`تم التسجيل + ترحيل ${inv.boxes} صندوق`:"تم تسجيل الفاتورة")
         :"اتحفظت كمسوّدة — اكتب المبلغ من «مسوّدات»"),"ok")}
     if(kind==='collection'){
-      if(!p.merchantId)return toast("اختر المبيع","err");
-      if(+p.amount<=0)return toast("المبلغ أكبر من صفر","err");
+      if(!p.merchantId)return fieldErr(f,'merchantId',"اختر المبيع");
+      if(+p.amount<=0)return fieldErr(f,'amount',"اكتب مبلغاً أكبر من صفر");
       await append({type:'collection',date:p.date,merchantId:p.merchantId,amount:+p.amount,note:p.note});
       f.reset();return toast("تم تسجيل التحصيل","ok")}
     if(kind==='trip'){
-      if(!p.driverId||!p.routeId)return toast("اختر السائق والرحلة","err");
+      if(!p.driverId||!p.routeId)return fieldErr(f,p.driverId?'routeId':'driverId',"اختر السائق والرحلة");
       await append({type:'trip',date:p.date,driverId:p.driverId,routeId:p.routeId,fare:+p.fare||0,note:p.note});
       f.reset();return toast("تم تسجيل الرحلة","ok")}
     if(kind==='costItem'){
@@ -3954,27 +4139,27 @@ async function onSubmit(ev){
       if(!date)return toast("اختر تاريخاً","err");
       const key=farmId+'|'+date;
       if(cat!=='cash'&&S.D.closedDays.has(key)&&S.cost.unlock!==key)return toast("اليوم مقفول للتعديل","err");
-      if(cat==='trip'&&!p.driverId)return toast("اختر السائق","err");
-      if((cat==='labor'||cat==='misc'||cat==='cash')&&!p.note?.trim())return toast("اكتب بياناً مختصراً","err");
+      if(cat==='trip'&&!p.driverId)return fieldErr(f,'driverId',"اختر السائق");
+      if((cat==='labor'||cat==='misc'||cat==='cash')&&!p.note?.trim())return fieldErr(f,'note',"اكتب بياناً مختصراً");
       let amt,qty=null;
       if(cat==='ice'){
         qty=Math.max(0,Math.round(+p.qty||0));
-        if(qty<=0)return toast("اكتب عدد بلاطات أكبر من صفر","err");
+        if(qty<=0)return fieldErr(f,'qty',"اكتب عدد بلاطات أكبر من صفر");
         amt=P(qty*(+p.unitPrice||0))/100;
       }else amt=+p.amount||0;
-      if(amt<=0)return toast("اكتب مبلغاً أكبر من صفر","err");
+      if(amt<=0)return fieldErr(f,cat==='ice'?'unitPrice':'amount',"اكتب مبلغاً أكبر من صفر");
       await append({type:'farm_cost',date,farmId,cat,amount:amt,note:p.note||'',
         driverId:p.driverId||null,qty});
       f.reset();return toast("تم التسجيل","ok")}
     if(kind==='driver_advance'||kind==='driver_payment'||kind==='factory_payment'){
       const key=kind==='factory_payment'?'factoryId':'driverId';
-      if(!p[key])return toast("اختر الجهة","err");
-      if(+p.amount<=0)return toast("المبلغ أكبر من صفر","err");
+      if(!p[key])return fieldErr(f,key,"اختر الجهة");
+      if(+p.amount<=0)return fieldErr(f,'amount',"اكتب مبلغاً أكبر من صفر");
       await append({type:kind,date:p.date,[key]:p[key],amount:+p.amount,note:p.note});
       f.reset();return toast("تم التسجيل","ok")}
     if(kind==='ice_op'){
-      if(!p.factoryId||!p.farmId)return toast("اختر المصنع والمزرعة","err");
-      if(+p.qty<=0)return toast("اكتب عدد البلاطات","err");
+      if(!p.factoryId||!p.farmId)return fieldErr(f,p.factoryId?'farmId':'factoryId',"اختر المصنع والمزرعة");
+      if(+p.qty<=0)return fieldErr(f,'qty',"اكتب عدد البلاطات");
       await append({type:'ice_op',date:p.date,factoryId:p.factoryId,farmId:p.farmId,
         qty:Math.round(+p.qty),unitPrice:+p.unitPrice||0,note:p.note});
       f.reset();return toast("تم تسجيل العملية","ok")}
@@ -3986,9 +4171,9 @@ async function onSubmit(ev){
         legs:buildLegs('opening_box',params),params,note:'رصيد المخزن الافتتاحي'});
       f.reset();return toast("تم تسجيل رصيد المخزن","ok")}
     if(kind==='dmgclear'){
-      if(!p.driverId)return toast("اختر السائق","err");
+      if(!p.driverId)return fieldErr(f,'driverId',"اختر السائق");
       const c=Math.round(+p.count||0);
-      if(c<=0)return toast("اكتب عدداً أكبر من صفر","err");
+      if(c<=0)return fieldErr(f,'count',"اكتب عدداً أكبر من صفر");
       const d=S.D.drivers.find(x=>x.id===p.driverId);
       if(d&&c>d.dmg.open&&!await ask("أكبر من المفتوح",
         `المفتوح ${d.dmg.open} والمُدخَل ${c}. العدّاد هيبقى بالسالب.`,{ok:"تكمل"}))return;
@@ -4033,7 +4218,7 @@ async function doBox(op,p,f,replaces){
   والزيادة تدخل من #EXT. نحفظ المعدود والدفتري داخل الحركة للمراجعة.
 */
 async function doAudit(p,f){
-  if(!p.locId)return toast("اختر الجهة","err");
+  if(!p.locId)return fieldErr(f,'locId',"اختر الجهة");
   const b=S.D.boxOf(p.locId),ci=Math.max(0,Math.round(+p.cIntact||0)),cd=Math.max(0,Math.round(+p.cDamaged||0));
   const di=ci-b.intact,dd=cd-b.damaged;
   if(!di&&!dd)return toast("الجرد مطابق للدفتر","ok");
@@ -4139,6 +4324,28 @@ async function editOp(id){
       ${fields.map(([k,l,t,en,o])=>fieldHTML(k,l,t,en,o,cur[k]??"")).join('')}
       <button class="btn" type="submit">حفظ التعديل</button></form>`);
 }
+/*
+  تراجع سريع عن آخر حركة — ٢٠ ثانية فقط ومن نفس الجهاز والجلسة.
+  مش حذف: بيضيف شاهدة إلغاء زي «حذف حركة» بالظبط، فقاعدة السجل التراكمي
+  ما بتتكسرش والأصل يفضل في السجل للمراجعة. بلا رقم سري لأن الشرط
+  (آخر حركة سجّلتها إنت من ٢٠ ثانية) أضيق بكتير من الحذف العام.
+*/
+async function undoLast(id){
+  if(!S.flash||S.flash.id!==id||Date.now()>S.flash.until){
+    S.flash=null;render();
+    return toast("خلصت مهلة التراجع — احذفها من «كل العمليات»","err")}
+  const e=S.ledger.find(x=>x.id===id);
+  if(!e){S.flash=null;return render()}
+  const g=guardEdit(e);if(g)return toast(g,"err");
+  const kids=e.type==='invoice'?S.ledger.filter(x=>x.type==='box'&&x.auto&&x.invoiceId===id&&!S.D.dead.has(x.id)):[];
+  try{
+    S.flash=null;
+    await append({type:'void',voidOf:id,date:todayISO()});
+    for(const k of kids)await append({type:'void',voidOf:k.id,date:todayISO()});
+    S.flash=null;render();
+    toast(kids.length?"اتلغت الحركة ومعاها ترحيل البكش":"اتلغت الحركة — واتسجّل الإلغاء في السجل","ok");
+  }catch(err){toast("تعذّر التراجع: "+(err.message||""),"err")}
+}
 async function delOp(id){
   const e=S.ledger.find(x=>x.id===id);if(!e)return;
   const g=guardEdit(e);if(g)return toast(g,"err");
@@ -4181,7 +4388,7 @@ async function onSheet(ev){
     if(kind==='amountOnly'){
       const e=S.ledger.find(x=>x.id===id);
       const amt=+AR2EN(p.amount||'')||0;
-      if(amt<=0)return toast("اكتب مبلغاً أكبر من صفر","err");
+      if(amt<=0)return fieldErr(f,'amount',"اكتب مبلغاً أكبر من صفر");
       const n={...e,amount:amt,replaces:id};delete n.seq;delete n.id;
       const rec=await append(n);
       /* الفاتورة الجديدة استبدلت المسوّدة بـid مختلف، فحركة البكش الآلية اللي
@@ -4610,7 +4817,7 @@ function openSumPick(){
   openSheet("طباعة ملخص","اختر الفترة — الملخص بيتبني منها كاملة.",
     `<div class="fabgrid">${opts.map(([l,a,b])=>
       `<button type="button" data-act="sumGo" data-rg="${a}|${b}" data-lbl="${l}">
-        <i>🖨️</i>${l}</button>`).join('')}</div>
+        <i>${IC('print')}</i>${l}</button>`).join('')}</div>
      <p class="note">لفترة مخصّصة: التقارير ← حدّد «من» و«إلى» ← طباعة.</p>`);
 }
 function summaryHTML(from,to){
@@ -4885,7 +5092,7 @@ async function storageProbe(){
       ارفع الملفات على GitHub Pages أو أي استضافة، وافتح التطبيق من رابط
       <span class="num">https://</span> ثم ثبّته على الشاشة الرئيسية.`
       :`المتصفح رافض فتح قاعدة البيانات. جرّب الخروج من وضع التصفح الخاص، أو استخدم متصفحاً آخر.`}
-      <br><br><span class="num" style="font-size:11px">${esc(e.message||'')}</span></div>`;
+      <br><br><span class="num" style="font-size:var(--fs-xs)">${esc(e.message||'')}</span></div>`;
   }
 })();
 </script>
