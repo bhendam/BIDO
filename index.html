@@ -228,6 +228,22 @@ main>.eyebrow:first-child{margin-top:4px}
 
 /* اسم الجهة في بداية تقرير مركّز عليها (مزرعة/مبيع/سائق..) — عنوان كبير وواضح
    في نص الصفحة، مختلف عن .eyebrow (شريط قسم فرعي) */
+/* عنوان فرعي داخل بطاقة — يفصل أقسام المزرعة الأربعة (بيع/ثلج/مصاريف/بكش)
+   بلا أن يصير كل قسم بطاقة مستقلة فتطول الصفحة أضعافاً. */
+.subh{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);font-weight:700;
+  color:var(--muted);margin:16px 0 8px;letter-spacing:0}
+.subh:first-child{margin-top:0}
+.subh::after{content:"";flex:1;height:1px;background:var(--line)}
+.subh b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;
+  color:var(--ink-2);font-size:var(--fs-s)}
+/* شريط عهدة البكش: أول المدة ← وارد/صادر ← آخر المدة في سطر واحد يُقرأ بنظرة */
+.bxline{display:flex;align-items:stretch;gap:4px;text-align:center}
+.bxline>div{flex:1;background:var(--card-2);border-radius:10px;padding:8px 4px;min-width:0}
+.bxline .k{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
+.bxline .v{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:700;
+  font-size:var(--fs-l);color:var(--ink)}
+.bxline .in .v{color:var(--credit)}
+.bxline .out .v{color:var(--debt)}
 .rptname{text-align:center;margin:2px 2px 20px}
 .rptname b{display:block;font-size:var(--fs-xl);font-weight:700;color:var(--ink);line-height:1.35}
 .rptname span{display:block;font-size:var(--fs-s);color:var(--muted);margin-top:4px}
@@ -767,6 +783,11 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
 
   #print h3{font-size:12pt;margin:18px 0 7px;padding-bottom:4px;border-bottom:1pt solid #666;
     page-break-after:avoid;break-after:avoid}
+  /* عنوان المزرعة في ورقة التسليم: يبدأ صفحة جديدة لو مكانش فاضل مكان يكفي،
+     وما ينفصلش عن أول جدول تحته. */
+  #print h3.farmsec{page-break-before:auto;break-before:auto;margin-top:22px}
+  #print h4{font-size:10.5pt;margin:12px 0 5px;font-weight:700;color:#333;
+    page-break-after:avoid;break-after:avoid}
   #print table{width:100%;border-collapse:collapse;font-size:9.5pt;margin-bottom:10px}
   #print thead{display:table-header-group}       /* رأس الجدول يتكرر على كل صفحة */
   #print tfoot{display:table-footer-group}
@@ -966,7 +987,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.12.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.14.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2561,6 +2582,155 @@ const searchStr=e=>e._s||(e._s=[e.note,e.destination,S.D.nameOf(e.farmId),S.D.na
   BOXOP[e.op]||'',e.amount,e.qty,e.fare].filter(Boolean).join(' ').toLowerCase());
 const inR=e=>{const F=S.F;return (!F.from||e.date>=F.from)&&(!F.to||e.date<=F.to)&&
   (!F.q||searchStr(e).includes(F.q.trim().toLowerCase()))};
+
+/* ============ حركة مزرعة في مدى ============
+   نقطة حساب واحدة يستعملها «تقرير المزرعة اليومي» وقسم المزارع في ورقة
+   التسليم معاً. الحساب كان مكرّراً في مكانين، والتكرار في المشروع ده سبب
+   أعطال قبل كده. */
+function farmSpan(fid,from,to){
+  const D=S.D;
+  const inR2=e=>e.date>=from&&e.date<=to;
+  const inv=D.live.filter(e=>e.type==='invoice'&&e.farmId===fid&&inR2(e)).sort((a,b)=>a.seq-b.seq);
+  const ice=D.live.filter(e=>e.type==='ice_op'&&e.farmId===fid&&inR2(e)).sort((a,b)=>a.seq-b.seq);
+  const cost=D.live.filter(e=>e.type==='farm_cost'&&e.farmId===fid&&inR2(e)).sort((a,b)=>a.seq-b.seq);
+  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+  /* رصيد أول المدة = كل الحركات قبلها. المزرعة جهة، وعهدتها «سليم» دائماً
+     (قاعدة ٦) فرقم واحد بلا تقسيم سليم/تالف. */
+  let open=0;
+  ents.filter(e=>e.date<from).forEach(e=>legsOf(e).forEach(l=>{
+    if(l.to===fid)open+=l.count; if(l.from===fid)open-=l.count}));
+  const bx=ents.filter(e=>inR2(e)&&legsOf(e).some(l=>l.from===fid||l.to===fid)).sort((a,b)=>a.seq-b.seq);
+  let bIn=0,bOut=0;
+  const bxRows=bx.map(e=>{
+    let i=0,o=0;const other=new Set();
+    legsOf(e).forEach(l=>{
+      if(l.to===fid){i+=l.count; if(l.from!==fid&&l.from!=='#ADJ')other.add(D.nameOf(l.from))}
+      if(l.from===fid){o+=l.count; if(l.to!==fid&&l.to!=='#ADJ')other.add(D.nameOf(l.to))}});
+    bIn+=i;bOut+=o;
+    return{e,i,o,other:[...other].join(' · ')||'—'}});
+  return{inv,ice,cost,bx:bxRows,open,close:open+bIn-bOut,bIn,bOut,
+    invBoxes:sum(inv,i=>i.boxes),invAmt:sumM(inv.filter(i=>+i.amount>0),i=>i.amount),
+    drafts:inv.filter(i=>!(+i.amount>0)).length,
+    iceQty:sum(ice,e=>e.qty),iceVal:sumM(ice,e=>(+e.qty||0)*(+e.unitPrice||0)),
+    costTot:sumM(cost,c=>c.amount),
+    any:inv.length||ice.length||cost.length||bxRows.length};
+}
+/* المزارع اللي عليها أي حركة في المدى — بترتيب الاسم */
+function farmsActive(from,to){
+  return S.D.farms.map(f=>({f,d:farmSpan(f.id,from,to)}))
+    .filter(x=>x.d.any).sort((a,b)=>a.f.name.localeCompare(b.f.name,'ar'));
+}
+/* جداول المزرعة — نفس الشكل على الشاشة وفي الطباعة */
+const fsTblSales=d=>`<table><thead><tr><th>المبيع</th><th>السائق</th>
+  <th class="n">بكش</th><th class="n">المبلغ</th></tr></thead><tbody>
+  ${d.inv.map(i=>`<tr><td class="tname">${esc(S.D.nameOf(i.merchantId))}</td>
+    <td>${esc(i.driverId?S.D.nameOf(i.driverId):'—')}</td>
+    <td class="n">${i.boxes||0}</td>
+    <td class="n">${(+i.amount>0)?money(i.amount):'مسوّدة'}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="2">${d.inv.length} فاتورة${d.drafts?` · ${d.drafts} مسوّدة`:''}</td>
+    <td class="n">${d.invBoxes}</td><td class="n">${money(d.invAmt)}</td></tr></tfoot></table>`;
+const fsTblIce=d=>`<table><thead><tr><th>المصنع</th><th class="n">بلاطات</th>
+  <th class="n">السعر</th><th class="n">القيمة</th></tr></thead><tbody>
+  ${d.ice.map(e=>`<tr><td class="tname">${esc(S.D.nameOf(e.factoryId))}</td>
+    <td class="n">${e.qty}</td><td class="n">${money(e.unitPrice)}</td>
+    <td class="n">${money((+e.qty||0)*(+e.unitPrice||0))}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td>${d.ice.length} عملية</td><td class="n">${d.iceQty}</td>
+    <td></td><td class="n">${money(d.iceVal)}</td></tr></tfoot></table>`;
+const fsTblCost=d=>`<table><thead><tr><th>البند</th><th>بيان</th>
+  <th class="n">المبلغ</th></tr></thead><tbody>
+  ${d.cost.map(c=>`<tr><td class="tname">${esc(CATLBL[c.cat]||c.cat)}</td>
+    <td>${esc(costLabel(c))}</td><td class="n">${money(c.amount)}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="2">${d.cost.length} بند</td>
+    <td class="n">${money(d.costTot)}</td></tr></tfoot></table>`;
+const fsTblBox=d=>`<table><thead><tr><th>العملية</th><th>الطرف الآخر</th>
+  <th class="n">وارد</th><th class="n">صادر</th></tr></thead><tbody>
+  ${d.bx.map(r=>`<tr><td class="tname">${esc(BOXOP[r.e.op]||'حركة')}${r.e.auto?' <span class="tag">آلي</span>':''}</td>
+    <td>${esc(r.other)}</td><td class="n cin">${r.i||''}</td>
+    <td class="n cout">${r.o||''}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="2">${d.bx.length} حركة</td>
+    <td class="n">${d.bIn}</td><td class="n">${d.bOut}</td></tr></tfoot></table>`;
+
+/* قسم مزرعة واحدة على الشاشة. الأقسام الفاضية بتتشال خالص — «لا يوجد»
+   أربع مرات تحت كل مزرعة بتخلّي الورقة أطول وأصعب في القراءة. */
+function farmBlock(f,d){
+  const P=[];
+  if(d.inv.length)P.push(`<div class="subh">البيع <b>${money(d.invAmt)}</b></div>
+    <div class="tscroll">${fsTblSales(d)}</div>`);
+  if(d.ice.length)P.push(`<div class="subh">الثلج <b>${d.iceQty} بلاطة · ${money(d.iceVal)}</b></div>
+    <div class="tscroll">${fsTblIce(d)}</div>`);
+  if(d.cost.length)P.push(`<div class="subh">المصاريف <b>${money(d.costTot)}</b></div>
+    <div class="tscroll">${fsTblCost(d)}</div>`);
+  P.push(`<div class="subh">البكش <b>${d.close} صندوق</b></div>
+    <div class="bxline">
+      <div><span class="k">أول المدة</span><span class="v">${d.open}</span></div>
+      <div class="in"><span class="k">وارد</span><span class="v">${d.bIn}</span></div>
+      <div class="out"><span class="k">صادر</span><span class="v">${d.bOut}</span></div>
+      <div><span class="k">آخر المدة</span><span class="v">${d.close}</span></div></div>
+    ${d.bx.length?`<div class="tscroll" style="margin-top:8px">${fsTblBox(d)}</div>`:''}`);
+  return `<div class="eyebrow">${esc(f.name)}
+      <span class="dnet num">${d.invBoxes} صندوق · ${money(d.invAmt)}</span></div>
+    <div class="card">${P.join('')}</div>`;
+}
+/* نفس القسم للطباعة — بلا بطاقات ولا ألوان، عناوين وجداول فقط */
+function farmBlockPrint(f,d){
+  const P=[`<h3 class="farmsec">${esc(f.name)}</h3>`];
+  if(d.inv.length)P.push('<h4>البيع</h4>'+fsTblSales(d));
+  if(d.ice.length)P.push('<h4>الثلج</h4>'+fsTblIce(d));
+  if(d.cost.length)P.push('<h4>المصاريف</h4>'+fsTblCost(d));
+  P.push(`<h4>البكش</h4><p>أول المدة ${d.open} صندوق · وارد ${d.bIn} · صادر ${d.bOut}
+    · <b>آخر المدة ${d.close} صندوق</b></p>`);
+  if(d.bx.length)P.push(fsTblBox(d));
+  return P.join('');
+}
+/*
+  صافي حساب المبايع في نهاية يوم معيّن.
+  مش رصيد «دلوقتي»: بيتحسب من كل الحركات المؤرَّخة حتى اليوم ده وبس، فورقة
+  تسليم يوم قديم تفضل تعرض الأرقام زي ما كانت ساعتها لا زي ما هي النهارده.
+  نفس معادلة derive: افتتاحي + مبيعات − تحصيل. المسوّدات (بلا مبلغ) مستبعدة
+  لأنها ما دخلتش حساباً مالياً بعد، وبيتعدّوا على جنب للتنبيه.
+  المال بالقروش الصحيحة (msum/sumM) لا جمعاً عشرياً.
+*/
+function merchAsOf(to){
+  const D=S.D,upTo=e=>e.date<=to;
+  const rows=D.merchants.map(m=>{
+    const inv=D.live.filter(e=>e.type==='invoice'&&e.merchantId===m.id&&+e.amount>0&&upTo(e));
+    const col=D.live.filter(e=>e.type==='collection'&&e.merchantId===m.id&&upTo(e));
+    const op=sumM(D.live.filter(e=>e.type==='opening_cash'&&e.entityId===m.id&&upTo(e)),o=>o.amount);
+    const invAmt=sumM(inv,i=>i.amount),colAmt=sumM(col,c=>c.amount);
+    const dft=D.live.filter(e=>e.type==='invoice'&&e.merchantId===m.id&&!(+e.amount>0)&&upTo(e)).length;
+    return{m,op,invAmt,colAmt,dft,bal:msum(op,invAmt,-colAmt),
+      moved:inv.length||col.length||dft||Math.abs(op)>.004};
+  }).filter(r=>r.moved||Math.abs(r.bal)>.004)
+    .sort((a,b)=>b.bal-a.bal||a.m.name.localeCompare(b.m.name,'ar'));
+  const T={op:sumM(rows,r=>r.op),inv:sumM(rows,r=>r.invAmt),col:sumM(rows,r=>r.colAmt),
+    bal:sumM(rows,r=>r.bal),dft:rows.reduce((x,r)=>x+r.dft,0)};
+  const tbl=`<table><thead><tr><th>المبيع</th><th class="n">مبيعات</th>
+    <th class="n">تحصيل</th><th class="n">الصافي</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="tname">${esc(r.m.name)}${
+      r.dft?` <span class="tag">${r.dft} مسوّدة</span>`:''}</td>
+      <td class="n">${money(r.invAmt)}</td><td class="n">${money(r.colAmt)}</td>
+      ${mcell(r.bal)}</tr>`).join('')||`<tr><td colspan="4">لا مبايع عليهم حساب</td></tr>`}</tbody>
+    <tfoot><tr><td>الإجمالي (${rows.length} مبيع)</td><td class="n">${money(T.inv)}</td>
+      <td class="n">${money(T.col)}</td><td class="n">${money(T.bal)}</td></tr></tfoot></table>`;
+  return{rows,T,tbl};
+}
+/* تحصيلات المدى — جدول واحد يستعمله تقرير التحصيل وورقة التسليم */
+function colSpan(from,to,ent){
+  const D=S.D;
+  const items=D.live.filter(e=>e.type==='collection'&&e.date>=from&&e.date<=to
+    &&(!ent||e.merchantId===ent)).sort((a,b)=>a.seq-b.seq);
+  const total=sumM(items,c=>c.amount);
+  const showDate=from!==to;
+  const tbl=`<table><thead><tr>${showDate?'<th>التاريخ</th>':''}<th>المبيع</th>
+    <th class="n">المبلغ</th><th>ملاحظات</th></tr></thead><tbody>
+    ${items.map(c=>`<tr>${showDate?`<td class="n">${arDate(c.date)}</td>`:''}
+      <td class="tname">${esc(D.nameOf(c.merchantId))}</td>
+      <td class="n">${money(c.amount)}</td><td>${esc(c.note||'—')}</td></tr>`).join('')
+      ||`<tr><td colspan="${showDate?4:3}">لا تحصيلات</td></tr>`}</tbody>
+    <tfoot><tr><td${showDate?' colspan="2"':''}>الإجمالي (${items.length} تحصيل)</td>
+      <td class="n">${money(total)}</td><td></td></tr></tfoot></table>`;
+  return{items,total,tbl};
+}
 /* ============ تسليم اليوم ============
    ورقة واحدة آخر اليوم: إيه اللي حصل، وإيه اللي محتاج مراجعة قبل القفل.
    بدل ما يفتح أربع تقارير ويقارن بينهم بنفسه. */
@@ -2669,7 +2839,33 @@ function handover(){
     </tbody><tfoot><tr><td>إجمالي عهدة البكش بالخارج</td>
       <td class="n">${D.custody.merchants+D.custody.farms} صندوق</td></tr></tfoot></table></div></div>
 
+  ${handDetail(from,to)}
+
   <button class="btn dark" data-act="handPrint" style="margin-top:14px">${IC('print')}طباعة ورقة التسليم كاملة</button>`;
+}
+/*
+  ذيل ورقة التسليم: تفصيل كل مزرعة لوحدها (بيع · ثلج · مصاريف · بكش)،
+  وبعدها تحصيلات المدى. الغرض إن اللي بيستلم آخر اليوم يقرأ ورقة واحدة
+  من فوق لتحت بدل ما يفتح أربع تقارير ويقارن بينهم بنفسه.
+*/
+function handDetail(from,to){
+  const FA=farmsActive(from,to),C=colSpan(from,to),M=merchAsOf(to);
+  const lbl=from===to?'يوم '+arDate(from):`${arDate(from)} — ${arDate(to)}`;
+  return `<div class="eyebrow brass">تفصيل المزارع (${FA.length})</div>
+    ${FA.length?FA.map(x=>farmBlock(x.f,x.d)).join('')
+      :'<div class="card"><div class="empty">لا حركة على أي مزرعة في '+esc(lbl)+'</div></div>'}
+    <div class="eyebrow acct">التحصيلات (${C.items.length})</div>
+    <div class="card">${C.items.length?`<div class="tscroll">${C.tbl}</div>
+      <div class="diff over" style="margin-top:12px"><span>إجمالي التحصيل</span>
+        <b>${money(C.total)}</b></div>`
+      :'<div class="empty">لا تحصيلات في '+esc(lbl)+'</div>'}</div>
+    <div class="eyebrow acct">صافي حساب المبايع (${M.rows.length})</div>
+    <div class="card"><div class="tscroll">${M.tbl}</div>
+      <div class="diff ${M.T.bal>.004?'short':'over'}" style="margin-top:12px">
+        <span>إجمالي المديونية آخر ${from===to?arDate(to):'المدة'}</span><b>${money(M.T.bal)}</b></div>
+      <p class="note">أرقام آخر ${arDate(to)} لا أرقام النهارده — الأحمر مديونية عليه،
+      والأخضر دفعة مقدّمة له.${M.T.dft?` فيه ${M.T.dft} مسوّدة بلا مبلغ لسه ما دخلتش الحساب.`:''}</p>
+    </div>`;
 }
 function handIssuesHTML(){
   const I=handIssues(S.F.from||todayISO(),S.F.to||S.F.from||todayISO());
@@ -3147,59 +3343,26 @@ function repFarmDaily(){
     افتح الفلتر فوق واختر المزرعة، واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
     <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="farm">اختر مزرعة</button>
     <button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
-  const fid=farm.id;
-  const inv=D.live.filter(e=>e.type==='invoice'&&e.farmId===fid&&e.date===day).sort((a,b)=>a.seq-b.seq);
-  const invRows=inv.map(i=>`<tr><td>${esc(D.nameOf(i.merchantId))}</td>
-    <td>${esc(i.driverId?D.nameOf(i.driverId):'—')}</td>
-    <td class="n">${i.boxes||0}</td><td class="n">${(+i.amount>0)?money(i.amount):'مسوّدة'}</td></tr>`).join('');
-  const invBoxes=sum(inv,i=>i.boxes),invAmt=sumM(inv.filter(i=>+i.amount>0),i=>i.amount);
-  const salesTbl=`<table><thead><tr><th>المبيع</th><th>السائق</th><th class="n">بكش</th><th class="n">المبلغ</th></tr></thead>
-    <tbody>${invRows||'<tr><td colspan="4">لا فواتير بيع في هذا اليوم</td></tr>'}</tbody>
-    <tfoot><tr><td colspan="2">الإجمالي (${inv.length} فاتورة)</td><td class="n">${invBoxes}</td><td class="n">${money(invAmt)}</td></tr></tfoot></table>`;
-
-  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
-  let oi=0,od=0;
-  ents.filter(e=>e.date<day).forEach(e=>legsOf(e).forEach(l=>{
-    if(l.to===fid)l.cond==='intact'?oi+=l.count:od+=l.count;
-    if(l.from===fid)l.cond==='intact'?oi-=l.count:od-=l.count}));
-  const day1=ents.filter(e=>e.date===day&&legsOf(e).some(l=>l.from===fid||l.to===fid)).sort((a,b)=>a.seq-b.seq);
-  let ci=oi,cd=od,TI=0,TO=0;
-  const boxRows=day1.map(e=>{
-    let ii=0,idd=0,oo=0,od2=0;const other=new Set();
-    legsOf(e).forEach(l=>{
-      if(l.to===fid){l.cond==='intact'?ii+=l.count:idd+=l.count;if(l.from!==fid&&l.from!=='#ADJ')other.add(D.nameOf(l.from))}
-      if(l.from===fid){l.cond==='intact'?oo+=l.count:od2+=l.count;if(l.to!==fid&&l.to!=='#ADJ')other.add(D.nameOf(l.to))}});
-    ci+=ii-oo;cd+=idd-od2;TI+=ii+idd;TO+=oo+od2;
-    return `<tr><td>${esc(BOXOP[e.op]||'حركة')}${e.auto?' <span class="tag">آلي</span>':''}</td>
-      <td>${esc([...other].join(' · ')||'—')}</td>
-      <td class="n cin">${ii+idd||''}</td><td class="n cout">${oo+od2||''}</td></tr>`}).join('');
-  /* المزرعة جهة، والعهدة عندها «سليم» فقط دائماً — نعرض عدداً واحداً بلا تقسيم سليم/تالف */
-  const boxTbl=`<table><thead><tr><th>العملية</th><th>الطرف الآخر</th>
-    <th class="n">وارد</th><th class="n">صادر</th></tr></thead>
-    <tbody>${boxRows||'<tr><td colspan="4">لا حركات بكش في هذا اليوم</td></tr>'}</tbody>
-    <tfoot><tr><td colspan="2">إجمالي ${day1.length} حركة</td><td class="n">${TI}</td><td class="n">${TO}</td></tr></tfoot></table>`;
-
-  const ice=D.live.filter(e=>e.type==='ice_op'&&e.farmId===fid&&e.date===day).sort((a,b)=>a.seq-b.seq);
-  const iceRows=ice.map(e=>`<tr><td>${esc(D.nameOf(e.factoryId))}</td><td class="n">${e.qty}</td>
-    <td class="n">${money(e.unitPrice)}</td><td class="n">${money((+e.qty||0)*(+e.unitPrice||0))}</td></tr>`).join('');
-  const iceQty=sum(ice,e=>e.qty),iceVal=sumM(ice,e=>(+e.qty||0)*(+e.unitPrice||0));
-  const iceTbl=`<table><thead><tr><th>المصنع</th><th class="n">بلاطات</th><th class="n">السعر</th><th class="n">القيمة</th></tr></thead>
-    <tbody>${iceRows||'<tr><td colspan="4">لا عمليات ثلج باسم المزرعة في هذا اليوم</td></tr>'}</tbody>
-    <tfoot><tr><td>الإجمالي (${ice.length})</td><td class="n">${iceQty}</td><td></td><td class="n">${money(iceVal)}</td></tr></tfoot></table>`;
-
+  /* نفس حساب ورقة التسليم — كان مكرّراً هنا حرفياً قبل 4.13.0 */
+  const d=farmSpan(farm.id,day,day);
+  const salesTbl=fsTblSales(d),iceTbl=fsTblIce(d),boxTbl=fsTblBox(d);
+  const oi=d.open,ci=d.close,ice=d.ice,inv=d.inv;
   S.print={title:`تقرير المزرعة اليومي — ${farm.name} — ${arDate(day)}`,phone:farm.phone,
     html:`<h3>عمليات الثلج باسم المزرعة</h3>${iceTbl}
       <h3>عمليات البيع</h3>${salesTbl}
+      <h3>المصاريف</h3>${fsTblCost(d)}
       <h3>عهدة البكش</h3><p>رصيد أول اليوم: ${oi} صندوق — رصيد آخر اليوم: ${ci} صندوق</p>${boxTbl}`};
   return `<div class="rptname"><b>${esc(farm.name)}</b><span>تقرير يومي — ${arDate(day)}</span></div>
     <div class="eyebrow ice">عمليات الثلج باسم المزرعة</div>
     <div class="card">${ice.length?`<div class="tscroll">${iceTbl}</div>`:'<div class="empty">لا عمليات ثلج باسم المزرعة في هذا اليوم</div>'}</div>
     <div class="eyebrow acct">عمليات البيع</div>
     <div class="card">${inv.length?`<div class="tscroll">${salesTbl}</div>`:'<div class="empty">لا فواتير بيع في هذا اليوم</div>'}</div>
+    <div class="eyebrow brass">مصاريف اليوم</div>
+    <div class="card">${d.cost.length?`<div class="tscroll">${fsTblCost(d)}</div>`:'<div class="empty">لا مصاريف مسجَّلة في هذا اليوم</div>'}</div>
     <div class="eyebrow box">عهدة البكش لهذا اليوم</div>
     <div class="card">
       <div class="diff"><span>رصيد أول اليوم</span><b>${oi} صندوق</b></div>
-      ${day1.length?`<div class="tscroll">${boxTbl}</div>`:'<div class="empty">لا حركات بكش في هذا اليوم</div>'}
+      ${d.bx.length?`<div class="tscroll">${boxTbl}</div>`:'<div class="empty">لا حركات بكش في هذا اليوم</div>'}
       <div class="diff over"><span>رصيد آخر اليوم</span><b>${ci} صندوق</b></div>
     </div>`;
 }
@@ -3211,14 +3374,8 @@ function repCollDaily(){
   if(!day)return `<div class="empty"><b>اختر يوماً واحداً</b>
     افتح الفلتر فوق واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
     <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
-  const items=D.live.filter(e=>e.type==='collection'&&e.date===day&&(!F.ent||e.merchantId===F.ent))
-    .sort((a,b)=>a.seq-b.seq);
-  const rows=items.map(c=>`<tr><td>${esc(D.nameOf(c.merchantId))}</td>
-    <td class="n">${money(c.amount)}</td><td>${esc(c.note||'—')}</td></tr>`).join('');
-  const total=sumM(items,c=>c.amount);
-  const tbl=`<table><thead><tr><th>المبيع</th><th class="n">المبلغ</th><th>ملاحظات</th></tr></thead>
-    <tbody>${rows||'<tr><td colspan="3">لا تحصيلات في هذا اليوم</td></tr>'}</tbody>
-    <tfoot><tr><td>الإجمالي (${items.length} تحصيل)</td><td class="n">${money(total)}</td><td></td></tr></tfoot></table>`;
+  /* نفس جدول ورقة التسليم — نقطة واحدة بدل جدولين يفترقان مع الوقت */
+  const{items,total,tbl}=colSpan(day,day,F.ent);
   S.print={title:`تقرير التحصيل — ${arDate(day)}`,html:tbl};
   return `<div class="eyebrow">تحصيلات ${arDate(day)}${F.ent?` — ${esc(D.nameOf(F.ent))}`:''}</div>
     <div class="card">${items.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا تحصيلات في هذا اليوم</div>'}
@@ -5003,7 +5160,18 @@ function summaryHTML(from,to){
       <td>${esc(D.nameOf(i.merchantId))}</td><td class="n">${i.boxes}</td>
       <td class="n">${money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">لا فواتير</td></tr>'}</tbody>
   <tfoot><tr><td colspan="3">الإجمالي</td><td class="n">${sum(inv,i=>i.boxes)}</td>
-    <td class="n">${money(sumM(inv,i=>i.amount))}</td></tr></tfoot></table>`;
+    <td class="n">${money(sumM(inv,i=>i.amount))}</td></tr></tfoot></table>
+  ${farmsPrint(from,to)}`;
+}
+/* نفس ذيل الشاشة لكن للورق: مزرعة تحت مزرعة ثم التحصيلات */
+function farmsPrint(from,to){
+  const FA=farmsActive(from,to),C=colSpan(from,to),M=merchAsOf(to);
+  return `<h3>تفصيل المزارع (${FA.length})</h3>
+    ${FA.length?FA.map(x=>farmBlockPrint(x.f,x.d)).join(''):'<p>لا حركة على أي مزرعة.</p>'}
+    <h3>التحصيلات (${C.items.length})</h3>${C.tbl}
+    <h3>صافي حساب المبايع آخر ${arDate(to)}</h3>${M.tbl}
+    <p>أرقام آخر ${arDate(to)} لا أرقام تاريخ الطباعة.${
+      M.T.dft?` فيه ${M.T.dft} مسوّدة بلا مبلغ لم تدخل الحساب بعد.`:''}</p>`;
 }
 function dailyHTML(){
   const D=S.D,k=D.kpi;
