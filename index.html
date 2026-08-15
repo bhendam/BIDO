@@ -217,6 +217,13 @@ main>.sec-title:first-child{margin-top:4px}
 /* صافي فترة السائق جنب اسمه في تقرير السائقين — الرقم في آخر السطر عشان
    أرقام كل السائقين تتصفّ رأسياً وتتقارن بنظرة واحدة */
 .eyebrow .dnet{margin-inline-start:auto;font-weight:700;font-size:var(--fs-m)}
+/* مفتاح إظهار الملغاة داخل عنوان القسم — صغير وهادي، مش إجراء يومي */
+.vtog{margin-inline-start:auto;background:transparent;border:1px solid var(--line-2);
+  color:var(--muted);border-radius:20px;padding:4px 12px;font-size:var(--fs-xs);
+  font-family:inherit;font-weight:600;min-height:32px;cursor:pointer}
+.vtog[aria-pressed=true]{background:var(--debt-bg);border-color:var(--debt);color:var(--debt)}
+.vtog>.ico{display:inline-block;vertical-align:-.16em;margin-inline-end:4px;font-size:var(--fs-s)}
+.qr .vtog{margin:0}
 main>.eyebrow:first-child{margin-top:4px}
 
 /* اسم الجهة في بداية تقرير مركّز عليها (مزرعة/مبيع/سائق..) — عنوان كبير وواضح
@@ -332,6 +339,10 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
      بيتقصّ من غير نقط ولا يبان إنه ناقص. block + line-height بيوسّط رأسياً. */
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pchip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+/* زر بسطرين (اسم + سطر فرعي زي تاريخ الدورة) — الارتفاع يزيد للسطر التاني بس */
+.pchip.two{line-height:1.35;padding:8px 12px}
+.pchip .psub{display:block;font-size:var(--fs-xs);opacity:.7;font-weight:400;
+  overflow:hidden;text-overflow:ellipsis}
 
 /* صندوق البحث داخل المُختار: القوائم الطويلة (المزارع) ما بتتعرضش كلها،
    بيظهر آخر ٣ اتعامل معاهم + بحث فوري. البحث بيصفّي الـDOM مباشرةً بلا
@@ -789,6 +800,8 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
 <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 3.3 20.4 7.6v8.8L12 20.7 3.6 16.4V7.6z"/><path d="M3.6 7.6 12 11.9l8.4-4.3"/><path d="M12 11.9v8.8"/></symbol>
 <symbol id="i-truck" viewBox="0 0 24 24"><rect x="2.6" y="6.8" width="10.8" height="9"/><path d="M13.4 9.8h3.7l3.3 3.2v2.8h-7z"/><circle cx="7" cy="17.6" r="1.9" class="fl"/><circle cx="17" cy="17.6" r="1.9" class="fl"/></symbol>
 <symbol id="i-ice" viewBox="0 0 24 24"><path d="M12 3.2v17.6M4.4 7.6l15.2 8.8M19.6 7.6 4.4 16.4"/><path d="m9.4 5.2 2.6 2.2 2.6-2.2M9.4 18.8l2.6-2.2 2.6 2.2"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.4 12S6.2 5.6 12 5.6 21.6 12 21.6 12 17.8 18.4 12 18.4 2.4 12 2.4 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M9.6 6a9.6 9.6 0 0 1 2.4-.3c5.8 0 9.6 6.3 9.6 6.3a17 17 0 0 1-2.8 3.4M6.1 7.9A17 17 0 0 0 2.4 12s3.8 6.4 9.6 6.4c1.7 0 3.2-.5 4.5-1.2"/><path d="M10 10a2.9 2.9 0 0 0 4 4"/><path d="m3.6 3.6 16.8 16.8"/></symbol>
 <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 8.6V3.7h10v4.9"/><rect x="3.6" y="8.6" width="16.8" height="7.4" rx="1.9"/><path d="M7 13.7h10v6.6H7z"/></symbol>
 <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.6" y="3.6" width="11.8" height="11.8" rx="2.1"/><path d="M15.4 15.4v3a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2V8.6a2 2 0 0 1 2-2h3"/></symbol>
 <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15.2V3.6"/><path d="m8 7.4 4-3.8 4 3.8"/><path d="M5 12.4v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
@@ -953,7 +966,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.10.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.11.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1088,6 +1101,10 @@ const S={tab:"home",
   rep:"hand",
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
   hap:true,flash:null,mode:'auto',
+  /* الحركات الملغاة مخفية افتراضياً في كل الشاشات. مش محذوفة — السجل تراكمي
+     وهي موجودة للمراجعة، بس ما تزحمش قوائم الشغل اليومي. المفتاح في الذاكرة
+     فقط وبيرجع «مخفي» مع كل فتحة للتطبيق. */
+  showVoid:false,
   devId:"",chainTip:"",session:false,sec:{pin:"",lockedUntil:""},bk:{last:"",auto:true,every:50},
   D:null,lastReceipt:null,form:{},diag:null,wipeLog:[],wipe:{kind:'ledger',backedUp:false},
   F:{from:monthStart(),to:todayISO(),ent:"",q:"",range:"month"},
@@ -1351,11 +1368,17 @@ function entList(t){
     invfarm:D.openFarms,active:D.openFarms,
     new:[...idle.filter(f=>!f.settlements.length),...idle.filter(f=>f.settlements.length)]}[t]||[];
 }
+/*
+  o.items: قائمة جاهزة بدل قائمة النوع كلها (مثال: المزارع اللي عندها دورة مفتوحة).
+  o.sub:   دالة بتدّي سطراً فرعياً تحت الاسم (مثال: تاريخ بدء الدورة).
+  كانت في الملف دالة تانية `entPickList` بتعمل ده بلا بحث ولا آخر ٣ — اتشالت
+  في 4.11.0 وبقت خياراً هنا، فمُختار واحد لكل التطبيق.
+*/
 function entPick(name,type,sel,o={}){
   const id='pk'+(++_pk);
   const groups=PICKGROUPS[type];
-  let items=entList(type),gkey='',gcur='',pinWH=false;
-  if(groups){
+  let items=o.items||entList(type),gkey='',gcur='',pinWH=false;
+  if(groups&&!o.items){
     gkey=name+':'+type;
     gcur=(S.pkg||(S.pkg={}))[gkey]||groups[0][0];
     S.pkg[gkey]=gcur;
@@ -1367,17 +1390,22 @@ function entPick(name,type,sel,o={}){
   if(many){
     /* القائمة طويلة: يظهر آخر ٣ اتعامل معاهم فقط، والباقي عبر صندوق البحث فوق.
        عرض ٦٠ مزرعة كأزرار كان بيدفن باقي النموذج تحت الشاشة. */
+    /* «آخر ٣ حصل عليهم عمليات» — من S.D.recent المبنية من ترتيب السجل نفسه،
+       ومقصورة على المعروض (لو القائمة مخصّصة زي دورات المزارع المفتوحة). */
     const rec=(S.D.recent[type]||[]).map(x=>items.find(i=>i.id===x)).filter(Boolean);
     show=rec.slice(0,PKRECENT);
     if(sel&&!show.some(i=>i.id===sel)){const x=items.find(i=>i.id===sel);if(x)show.unshift(x)}
   }
-  const chip=i=>`<button type="button" class="pchip" data-pv="${i.id}" title="${esc(i.name)}"
-    aria-pressed="${i.id===sel}">${esc(i.name)}</button>`;
+  const sb=o.sub?(i=>o.sub(i)||''):(()=>'');
+  const chip=i=>`<button type="button" class="pchip${sb(i)?' two':''}" data-pv="${i.id}"
+    title="${esc(i.name)}" aria-pressed="${i.id===sel}">${esc(i.name)}${
+    sb(i)?`<span class="psub">${esc(sb(i))}</span>`:''}</button>`;
   /* المختار يظل ظاهراً حتى لو من مجموعة أخرى، حتى لا يبدو الحقل فاضياً */
   const outside=sel&&!show.some(i=>i.id===sel)&&!(pinWH&&sel===WH)
     ?entList(type).find(i=>i.id===sel):null;
-  const what=ENTAR[groups?gcur:type]||'جهة';
-  return `<div class="pick" id="${id}" data-name="${name}" data-ent="${groups?gcur:type}">
+  const what=ENTAR[gcur||type]||"جهة";
+  return `<div class="pick" id="${id}" data-name="${name}" data-ent="${gcur||type}"${
+    o.items?` data-only="${o.items.map(i=>i.id).join(',')}"`:''}>
     <input type="hidden" name="${name}" value="${sel||''}"${o.role?` data-role="${o.role}"`:''}>
     ${groups?`<div class="pkg">${groups.map(([g,l])=>
       `<button type="button" data-pkg="${gkey}" data-g="${g}" aria-pressed="${g===gcur}">${l}</button>`).join('')}
@@ -1408,7 +1436,11 @@ function pkFilter(box,q){
   const t=(q||'').trim().toLowerCase();
   if(!t){row.hidden=false;res.hidden=true;res.innerHTML='';if(hint)hint.hidden=false;return}
   const sel=box.querySelector('input[type=hidden]').value;
+  /* data-only: المُختار مقصور على قائمة بعينها (مزارع الدورات المفتوحة مثلاً)،
+     فالبحث لازم يفضل جواها ولا يطلّع مزرعة مقفولة. */
+  const only=box.dataset.only?box.dataset.only.split(','):null;
   const f=entList(box.dataset.ent)
+    .filter(i=>!only||only.includes(i.id))
     .filter(i=>(i.name+' '+(i.place||'')).toLowerCase().includes(t)).slice(0,40);
   row.hidden=true;if(hint)hint.hidden=true;res.hidden=false;
   res.innerHTML=f.length?f.map(i=>`<button type="button" class="drow" data-pv="${i.id}">
@@ -1441,14 +1473,6 @@ function setPick(pkId,val){
   if(q&&q.value){q.value='';pkFilter(el,'')}
   buzz();
   inp.dispatchEvent(new Event('change',{bubbles:true}));
-}
-function entPickList(name,items,sel,sub){
-  const id='pk'+(++_pk);
-  return `<div class="pick" id="${id}" data-name="${name}" data-ent="farm">
-    <input type="hidden" name="${name}" value="${sel||''}">
-    <div class="pkrow">${items.map(i=>
-      `<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}${sub&&sub(i)?` <span class="rd2">${esc(sub(i))}</span>`:''}</button>`).join('')
-      ||'<div class="empty" style="padding:14px">لا يوجد</div>'}</div></div>`;
 }
 /* أعداد الصناديق بتتكرّر بنفس القيم يومياً — نتعلّمها من الفواتير السابقة
    ونعرضها كأزرار، مع قيم شائعة كبداية قبل تجميع بيانات كافية. */
@@ -1698,7 +1722,8 @@ function fSettle(){
   return `<div class="eyebrow brass">تصفية وأرشفة دورة مزرعة</div>
   <div class="card"><form data-form="settle">
     <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
-      ${entPickList('farmId',D.activeFarms,f.farmId||"",x=>x.cycleStart?'دورة '+arDate(x.cycleStart):'')}</div>
+      ${entPick('farmId','farm',f.farmId||"",{items:D.activeFarms,
+        sub:x=>x.cycleStart?'دورة '+arDate(x.cycleStart):''})}</div>
     <div class="field"><label>تاريخ التصفية</label><input type="date" name="date" value="${f.date||todayISO()}" required></div>
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
@@ -2084,10 +2109,13 @@ function boxFlow(e){
   return out.join(' · ');
 }
 function boxLog(ops,limit=6){
-  const items=S.ledger.filter(e=>(e.type==='box'||e.type.startsWith('box_'))&&(!ops||ops.includes(e.op)))
-    .sort((a,b)=>b.seq-a.seq).slice(0,limit);
-  if(!items.length)return '';
-  return `<div class="eyebrow">آخر الحركات</div>`+items.map(e=>recHTML(e,
+  const all=S.ledger.filter(e=>(e.type==='box'||e.type.startsWith('box_'))&&(!ops||ops.includes(e.op)))
+    .sort((a,b)=>b.seq-a.seq);
+  const items=notVoid(all).slice(0,limit);
+  if(!items.length&&!voidCount(all))return '';
+  return `<div class="eyebrow">آخر الحركات${voidBtn(voidCount(all.slice(0,limit*3)))}</div>`
+    +(items.length?'':'<div class="empty">لا حركات ظاهرة</div>')
+    +items.map(e=>recHTML(e,
     (BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':'')+(e.dmgReason==='negligence'?' · إهمال':''),
     boxFlow(e)+(e.driverId?` · ${S.D.nameOf(e.driverId)}`:''),
     boxQtyTxt(e))).join('');
@@ -2900,13 +2928,18 @@ function repAll(){
   const D=S.D,F=S.F,t=S.F.type||'';
   const touches=(e,id)=>!id||e.farmId===id||e.merchantId===id||e.driverId===id||e.factoryId===id
     ||e.entityId===id||e.locId===id||legsOf(e).some(l=>l.from===id||l.to===id);
-  const items=S.ledger.filter(e=>e.type!=='void'&&e.type!=='settlement_reversal'
-    &&(!t||e.type===t)&&inR(e)&&touches(e,F.ent)).sort((a,b)=>b.seq-a.seq);
+  const base=S.ledger.filter(e=>e.type!=='void'&&e.type!=='settlement_reversal'
+    &&inR(e)&&touches(e,F.ent));
+  const items=notVoid(base.filter(e=>!t||e.type===t)).sort((a,b)=>b.seq-a.seq);
+  const nv=voidCount(base);
   const N=25,show=Math.min(items.length,N*((S.page||0)+1));
+  /* أعداد الوسوم بتتبع نفس المفتاح، وإلا قال الوسم «فواتير (٩)» وعرض ٧ */
+  const cnt=k=>notVoid(base.filter(e=>!k||e.type===k)).length;
   const chips=`<div class="qr" style="margin-bottom:12px">
-    <button data-act="allType" data-t="" aria-selected="${!t}">الكل (${S.ledger.filter(e=>e.type!=='void'&&inR(e)).length})</button>
-    ${Object.entries(ALLT).map(([k,l])=>{const n=S.ledger.filter(e=>e.type===k&&inR(e)).length;
-      return n?`<button data-act="allType" data-t="${k}" aria-selected="${t===k}">${l} (${n})</button>`:''}).join('')}</div>`;
+    <button data-act="allType" data-t="" aria-selected="${!t}">الكل (${cnt('')})</button>
+    ${Object.entries(ALLT).map(([k,l])=>{const n=cnt(k);
+      return n?`<button data-act="allType" data-t="${k}" aria-selected="${t===k}">${l} (${n})</button>`:''}).join('')}
+    ${voidBtn(nv)}</div>`;
   const T={invoice:'فاتورة',collection:'تحصيل',settlement:'تصفية مزرعة',opening_cash:'رصيد افتتاحي',
     trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية سائق',driver_damage_clear:'تصفية تالف',
     ice_op:'ثلج',factory_payment:'تصفية مصنع'};
@@ -3307,8 +3340,10 @@ function repMerchAll(){
    سجل كل حركات البكش في كل الجهات — كان مبنياً وغير مستدعى، أصبح تقريراً مستقلاً. */
 function repBoxAll(){
   const D=S.D,F=S.F;
-  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
-  const l=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent))).sort((a,b)=>b.seq-a.seq);
+  /* من كل السجل لا من D.live: عشان مفتاح «إظهار الملغاة» يشتغل هنا كمان */
+  const ents=S.ledger.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+  const all=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent)));
+  const l=notVoid(all).sort((a,b)=>b.seq-a.seq),nv=voidCount(all);
   const ref=F.ent||WH;
   const io=e=>{let i=0,o=0;legsOf(e).forEach(x=>{if(x.to===ref)i+=x.count;if(x.from===ref)o+=x.count});return[i,o]};
   let TI=0,TO=0;
@@ -3322,7 +3357,7 @@ function repBoxAll(){
     <tbody>${rows}</tbody><tfoot><tr><td colspan="3">الإجمالي (${l.length} حركة)</td>
       <td class="n">${TI}</td><td class="n">${TO}</td><td></td></tr></tfoot></table>`};
   const N=30,show=Math.min(l.length,N*((S.page||0)+1));
-  return `<div class="eyebrow">كل حركات البكش (${l.length})</div>`
+  return `<div class="eyebrow">كل حركات البكش (${l.length})${voidBtn(nv)}</div>`
     +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
         boxFlow(e)+(e.driverId?` · ${D.nameOf(e.driverId)}`:''),boxQtyTxt(e))).join('')
       +(show<l.length?`<button class="more" data-act="more">عرض ${Math.min(N,l.length-show)} حركة أخرى · باقي ${l.length-show}</button>`:'')
@@ -3652,6 +3687,20 @@ function diagHTML(){
   return `<div style="margin-top:12px">${d.rows.map(r=>`<div class="diff ${r.ok?'over':'short'}" style="padding:7px 11px;font-size:var(--fs-xs)">
     <span>${esc(r.n)}</span><b>${r.ok?'✓':'✗'}</b></div>`).join('')}</div>`;
 }
+/*
+  إخفاء الحركات الملغاة — نقطة واحدة تمرّ عليها كل القوائم.
+  المستخدم بيلغي حركة عشان تختفي من شغله، فبقاؤها في القوائم بيخلّيه يعدّها
+  مرتين. الحذف نفسه ما بيمسحش من السجل (قاعدة السجل التراكمي)، فالإخفاء
+  بصريّ بحت والحركة موجودة تحت الطلب.
+*/
+const notVoid=list=>S.showVoid?list:list.filter(e=>!S.D.dead.has(e.id));
+const voidCount=list=>list.filter(e=>S.D.dead.has(e.id)).length;
+/* زر «إظهار الملغاة» — بيظهر فقط لو فيه ملغاة فعلاً، وإلا زر بلا وظيفة */
+function voidBtn(n){
+  if(!n&&!S.showVoid)return '';
+  return `<button class="vtog" data-act="toggleVoid" aria-pressed="${S.showVoid}">
+    ${IC(S.showVoid?'eyeoff':'eye')}${S.showVoid?'إخفاء الملغاة':`الملغاة (${n})`}</button>`;
+}
 /* ---------- بطاقة حركة + أزرار تعديل/حذف ---------- */
 /* بطاقة مضغوطة: العمليات قد تتجاوز ٥٠ في اليوم، فالسطر الواحد أسرع في المسح البصري.
    التفاصيل وأزرار التعديل والحذف تظهر عند الضغط على السطر. */
@@ -3709,8 +3758,10 @@ function lastOps(types,opFilter){
 }
 function logList(types,title,limit=6){
   const D=S.D;
-  const items=S.ledger.filter(e=>types.includes(e.type)).sort((a,b)=>b.seq-a.seq).slice(0,limit);
-  if(!items.length)return '';
+  const all=S.ledger.filter(e=>types.includes(e.type)).sort((a,b)=>b.seq-a.seq);
+  const items=notVoid(all).slice(0,limit);
+  const nv=voidCount(all.slice(0,limit*3));
+  if(!items.length&&!nv)return '';
   const T={invoice:'فاتورة',collection:'تحصيل',trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية سائق',
     factory_payment:'تصفية مصنع',ice_op:'ثلج',opening_cash:'رصيد افتتاحي',
     driver_damage_clear:'تصفية تالف'};
@@ -3725,7 +3776,8 @@ function logList(types,title,limit=6){
   const val=e=>e.type==='trip'?money(e.fare??e.cost)
     :e.type==='ice_op'?money((+e.qty||0)*(+e.unitPrice||0))
     :e.type==='driver_damage_clear'?'':money(e.amount);
-  return `<div class="eyebrow">${title}</div>`
+  return `<div class="eyebrow">${title}${voidBtn(nv)}</div>`
+    +(items.length?'':'<div class="empty">لا حركات ظاهرة</div>')
     +items.map(e=>recHTML(e,T[e.type]||e.type,meta(e),val(e))).join('');
 }
 
@@ -3932,6 +3984,8 @@ function onClick(ev){
     case 'exportJSON':return exportJSON();
     case 'toggleAuto':return (async()=>{S.autoBox=!S.autoBox;await setMeta('autoBox',S.autoBox);
       await refresh();toast(S.autoBox?"الترحيل الآلي مفعّل":"الترحيل الآلي موقوف","ok")})();
+    case 'toggleVoid':return (async()=>{S.showVoid=!S.showVoid;render();
+      toast(S.showVoid?"الملغاة ظاهرة للمراجعة":"الملغاة مخفية","ok")})();
     case 'setMode':return (async()=>{S.mode=id;await setMeta('mode',id);applyMode();
       await refresh();toast({auto:"الشاشة بتمشي مع إعداد الموبايل",light:"الوضع الفاتح",dark:"الوضع الغامق"}[id],"ok")})();
     case 'toggleHap':return (async()=>{S.hap=!S.hap;await setMeta('haptics',S.hap);
