@@ -214,6 +214,9 @@ main>.sec-title:first-child{margin-top:4px}
 .eyebrow.ice::before{background:var(--c-ice)}
 .eyebrow.drv::before{background:var(--c-drv)}
 .eyebrow .free{font-weight:400;color:var(--muted);font-size:var(--fs-s)}
+/* صافي فترة السائق جنب اسمه في تقرير السائقين — الرقم في آخر السطر عشان
+   أرقام كل السائقين تتصفّ رأسياً وتتقارن بنظرة واحدة */
+.eyebrow .dnet{margin-inline-start:auto;font-weight:700;font-size:var(--fs-m)}
 main>.eyebrow:first-child{margin-top:4px}
 
 /* اسم الجهة في بداية تقرير مركّز عليها (مزرعة/مبيع/سائق..) — عنوان كبير وواضح
@@ -314,15 +317,36 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 
 /* اختيار الجهات: أسماء ظاهرة بلمسة واحدة */
 .pick{margin:0}
-.pkrow{display:flex;flex-wrap:wrap;gap:8px}
-.pchip{background:var(--card);border:1.5px solid var(--line-2);border-radius:22px;
-  padding:12px 16px;font-size:var(--fs-m);min-height:46px;color:var(--ink);font-family:inherit;
-  cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* أسماء الجهات مختلفة الطول، فالصف المتعرّج كان بيدّي أزراراً بأحجام غير متساوية
+   وشكلاً غير مرتّب. شبكة بأعمدة متساوية: كل زر بنفس العرض والارتفاع، والاسم
+   الطويل يتقصّر بثلاث نقط (والاسم الكامل في title وفي البحث). */
+.pkrow{display:grid;gap:8px;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,146px),1fr))}
+/* لازم يفضل بعد أي قاعدة display: تحديد display صراحةً بيتغلّب على [hidden]
+   بتاع المتصفح، فكان صف المختصرات ونتائج البحث يظهروا الاتنين مع بعض. */
+[hidden]{display:none!important}
+.pchip{background:var(--card);border:1.5px solid var(--line-2);border-radius:12px;
+  padding:12px;font-size:var(--fs-m);min-height:48px;color:var(--ink);font-family:inherit;
+  cursor:pointer;text-align:center;display:block;line-height:24px;min-width:0;
+  /* لا flex هنا: text-overflow ما بيشتغلش على حاوية flex، فالاسم الطويل كان
+     بيتقصّ من غير نقط ولا يبان إنه ناقص. block + line-height بيوسّط رأسياً. */
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pchip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
-.pchip.pksearch{background:var(--card-2);border-style:dashed;color:var(--ink-2);font-weight:600}
-#pklist .drow{border-bottom:1px solid var(--line);gap:8px}
-#pklist .drow .tname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#pklist .drow span:nth-child(2){margin-inline-start:auto}
+
+/* صندوق البحث داخل المُختار: القوائم الطويلة (المزارع) ما بتتعرضش كلها،
+   بيظهر آخر ٣ اتعامل معاهم + بحث فوري. البحث بيصفّي الـDOM مباشرةً بلا
+   إعادة رسم، عشان ما يضيعش اللي المستخدم كتبه في باقي النموذج. */
+.pksrch{position:relative;margin-bottom:8px}
+.pksrch input{padding-inline-start:40px}
+.pksrch>.ico{position:absolute;inset-inline-start:14px;top:50%;transform:translateY(-50%);
+  color:var(--muted);pointer-events:none;font-size:var(--ic-sm)}
+.pkhint{font-size:var(--fs-xs);color:var(--muted);margin-top:8px}
+.pkres{display:block;max-height:44vh;overflow:auto;border:1px solid var(--line);
+  border-radius:12px;background:var(--card-2);margin-top:0}
+.pkres .drow{border-bottom:1px solid var(--line);gap:8px;width:100%}
+.pkres .drow:last-child{border-bottom:0}
+.pkres .drow .tname{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkres .drow .plc{margin-inline-start:auto;color:var(--muted);font-size:var(--fs-s)}
 
 .fent{display:flex;gap:8px;align-items:stretch}
 .fent .btn{min-height:50px}
@@ -929,7 +953,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.9.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.10.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1297,38 +1321,14 @@ function render(){
   paintFab();
   window.scrollTo(0,S.toTop?0:sy);S.toTop=false;
 }
-/* اختيار الجهة: القوائم المنسدلة تحتاج لمستين وتمريراً وقراءة نص صغير.
-   القوائم القصيرة تُعرض كأزرار تُختار بلمسة واحدة، والطويلة (المزارع) عبر بحث. */
-const INLINE_MAX=24;
-function pickList(kind){
-  const D=S.D;
-  return ({farm:D.farms,merchant:D.merchants,driver:D.drivers,ice:D.factories,route:D.routes,
-    loc:D.locOptions,farmerchant:[...D.farms,...D.merchants]})[kind]||[];
-}
-const PICKPH={farm:'اختر المزرعة',merchant:'اختر المبيع',driver:'اختر السائق',ice:'اختر المصنع',
-  route:'اختر الرحلة',loc:'اختر الجهة أو المخزن',farmerchant:'اختر الجهة'};
-function picker(name,kind,sel,o={}){
-  const D=S.D,raw=pickList(kind),list=D.byRecent?D.byRecent(raw):raw;
-  const role=o.role?` data-role="${o.role}"`:'';
-  const hid=`<input type="hidden" name="${name}" value="${esc(sel||'')}" data-pick="${name}"${role}>`;
-  if(!list.length)return hid+`<div class="empty" style="padding:14px">لا يوجد — أضفه من «الإعدادات»</div>`;
-  if(list.length<=(o.max??INLINE_MAX)){
-    return hid+`<div class="pks">${list.map(x=>
-      `<button type="button" class="pk" data-act="pick" data-name="${name}" data-id="${x.id}"
-        aria-pressed="${sel===x.id}">${esc(x.name)}</button>`).join('')}</div>`;
-  }
-  const cur=list.find(x=>x.id===sel);
-  return hid+`<button type="button" class="pkbtn ${cur?'has':''}" data-act="pickOpen"
-    data-name="${name}" data-kind="${kind}">
-    <span class="pkv">${esc(cur?cur.name:(o.ph||PICKPH[kind]||'اختر…'))}</span>
-    <span class="pkg">${IC('search')}بحث</span></button>`;
-}
 /* ============ اختيار الجهات ============
    الاختيار من قائمة منسدلة على الموبايل بطيء ويخفي الخيارات.
    ≤ ٢٤ جهة  → كل الأسماء ظاهرة، لمسة واحدة تختار.
    > ٢٤ جهة  → آخر المستخدمة ظاهرة + بحث فوري في الباقي (حالة المزارع).
    القيمة تُحفظ في حقل مخفي بنفس الاسم، فلا يتغيّر أي منطق قائم. */
 const PICKMAX=24;
+/* عدد المختصرات الظاهرة للقوائم الطويلة — آخر مَن اتعامل معاهم */
+const PKRECENT=3;
 /* الأنواع المركّبة تُعرض مفصولة بتبويب فوق الاقتراحات — أسماء المبايع والمزارع
    قد تتشابه، والخلط بينها يسبب أخطاء تسجيل. الوارد يبدأ على «مبايع» لأنه الغالب. */
 const PICKGROUPS={
@@ -1365,75 +1365,81 @@ function entPick(name,type,sel,o={}){
   const many=items.length>PICKMAX;
   let show=items;
   if(many){
+    /* القائمة طويلة: يظهر آخر ٣ اتعامل معاهم فقط، والباقي عبر صندوق البحث فوق.
+       عرض ٦٠ مزرعة كأزرار كان بيدفن باقي النموذج تحت الشاشة. */
     const rec=(S.D.recent[type]||[]).map(x=>items.find(i=>i.id===x)).filter(Boolean);
-    show=[...rec];
-    if(show.length<6)for(const i of items){if(show.length>=6)break;if(!show.some(x=>x.id===i.id))show.push(i)}
+    show=rec.slice(0,PKRECENT);
     if(sel&&!show.some(i=>i.id===sel)){const x=items.find(i=>i.id===sel);if(x)show.unshift(x)}
   }
-  const chip=i=>`<button type="button" class="pchip" data-pv="${i.id}" aria-pressed="${i.id===sel}">${esc(i.name)}</button>`;
+  const chip=i=>`<button type="button" class="pchip" data-pv="${i.id}" title="${esc(i.name)}"
+    aria-pressed="${i.id===sel}">${esc(i.name)}</button>`;
   /* المختار يظل ظاهراً حتى لو من مجموعة أخرى، حتى لا يبدو الحقل فاضياً */
   const outside=sel&&!show.some(i=>i.id===sel)&&!(pinWH&&sel===WH)
     ?entList(type).find(i=>i.id===sel):null;
+  const what=ENTAR[groups?gcur:type]||'جهة';
   return `<div class="pick" id="${id}" data-name="${name}" data-ent="${groups?gcur:type}">
     <input type="hidden" name="${name}" value="${sel||''}"${o.role?` data-role="${o.role}"`:''}>
     ${groups?`<div class="pkg">${groups.map(([g,l])=>
       `<button type="button" data-pkg="${gkey}" data-g="${g}" aria-pressed="${g===gcur}">${l}</button>`).join('')}
       </div>`:''}
+    ${many?`<div class="pksrch">${IC('search')}<input type="text" data-pks="${id}"
+      placeholder="ابحث في ${items.length} ${esc(what)}…" autocomplete="off"
+      enterkeyhint="search" inputmode="search"></div>`:''}
     <div class="pkrow">
       ${pinWH?`<button type="button" class="pchip pkwh" data-pv="${WH}" aria-pressed="${sel===WH}">المخزن</button>`:''}
-      ${outside?`<button type="button" class="pchip" data-pv="${outside.id}" aria-pressed="true">${esc(outside.name)} <span style="opacity:.7">· ${GTAG[outside.type]||''}</span></button>`:''}
+      ${outside?`<button type="button" class="pchip" data-pv="${outside.id}" title="${esc(outside.name)}" aria-pressed="true">${esc(outside.name)}</button>`:''}
       ${show.map(chip).join('')}
       ${o.optional?`<button type="button" class="pchip" data-pv="" aria-pressed="${!sel}">بدون</button>`:''}
-      ${many?`<button type="button" class="pchip pksearch" data-act="pkOpen" data-pk="${id}">${IC('search')}بحث في ${items.length}</button>`:''}
     </div>
-    ${items.length?'':`<div class="empty" style="padding:14px">لا يوجد — أضف من «الإعدادات»</div>`}</div>`;
+    <div class="pkres" hidden></div>
+    ${many&&show.length?`<div class="pkhint">آخر ${show.length} اتعاملت معاهم — اكتب فوق للبحث في الباقي.</div>`:''}
+    ${items.length?'':`<div class="empty" style="padding:12px">لا يوجد — أضف من «الإعدادات»</div>`}</div>`;
 }
-/* ورقة البحث: تصفية فورية بالاسم أو المكان */
-function openPicker(pkId){
-  const el=$('#'+pkId);if(!el)return;
-  /* data-ent يحمل المجموعة الحالية للأنواع المركّبة، فالبحث داخلها وحدها */
-  const type=el.dataset.ent,cur=el.querySelector('input').value;
-  const items=entList(type);
-  const draw=q=>{
-    const t=(q||'').trim().toLowerCase();
-    const f=t?items.filter(i=>(i.name+' '+(i.place||'')).toLowerCase().includes(t)):items;
-    return f.slice(0,80).map(i=>`<button type="button" class="drow" data-pv="${i.id}">
-      <span class="tname">${esc(i.name)}</span>
-      <span class="tag">${GTAG[i.type]||''}</span>
-      ${i.place?`<span style="color:var(--muted);font-size:var(--fs-s)">${esc(i.place)}</span>`:''}
-      <span class="go">${i.id===cur?'✓':'‹'}</span></button>`).join('')||`<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
-  };
-  const d=$('#dlg');
-  d.innerHTML=`<div class="sheet"><h3>اختر ${esc(ENTAR[type]||'جهة')}</h3>
-    <p class="sub">${items.length} مسجَّلة — اكتب حرفين للتصفية</p>
-    <div class="field"><input id="pkq" placeholder="بحث بالاسم أو المكان…" autocomplete="off" enterkeyhint="search"></div>
-    <div id="pklist" style="max-height:50vh;overflow:auto">${draw('')}</div>
-    <button type="button" class="btn ghost" id="pkx" style="margin-top:12px">إلغاء</button></div>`;
-  d.classList.add('on');
-  const close=()=>{d.classList.remove('on');d.innerHTML='';d.onclick=null};
-  const q=$('#pkq');
-  q.addEventListener('input',()=>{$('#pklist').innerHTML=draw(q.value)});
-  d.onclick=ev=>{
-    if(ev.target===d||ev.target.id==='pkx')return close();
-    const b=ev.target.closest('[data-pv]');if(!b)return;
-    setPick(pkId,b.dataset.pv);close();
-  };
-  setTimeout(()=>q.focus(),90);
+/*
+  تصفية فورية داخل المُختار بلا إعادة رسم.
+  render() بيهدم الـDOM كله، فلو البحث كان بيستدعيه كان اللي المستخدم كتبه في
+  باقي النموذج هيضيع مع كل حرف. هنا بنكتب في .pkres مباشرةً.
+  حقل البحث بلا name فما بيدخلش في readForm ولا في حفظ حالة النموذج.
+*/
+function pkFilter(box,q){
+  const row=box.querySelector('.pkrow'),res=box.querySelector('.pkres'),
+        hint=box.querySelector('.pkhint');
+  if(!row||!res)return;
+  const t=(q||'').trim().toLowerCase();
+  if(!t){row.hidden=false;res.hidden=true;res.innerHTML='';if(hint)hint.hidden=false;return}
+  const sel=box.querySelector('input[type=hidden]').value;
+  const f=entList(box.dataset.ent)
+    .filter(i=>(i.name+' '+(i.place||'')).toLowerCase().includes(t)).slice(0,40);
+  row.hidden=true;if(hint)hint.hidden=true;res.hidden=false;
+  res.innerHTML=f.length?f.map(i=>`<button type="button" class="drow" data-pv="${i.id}">
+    <span class="tname">${esc(i.name)}</span>
+    ${i.place?`<span class="plc">${esc(i.place)}</span>`:''}
+    <span class="go">${i.id===sel?'✓':'‹'}</span></button>`).join('')
+    :`<div class="empty" style="padding:14px">لا نتائج لـ «${esc(q)}»</div>`;
 }
+/* ملاحظة: كانت هنا «ورقة بحث» منفصلة تُفتح في حوار (openPicker) — اتشالت في
+   4.10.0 لصالح صندوق البحث داخل المُختار نفسه. طريقتان لنفس الشغلانة =
+   منطق مكرّر واختلاف سلوك بين الشاشات. */
 function setPick(pkId,val){
   const el=$('#'+pkId);if(!el)return;
-  const inp=el.querySelector('input');
+  const inp=el.querySelector('input[type=hidden]');
   inp.value=val;
   const row=el.querySelector('.pkrow');
   let found=false;
   el.querySelectorAll('.pchip[data-pv]').forEach(b=>{
-    const on=b.dataset.pv===val;b.setAttribute('aria-pressed',String(on));if(on)found=true});
-  if(val&&!found){
+    const on=b.dataset.pv===val;b.setAttribute('aria-pressed',String(on));
+    /* الموجود في نتائج البحث لا يُحتسب: النتائج بتتمسح، فلازم يتضاف زرّ
+       في صف المختصرات وإلا بان الحقل فاضياً بعد الاختيار */
+    if(on&&row&&row.contains(b))found=true});
+  if(val&&!found&&row){
     const it=entList(el.dataset.ent).find(i=>i.id===val)||(val===WH?{id:WH,name:'المخزن'}:null);
     if(it){const b=document.createElement('button');b.type='button';b.className='pchip';
-      b.dataset.pv=val;b.setAttribute('aria-pressed','true');b.textContent=it.name;
+      b.dataset.pv=val;b.title=it.name;b.setAttribute('aria-pressed','true');b.textContent=it.name;
       row.insertBefore(b,row.firstChild)}
   }
+  const q=el.querySelector('[data-pks]');
+  if(q&&q.value){q.value='';pkFilter(el,'')}
+  buzz();
   inp.dispatchEvent(new Event('change',{bubbles:true}));
 }
 function entPickList(name,items,sel,sub){
@@ -2937,95 +2943,99 @@ function repAll(){
 }
 function repDrv(){
   const D=S.D,F=S.F;
-  const who0=F.ent?D.drivers.find(d=>d.id===F.ent):null;
+  const who=F.ent?D.drivers.find(d=>d.id===F.ent):null;
   const K=S.sub.drvRep||'trips';
-  if(who0&&K==='dmg')return seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)
-    +`<div style="height:14px"></div>`+driverDmgTab(who0);
-  const segTop=who0?seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)+`<div style="height:14px"></div>`:'';
-  /* ترتيب السائقين: بالاسم (أبجدي، الافتراضي) أو بالتاريخ (تاريخ آخر حركة للسائق،
-     الأحدث أولاً) — يفيد في لقاء السائق النشط بسرعة بدل تصفّح كل القائمة.
-     يؤثر على جدول الأرصدة وعلى تجميع جدول الحركات معاً.
-     ملاحظة: الترتيب بتاريخ الحركة الفعلي (وليس ترتيب الإدخال في السجل)، ومن لا
-     حركة له يُرتَّب أخيراً بالاسم. */
-  const srt=who0?'name':(S.sub.drvSort||'name');
-  const segSort=who0?'':`<div style="height:10px"></div>${seg('drvSort',[["name","بالاسم"],["date","بالتاريخ"]],srt,true)}`;
-  const items=D.live.filter(e=>['trip','driver_advance','driver_payment'].includes(e.type)&&inR(e)&&(!F.ent||e.driverId===F.ent))
-    .sort((a,b)=>srt==='name'
-      ?(D.nameOf(a.driverId).localeCompare(D.nameOf(b.driverId),'ar')||a.date.localeCompare(b.date)||a.seq-b.seq)
-      :(a.date.localeCompare(b.date)||a.seq-b.seq));
+  if(who&&K==='dmg')return seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)
+    +`<div style="height:12px"></div>`+driverDmgTab(who);
+  const segTop=who?seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)+`<div style="height:12px"></div>`:'';
+  /* ترتيب السائقين: بالاسم (أبجدي، الافتراضي) أو بتاريخ آخر حركة (الأحدث أولاً)
+     — يفيد في لقاء السائق النشط بسرعة بدل تصفّح كل القائمة. */
+  const srt=who?'name':(S.sub.drvSort||'name');
+  const segSort=who?'':`${seg('drvSort',[["name","بالاسم"],["date","بالتاريخ"]],srt,true)}<div style="height:12px"></div>`;
+  const TY=['trip','driver_advance','driver_payment'];
   const nm={trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية'};
-  let run=0;
-  const rows=items.map(e=>{const v=e.type==='trip'?(+e.fare||+e.cost||0):(+e.amount||0);
-    run+=e.type==='trip'?v:-v;
-    return `<tr><td class="n">${arDate(e.date)}</td><td>${esc(D.nameOf(e.driverId))}</td><td>${nm[e.type]}</td>
-      <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'—'):'—'}</td>
-      <td>${esc(e.note||'—')}</td>
-      <td class="n cin">${e.type==='trip'?money(v):''}</td>
-      <td class="n cout">${e.type!=='trip'?money(v):''}</td>
-      ${F.ent?`<td class="n" style="font-weight:600">${money(run)}</td>`:''}</tr>`}).join('');
-  const tIn=sumM(items.filter(e=>e.type==='trip'),e=>e.fare??e.cost);
-  const tOut=sumM(items.filter(e=>e.type!=='trip'),e=>e.amount);
-  const tbl=`<table><thead><tr><th>التاريخ</th><th>السائق</th><th>النوع</th><th>البيان</th><th>ملاحظات</th>
-    <th class="n">مستحق له</th><th class="n">مدفوع/سلف</th>${F.ent?'<th class="n">الرصيد</th>':''}</tr></thead>
-    <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="5">الإجمالي (${items.length} حركة)</td>
-      <td class="n">${money(tIn)}</td><td class="n">${money(tOut)}</td>
-      ${F.ent?`<td class="n">${money(run)}</td>`:''}</tr></tfoot></table>`;
-  const who=who0;
-  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:tbl,phone:who?.phone};
-  /* آخر تاريخ حركة لكل سائق — من كل السجل لا من المدى، حتى يبقى ترتيب جدول
-     الأرصدة (وهو أرصدة كلّية لا مدى) ثابتاً ومفهوماً. */
+  const items=D.live.filter(e=>TY.includes(e.type)&&inR(e)&&(!F.ent||e.driverId===F.ent))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+
+  /* صف الحركة. الرصيد الجاري بيتحسب داخل كل سائق على حدة، فبيعبّر عن رصيده
+     هو في الفترة — لا مجموع مختلط لسائقين مختلفين. */
+  const row=(e,run)=>`<tr><td class="n">${arDate(e.date)}</td><td>${nm[e.type]}</td>
+    <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'—'):'—'}</td>
+    <td>${esc(e.note||'—')}</td>
+    <td class="n cin">${e.type==='trip'?money(+e.fare||+e.cost||0):''}</td>
+    <td class="n cout">${e.type!=='trip'?money(+e.amount||0):''}</td>
+    <td class="n" style="font-weight:600">${money(run)}</td></tr>`;
+
+  /* جدول حركات سائق واحد داخل المدى + صافي الفترة في التذييل.
+     المال بالقروش الصحيحة (P/msum) لا جمع عشري مباشر. */
+  const drvTable=list=>{
+    let cIn=0,cOut=0,run=0;
+    const body=list.map(e=>{
+      const v=e.type==='trip'?P(e.fare??e.cost):P(e.amount);
+      if(e.type==='trip'){cIn+=v;run=msum(run,v/100)}else{cOut+=v;run=msum(run,-v/100)}
+      return row(e,run)}).join('');
+    return `<table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>ملاحظات</th>
+      <th class="n">مستحق له</th><th class="n">مدفوع/سلف</th><th class="n">الرصيد</th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr><td colspan="4">صافي الفترة (${list.length} حركة)</td>
+        <td class="n">${money(cIn/100)}</td><td class="n">${money(cOut/100)}</td>
+        ${mcell(msum(cIn/100,-cOut/100),1)}</tr></tfoot></table>`;
+  };
+
+  /* تجميع حركات المدى لكل سائق */
+  const byD={};
+  items.forEach(e=>{if(e.driverId)(byD[e.driverId]||(byD[e.driverId]=[])).push(e)});
+  /* آخر تاريخ حركة لكل سائق — من كل السجل لا من المدى، فترتيب «بالتاريخ» ثابت */
   const lastD={};
-  D.live.forEach(e=>{if(!e.driverId)return;
-    if(!['trip','driver_advance','driver_payment'].includes(e.type))return;
+  D.live.forEach(e=>{if(!e.driverId||!TY.includes(e.type))return;
     if(!lastD[e.driverId]||e.date>lastD[e.driverId])lastD[e.driverId]=e.date});
-  const tot=(srt==='date'
+  const ordered=(srt==='date'
     ?D.drivers.slice().sort((a,b)=>{const x=lastD[a.id]||'',y=lastD[b.id]||'';
-        return x&&y?(y.localeCompare(x)||a.name.localeCompare(b.name,'ar'))
-             :x?-1:y?1:a.name.localeCompare(b.name,'ar')})
-    :D.drivers).filter(d=>!F.ent||d.id===F.ent);
-  const bal=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
-    <th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>
-    ${tot.map(d=>`<tr><td class="tname">${esc(d.name)}</td><td class="n">${money(d.tripsCost)}</td>
-      <td class="n">${money(d.advances)}</td><td class="n">${money(d.paid)}</td>
-      ${mcell(d.balance,1)}</tr>`).join('')}</tbody>
-    <tfoot><tr><td>الإجمالي</td><td class="n">${money(sumM(tot,d=>d.tripsCost))}</td>
-      <td class="n">${money(sumM(tot,d=>d.advances))}</td><td class="n">${money(sumM(tot,d=>d.paid))}</td>
-      <td class="n">${money(sumM(tot,d=>d.balance))}</td></tr></tfoot></table>`;
-  /* إجمالي الفترة لكل سائق: مجموع حركاته داخل مدى الفلترة بس (من items أعلاه)،
-     غير جدول «الأرصدة» تحت اللي هو تراكمي من أول السجل. بيفيد في «كام استحق
-     الأسبوع ده» من غير ما يتلخبط بديون قديمة. بترتيب piaster صحيح (P/msum)
-     لا جمع عشري مباشر، وبنفس ترتيب tot (بالاسم أو بالتاريخ) — وبيعرض بس
-     السائقين اللي ليهم حركة فعلية في المدى، مش كل السائقين. */
-  const perAgg={};
-  items.forEach(e=>{if(!e.driverId)return;
-    const a=perAgg[e.driverId]||(perAgg[e.driverId]={trips:0,adv:0,pay:0});
-    if(e.type==='trip')a.trips+=P(e.fare??e.cost);
-    else if(e.type==='driver_advance')a.adv+=P(e.amount);
-    else if(e.type==='driver_payment')a.pay+=P(e.amount)});
-  const perIds=tot.map(d=>d.id).filter(id=>perAgg[id]);
-  const perRow=id=>{const a=perAgg[id],net=msum(a.trips/100,-a.adv/100,-a.pay/100);
-    return `<tr><td class="tname">${esc(D.nameOf(id))}</td><td class="n">${money(a.trips/100)}</td>
-      <td class="n">${money(a.adv/100)}</td><td class="n">${money(a.pay/100)}</td>
-      ${mcell(net,1)}</tr>`};
-  const perTrips=perIds.reduce((t,id)=>t+perAgg[id].trips,0)/100;
-  const perAdv=perIds.reduce((t,id)=>t+perAgg[id].adv,0)/100;
-  const perPay=perIds.reduce((t,id)=>t+perAgg[id].pay,0)/100;
-  const per=`<table><thead><tr><th>السائق</th><th class="n">أجور الفترة</th><th class="n">سلف الفترة</th>
-    <th class="n">مدفوع الفترة</th><th class="n">صافي الفترة</th></tr></thead>
-    <tbody>${perIds.map(perRow).join('')}</tbody>
-    <tfoot><tr><td>الإجمالي</td><td class="n">${money(perTrips)}</td><td class="n">${money(perAdv)}</td>
-      <td class="n">${money(perPay)}</td>${mcell(msum(perTrips,-perAdv,-perPay),1)}</tr></tfoot></table>`;
-  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),
-    html:tbl+(perIds.length?"<h3>إجمالي الفترة</h3>"+per:"")+"<h3>الأرصدة</h3>"+bal,phone:who?.phone};
-  return segTop+segSort+`<div class="eyebrow">حركات السائقين (${items.length})</div>
-    <div class="card">${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى</div>'}</div>
-    <div class="eyebrow">إجمالي الفترة</div>
-    <div class="card">${perIds.length?`<div class="tscroll">${per}</div>
-      <p class="note">صافي كل سائق من حركات المدى المختار بس — مش تراكمي زي الأرصدة تحت.</p>`
-      :'<div class="empty">لا حركات في المدى</div>'}</div>
-    <div class="eyebrow">الأرصدة</div><div class="card"><div class="tscroll">${bal}</div>
-    <p class="note">الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
+        return x&&y?(y.localeCompare(x)||a.name.localeCompare(b.name,'ar')):x?-1:y?1:a.name.localeCompare(b.name,'ar')})
+    :D.drivers.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')))
+    .filter(d=>!F.ent||d.id===F.ent);
+  /* السائقون اللي ليهم حركة فعلية في المدى وحدهم — سائق بلا حركة لا يستحق قسماً */
+  const act=ordered.filter(d=>byD[d.id]&&byD[d.id].length);
+
+  /* أرقام الفترة لسائق: أجور · سلف · مدفوع · الصافي (كلها قروش) */
+  const agg=id=>{const l=byD[id]||[];let t=0,a=0,y=0;
+    l.forEach(e=>{if(e.type==='trip')t+=P(e.fare??e.cost);
+      else if(e.type==='driver_advance')a+=P(e.amount);else y+=P(e.amount)});
+    return{t,a,y,net:msum(t/100,-a/100,-y/100)}};
+
+  /* الجدول المجمّع: كل سائق سطر بأرقام الفترة المختارة وحدها */
+  const sums=act.map(d=>({d,...agg(d.id)}));
+  const gT=sums.reduce((x,s)=>x+s.t,0),gA=sums.reduce((x,s)=>x+s.a,0),gY=sums.reduce((x,s)=>x+s.y,0);
+  const total=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
+    <th class="n">مدفوع</th><th class="n">صافي الفترة</th></tr></thead>
+    <tbody>${sums.map(s=>`<tr><td class="tname">${esc(s.d.name)}</td>
+      <td class="n">${money(s.t/100)}</td><td class="n">${money(s.a/100)}</td>
+      <td class="n">${money(s.y/100)}</td>${mcell(s.net,1)}</tr>`).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي (${sums.length} سائق)</td><td class="n">${money(gT/100)}</td>
+      <td class="n">${money(gA/100)}</td><td class="n">${money(gY/100)}</td>
+      ${mcell(msum(gT/100,-gA/100,-gY/100),1)}</tr></tfoot></table>`;
+
+  /* قسم لكل سائق: عنوان باسمه وصافي فترته، وتحته حركاته. */
+  const secs=act.map(d=>{const s=agg(d.id),neg=s.net<-.004;
+    return `<div class="eyebrow drv">${esc(d.name)}
+      <span class="dnet num ${neg?'money-pos':'money-neg'}">${money(s.net)} ج.م</span></div>
+      <div class="card"><div class="tscroll">${drvTable(byD[d.id])}</div></div>`}).join('');
+
+  const printHtml=(who
+    ?(act.length?drvTable(byD[who.id]||[]):'<p>لا حركات في المدى</p>')
+    :act.map(d=>`<h3>${esc(d.name)}</h3>`+drvTable(byD[d.id])).join(''))
+    +(act.length?`<h3>إجمالي السائقين في الفترة</h3>`+total:'');
+  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:printHtml,phone:who?.phone};
+
+  if(!act.length)return segTop+segSort
+    +`<div class="eyebrow">حركات السائقين</div>
+      <div class="card"><div class="empty">لا حركات في المدى</div></div>`;
+
+  return segTop+segSort+secs
+    +`<div class="eyebrow">إجمالي السائقين في الفترة</div>
+      <div class="card"><div class="tscroll">${total}</div>
+      <p class="note">أرقام المدى المختار وحده — مش تراكمية من أول السجل.
+      الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
 }
 /* تقرير التالف لسائق واحد — منفصل عن ملخص كل السائقين (dmg) حتى لا يتأثر التقرير العام. */
 function driverDmgTab(driver){
@@ -3732,6 +3742,17 @@ function wire(root){
     if(s.dataset.seg==='box')S.sub.boxop='';
     render()}));
   $$('form[data-form]',root).forEach(f=>f.addEventListener('submit',onSubmit));
+  /* البحث داخل المُختار: تصفية فورية، و«إنتر» ما يبعتش النموذج */
+  $$('[data-pks]',root).forEach(q=>{
+    const box=q.closest('.pick');
+    q.addEventListener('input',()=>pkFilter(box,q.value));
+    q.addEventListener('keydown',ev=>{
+      if(ev.key!=='Enter')return;
+      ev.preventDefault();
+      const first=box.querySelector('.pkres .drow[data-pv]');
+      if(first)setPick(box.id,first.dataset.pv);
+    });
+  });
 
   const mp=$('[data-role=mpick]',root);
   if(mp)mp.addEventListener('change',()=>{
@@ -3781,7 +3802,7 @@ let _lastEv=null;
 function onClick(ev){
   /* لو تعدّدت المستمعات لأي سبب، لا يُنفَّذ الأمر إلا مرة واحدة لكل ضغطة */
   if(ev===_lastEv)return; _lastEv=ev;
-  const pc=ev.target.closest('.pchip[data-pv]');
+  const pc=ev.target.closest('.pchip[data-pv],.pkres .drow[data-pv]');
   if(pc){const box=pc.closest('.pick');if(box)return setPick(box.id,pc.dataset.pv)}
   const qv=ev.target.closest('[data-qv]');
   if(qv){const box=qv.closest('[data-qn]'),f=qv.closest('form');
@@ -3804,7 +3825,6 @@ function onClick(ev){
   const go=(tab,sub)=>{if(tab==='fin'){tab='ops';sub={ops:'acct',...(sub||{})}}
     S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
-    case 'pkOpen':return openPicker(b.dataset.pk);
     case 'saveAgain':{const f=b.closest('form');if(!f)return;S.again=true;
       if(f.requestSubmit)f.requestSubmit();
       else f.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));return}
