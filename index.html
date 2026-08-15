@@ -966,7 +966,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.11.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.12.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2267,6 +2267,7 @@ const REPS=[
   ['daily','جرد المخزن اليومي','رصيد افتتاحي وعمليات اليوم والرصيد الختامي والفعلي','يومي'],
   ['farmDaily','تقرير المزرعة اليومي','مبيعات وعهدة بكش وثلج المزرعة في يوم واحد','يومي'],
   ['colDaily','تقرير التحصيل','تحصيلات يوم واحد لكل المبايع مع الإجمالي','يومي'],
+  ['costDaily','مصاريف المزارع اليومي','مصاريف يوم واحد لكل مزرعة بالبنود والتفصيل','يومي'],
 
   ['farmEnt','تقرير المزرعة','بكش أو فواتير وتصفيات أو ثلج لمزرعة واحدة','تقارير الجهات'],
   ['merchEnt','تقرير المبيع','بكش أو فواتير وتحصيل لمبيع واحد','تقارير الجهات'],
@@ -2292,6 +2293,7 @@ const REPKEY={
   daily:'جرد مخزن بكش يومي رصيد افتتاحي ختامي عدد',
   farmDaily:'مزرعه يوم واحد مبيعات ثلج بكش تاريخ معين',
   colDaily:'تحصيل فلوس نقديه قبض مبايع تجار يوم',
+  costDaily:'مصاريف مصروفات تكاليف عمال نوله ثلج نثريات يوم مزرعه صرف',
   farmEnt:'مزرعه كشف حساب فلوس مستحق فواتير تصفيه بكش ثلج مربي',
   merchEnt:'مبيع تاجر صاله كشف حساب فلوس مديونيه دين تحصيل بكش',
   drv:'سائق سواق سايق عربيه نقل رحلات سروح سلف اجره تالف',
@@ -2334,7 +2336,7 @@ function selectRep(k){
   if(!repKnown(k))return;
   setRep(k);S.page=0;S.toTop=true;S.fopen=false;
   if(REPNOENT.has(k))S.F.ent='';
-  if((k==='farmDaily'||k==='colDaily')&&S.F.from!==S.F.to){
+  if((k==='farmDaily'||k==='colDaily'||k==='costDaily')&&S.F.from!==S.F.to){
     const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
   closeSheet();render();
   /* تقرير جهة واحدة بلا جهة مختارة = شاشة إرشاد فاضية وخطوة زيادة في الفلتر،
@@ -2419,6 +2421,7 @@ function vRep(){
   S.sub.repbox=r;
   const fn={all:repAll,drv:repDrv,ice:repIce,drvAll:repDrv,iceAll:repIce,
     farmEnt:repFarmEnt,merchEnt:repMerchEnt,farmDaily:repFarmDaily,colDaily:repCollDaily,
+    costDaily:repCostDaily,
     boxAll:repBoxAll,farmsAll:repFarmsAll,merchAll:repMerchAll,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
   const line=`<button class="filtline" data-act="fToggle">
@@ -2439,7 +2442,7 @@ const REPNOENT=new Set(['farmsAll','merchAll','drvAll','iceAll']);
    يقدر يفتح مُختار الجهة الصحيح بنفس الخريطة بلا تكرار. */
 const REPET={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
   drv:'driver',ice:'ice',all:'farmerchant',farmEnt:'farm',merchEnt:'merchant',
-  farmDaily:'farm',colDaily:'merchant',boxAll:'loc'};
+  farmDaily:'farm',colDaily:'merchant',costDaily:'farm',boxAll:'loc'};
 const repEt=k=>REPET[k]||'farmerchant';
 /* تقارير لا تعرض شيئاً بلا جهة مختارة — دي اللي نفتح لها المُختار تلقائياً */
 const REPNEEDENT=new Set(['farmEnt','merchEnt','farmDaily']);
@@ -3220,6 +3223,70 @@ function repCollDaily(){
   return `<div class="eyebrow">تحصيلات ${arDate(day)}${F.ent?` — ${esc(D.nameOf(F.ent))}`:''}</div>
     <div class="card">${items.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا تحصيلات في هذا اليوم</div>'}
     <div class="diff over" style="margin-top:12px"><span>الإجمالي</span><b>${money(total)}</b></div></div>`;
+}
+
+/* ============ مصاريف المزارع — يوم واحد ============
+   «صرفت كام النهارده وعلى إيه» — سؤال آخر اليوم قبل القفل.
+   بيقرأ من كل السجل (D.live) لا من farm.openCosts: openCosts بتحتوي البنود
+   غير المغطّاة بتصفية فقط، فلو الدورة اتصفّت بقى التقرير التاريخي فاضي. */
+const COSTCOLS=[['ice','ثلج'],['trip','سيارات'],['labor','عمال'],['misc','نثريات']];
+function repCostDaily(){
+  const D=S.D,F=S.F;
+  const day=(F.from&&F.from===F.to)?F.from:'';
+  if(!day)return `<div class="empty"><b>اختر يوماً واحداً</b>
+    افتح الفلتر فوق واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
+    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
+  const items=D.live.filter(e=>e.type==='farm_cost'&&e.date===day&&(!F.ent||e.farmId===F.ent))
+    .sort((a,b)=>a.seq-b.seq);
+  const one=F.ent?D.farms.find(f=>f.id===F.ent):null;
+
+  /* تجميع لكل مزرعة، بترتيب الاسم */
+  const byF={};
+  items.forEach(c=>{if(c.farmId)(byF[c.farmId]||(byF[c.farmId]=[])).push(c)});
+  const farms=D.farms.filter(f=>byF[f.id]).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+  const catSum=(arr,k)=>sumM(arr.filter(c=>c.cat===k),c=>c.amount);
+
+  /* الجدول المجمّع: مزرعة في كل سطر، بند في كل عمود.
+     النقدية عمود مستقل — بتتحمّل على الدورة مع التصفية لكن شاشة قفل اليوم
+     بتعدّ البنود الأربعة وحدها، فخلطها في نفس العمود بيخلّي الرقمين مختلفين
+     بلا تفسير. */
+  const rowOf=(nm,arr)=>`<tr><td class="tname">${esc(nm)}</td>
+    ${COSTCOLS.map(([k])=>`<td class="n">${catSum(arr,k)?money(catSum(arr,k)):'—'}</td>`).join('')}
+    <td class="n">${catSum(arr,'cash')?money(catSum(arr,'cash')):'—'}</td>
+    <td class="n" style="font-weight:700">${money(sumM(arr,c=>c.amount))}</td></tr>`;
+  const gTot=sumM(items,c=>c.amount);
+  const sumTbl=`<table><thead><tr><th>المزرعة</th>
+    ${COSTCOLS.map(([,l])=>`<th class="n">${l}</th>`).join('')}
+    <th class="n">نقدية</th><th class="n">الإجمالي</th></tr></thead>
+    <tbody>${farms.map(f=>rowOf(f.name,byF[f.id])).join('')
+      ||`<tr><td colspan="7">لا مصاريف في هذا اليوم</td></tr>`}</tbody>
+    <tfoot><tr><td>الإجمالي (${farms.length} مزرعة)</td>
+      ${COSTCOLS.map(([k])=>`<td class="n">${money(catSum(items,k))}</td>`).join('')}
+      <td class="n">${money(catSum(items,'cash'))}</td>
+      <td class="n">${money(gTot)}</td></tr></tfoot></table>`;
+
+  /* تفصيل كل مزرعة: بند ببند بالبيان — عشان تعرف الرقم راح فين لا كام بس */
+  const detTbl=arr=>`<table><thead><tr><th>البند</th><th>بيان</th><th class="n">المبلغ</th></tr></thead>
+    <tbody>${arr.map(c=>`<tr><td>${esc(CATLBL[c.cat]||c.cat)}</td>
+      <td>${esc(costLabel(c))}</td><td class="n">${money(c.amount)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="2">الإجمالي (${arr.length} بند)</td>
+      <td class="n">${money(sumM(arr,c=>c.amount))}</td></tr></tfoot></table>`;
+  const secs=farms.map(f=>`<div class="eyebrow brass">${esc(f.name)}
+    <span class="dnet num">${money(sumM(byF[f.id],c=>c.amount))} ج.م</span></div>
+    <div class="card"><div class="tscroll">${detTbl(byF[f.id])}</div></div>`).join('');
+
+  S.print={title:`مصاريف المزارع — ${arDate(day)}${one?` — ${one.name}`:''}`,phone:one?.phone,
+    html:sumTbl+farms.map(f=>`<h3>${esc(f.name)}</h3>`+detTbl(byF[f.id])).join('')};
+
+  if(!items.length)return `<div class="eyebrow brass">مصاريف ${arDate(day)}${one?` — ${esc(one.name)}`:''}</div>
+    <div class="card"><div class="empty">لا مصاريف مسجَّلة في هذا اليوم</div></div>`;
+
+  return `<div class="eyebrow brass">مصاريف ${arDate(day)}${one?` — ${esc(one.name)}`:''}</div>
+    <div class="card"><div class="tscroll">${sumTbl}</div>
+    <div class="diff over" style="margin-top:12px"><span>إجمالي اليوم</span><b>${money(gTot)}</b></div>
+    <p class="note">«نقدية» = سحب ومصاريف عامة — بتتحمّل على الدورة مع التصفية،
+    لكن شاشة قفل اليوم بتعدّ البنود الأربعة وحدها.</p></div>
+    ${secs}`;
 }
 /* ============ تقارير الجهات المركّبة: المزرعة والمبيع ============
    شاشة واحدة لكل جهة بتبويبات (بكش · فواتير · تلج) بدل تقارير منفصلة —
