@@ -238,7 +238,7 @@ main>.eyebrow:first-child{margin-top:4px}
   color:var(--ink-2);font-size:var(--fs-s)}
 /* شريط عهدة البكش: أول المدة ← وارد/صادر ← آخر المدة في سطر واحد يُقرأ بنظرة */
 .bxline{display:flex;align-items:stretch;gap:4px;text-align:center}
-.bxline>div{flex:1;background:var(--card-2);border-radius:10px;padding:8px 4px;min-width:0}
+.bxline>div{flex:1;background:var(--card-2);border-radius:10px;padding:12px 4px;min-width:0}
 .bxline .k{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
 .bxline .v{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:700;
   font-size:var(--fs-l);color:var(--ink)}
@@ -987,7 +987,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.14.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.15.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2660,13 +2660,14 @@ function farmBlock(f,d){
     <div class="tscroll">${fsTblIce(d)}</div>`);
   if(d.cost.length)P.push(`<div class="subh">المصاريف <b>${money(d.costTot)}</b></div>
     <div class="tscroll">${fsTblCost(d)}</div>`);
-  P.push(`<div class="subh">البكش <b>${d.close} صندوق</b></div>
+  /* رقمان لا أربعة: «راح للمزرعة كام ورجع كام» — الرصيد التراكمي موجود في
+     تقرير البكش، وحشره هنا كان بيزوّد أرقاماً بلا سؤال تجاوب عليه.
+     التسمية صريحة بالاتجاه: «صادر للمزرعة» لا «صادر» وحدها — «صادر» بالنسبة
+     للمزرعة عكسها بالنسبة للمخزن، والخلط هنا بيقلب الرقمين. */
+  P.push(`<div class="subh">البكش</div>
     <div class="bxline">
-      <div><span class="k">أول المدة</span><span class="v">${d.open}</span></div>
-      <div class="in"><span class="k">وارد</span><span class="v">${d.bIn}</span></div>
-      <div class="out"><span class="k">صادر</span><span class="v">${d.bOut}</span></div>
-      <div><span class="k">آخر المدة</span><span class="v">${d.close}</span></div></div>
-    ${d.bx.length?`<div class="tscroll" style="margin-top:8px">${fsTblBox(d)}</div>`:''}`);
+      <div class="out"><span class="k">صادر للمزرعة</span><span class="v">${d.bIn}</span></div>
+      <div class="in"><span class="k">وارد منها</span><span class="v">${d.bOut}</span></div></div>`);
   return `<div class="eyebrow">${esc(f.name)}
       <span class="dnet num">${d.invBoxes} صندوق · ${money(d.invAmt)}</span></div>
     <div class="card">${P.join('')}</div>`;
@@ -2677,9 +2678,7 @@ function farmBlockPrint(f,d){
   if(d.inv.length)P.push('<h4>البيع</h4>'+fsTblSales(d));
   if(d.ice.length)P.push('<h4>الثلج</h4>'+fsTblIce(d));
   if(d.cost.length)P.push('<h4>المصاريف</h4>'+fsTblCost(d));
-  P.push(`<h4>البكش</h4><p>أول المدة ${d.open} صندوق · وارد ${d.bIn} · صادر ${d.bOut}
-    · <b>آخر المدة ${d.close} صندوق</b></p>`);
-  if(d.bx.length)P.push(fsTblBox(d));
+  P.push(`<h4>البكش</h4><p>صادر للمزرعة ${d.bIn} صندوق · وارد منها ${d.bOut} صندوق</p>`);
   return P.join('');
 }
 /*
@@ -2795,30 +2794,20 @@ function handover(){
   };
   const box=(lbl,val,sub,cls,dl)=>`<div class="hcell ${cls||''}"><div class="hl">${lbl}</div>
     <div class="hv num">${val}</div>${sub||dl?`<div class="hs">${sub||''}${dl||''}</div>`:''}</div>`;
+  /* الورقة تبدأ من المزارع مباشرةً. مؤشّرات الفترة والمقارنة والأرصدة العامة
+     كانت بتاخد شاشة كاملة قبل أول رقم يهمّ المستلم، وكلها موجودة في الرئيسية
+     وفي تقاريرها. «محتاج مراجعة» اتنقل لآخر الورقة (ما اتشالش: بينبّه على
+     مسوّدات بلا مبلغ وهي بتغيّر أرقام الورقة نفسها). */
   return `<div class="qr" style="margin-bottom:14px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
       aria-selected="${from===({today:todayISO(),yest:addDays(todayISO(),-1),
         week:addDays(todayISO(),-6),month:monthStart()})[k]&&to===todayISO()||(k==='yest'&&from===to&&from===addDays(todayISO(),-1))||(k==='today'&&from===to&&from===todayISO())}">${l}</button>`).join('')}
     <button data-act="fToggle">${IC('cal')}مخصّص</button></div>
   ${S.fopen?filterBar():''}
-  <div class="eyebrow">${one?'حركة يوم '+arDate(from):`حركة ${arDate(from)} — ${arDate(to)}`}
-</div>
-  <div class="hgrid">
-    ${box('فواتير البيع',inv.length,`${sum(inv,i=>i.boxes)} صندوق · ${money(sumM(inv,i=>i.amount))} ج.م `,'',
-      delta(sumM(inv,i=>i.amount),sumM(prev.inv,i=>i.amount)))}
-    ${box('التحصيلات',money(sumM(col,c=>c.amount)),col.length+' عملية ','ok',
-      delta(sumM(col,c=>c.amount),sumM(prev.col,c=>c.amount)))}
-    ${box('بكش خرج من المخزن',bOut,'صندوق ','out',delta(bOut,pOut))}
-    ${box('بكش دخل المخزن',bIn,'صندوق ','in',delta(bIn,pIn))}
-    ${box('الرحلات',tr.length,money(sumM(tr,x=>x.fare??x.cost))+' ج.م ','',
-      delta(sumM(tr,x=>x.fare??x.cost),sumM(prev.tr,x=>x.fare??x.cost)))}
-    ${box('الثلج',sum(ic,x=>x.qty),money(sumM(ic,x=>(+x.qty||0)*(+x.unitPrice||0)))+' ج.م ','',
-      delta(sum(ic,x=>x.qty),sum(prev.ic,x=>x.qty)))}
-    ${st.length?box('تصفيات',st.length,money(sumM(st,x=>x.payable))+' ج.م','brass'):''}
-  </div>
+  <div class="rptname"><b>${one?'تسليم يوم '+arDate(from):'تسليم فترة'}</b>
+    <span>${one?'':arDate(from)+' — '+arDate(to)}</span></div>
+  ${handDetail(from,to)}
 
-  <p class="note" style="margin:2px 2px 12px">المقارنة مع الفترة السابقة بنفس الطول
-    (${arDate(pFrom)} ← ${arDate(pTo)}).</p>
-  <div class="eyebrow ${issues.length?'debt':''}">${issues.length?`محتاج مراجعة (${issues.length})`:'لا شيء يحتاج مراجعة ✓'}</div>
+  <div class="eyebrow ${issues.length?'debt':''}">${issues.length?`محتاج مراجعة (${issues.length})`:'لا شيء يحتاج مراجعة'}</div>
   ${issues.length?issues.map(([t2,v,hint,act])=>`<div class="rec">
       <div class="top"><b>${esc(t2)}</b></div>
       <div class="meta">${esc(v)}</div>
@@ -2827,19 +2816,6 @@ function handover(){
     </div>`).join('')
     :`<div class="empty" style="background:var(--credit-bg);border-color:var(--credit);color:var(--credit)">
       <b>كله سليم</b>مافيش مسوّدات ناقصة ولا أرصدة غريبة — تقدر تقفل اليوم.</div>`}
-
-  <div class="eyebrow">الأرصدة الآن</div>
-  <div class="card"><div class="tscroll"><table>
-    <thead><tr><th>الحساب</th><th class="n">الرصيد</th></tr></thead><tbody>
-    <tr><td>مديونية المبايع</td><td class="n money-pos">${money(D.kpi.merchantDebt)}</td></tr>
-    <tr><td>مستحقات المزارع</td><td class="n">${money(D.kpi.farmDue)}</td></tr>
-    <tr><td>مستحق السائقين</td><td class="n">${money(D.kpi.driverDue)}</td></tr>
-    <tr><td>مستحق الثلج</td><td class="n">${money(D.kpi.iceDue)}</td></tr>
-    <tr><td>المخزن</td><td class="n">${D.wh.intact} سليم · ${D.wh.damaged} تالف</td></tr>
-    </tbody><tfoot><tr><td>إجمالي عهدة البكش بالخارج</td>
-      <td class="n">${D.custody.merchants+D.custody.farms} صندوق</td></tr></tfoot></table></div></div>
-
-  ${handDetail(from,to)}
 
   <button class="btn dark" data-act="handPrint" style="margin-top:14px">${IC('print')}طباعة ورقة التسليم كاملة</button>`;
 }
@@ -4164,7 +4140,7 @@ function onClick(ev){
       return render()}
     case 'handPrint':return printDoc(
       (S.F.from===S.F.to?'ورقة تسليم يوم ':'ورقة تسليم فترة ')+arDate(S.F.from||todayISO()),
-      summaryHTML(S.F.from||todayISO(),S.F.to||S.F.from||todayISO())+handIssuesHTML(),
+      farmsPrint(S.F.from||todayISO(),S.F.to||S.F.from||todayISO())+handIssuesHTML(),
       fname('تسليم',dtag(S.F.from||todayISO())));
     case 'range':return setRange(b.dataset.r);
     case 'combined':return printDoc("كشف حساب مجمّع — "+S.D.nameOf(S.F.ent),combinedHTML(S.F.ent),
@@ -5160,8 +5136,7 @@ function summaryHTML(from,to){
       <td>${esc(D.nameOf(i.merchantId))}</td><td class="n">${i.boxes}</td>
       <td class="n">${money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">لا فواتير</td></tr>'}</tbody>
   <tfoot><tr><td colspan="3">الإجمالي</td><td class="n">${sum(inv,i=>i.boxes)}</td>
-    <td class="n">${money(sumM(inv,i=>i.amount))}</td></tr></tfoot></table>
-  ${farmsPrint(from,to)}`;
+    <td class="n">${money(sumM(inv,i=>i.amount))}</td></tr></tfoot></table>`;
 }
 /* نفس ذيل الشاشة لكن للورق: مزرعة تحت مزرعة ثم التحصيلات */
 function farmsPrint(from,to){
