@@ -236,14 +236,18 @@ main>.eyebrow:first-child{margin-top:4px}
 .subh::after{content:"";flex:1;height:1px;background:var(--line)}
 .subh b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;
   color:var(--ink-2);font-size:var(--fs-s)}
-/* شريط عهدة البكش: أول المدة ← وارد/صادر ← آخر المدة في سطر واحد يُقرأ بنظرة */
-.bxline{display:flex;align-items:stretch;gap:4px;text-align:center}
-.bxline>div{flex:1;background:var(--card-2);border-radius:10px;padding:12px 4px;min-width:0}
-.bxline .k{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
-.bxline .v{font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:700;
-  font-size:var(--fs-l);color:var(--ink)}
-.bxline .in .v{color:var(--credit)}
-.bxline .out .v{color:var(--debt)}
+/* جدول البكش داخل قسم المزرعة: مميّز بلون البكش (بنفسجي) عن جداول البيع
+   والثلج والمصاريف — عشان الرقم اللي بيتراجع بالعدّ فعلياً يبان من بعيد. */
+.bxtbl{border:1.5px solid var(--c-box);border-radius:12px;overflow:hidden;background:var(--card)}
+.bxtbl table{margin:0}
+/* card-2 لا accent-soft: الأخيرة بتتبع ثيم القسم فكانت هتاخد لون التقارير
+   مش لون البكش، وبتختلف في الوضع الغامق. */
+.bxtbl thead th{background:var(--card-2);color:var(--c-box);
+  border-bottom:1px solid var(--c-box);font-size:var(--fs-xs)}
+.bxtbl td{font-size:var(--fs-l);font-weight:700;padding:12px 8px}
+.bxtbl .out{color:var(--debt)}
+.bxtbl .in{color:var(--credit)}
+.bxtbl .rest{background:var(--card-2)}
 .rptname{text-align:center;margin:2px 2px 20px}
 .rptname b{display:block;font-size:var(--fs-xl);font-weight:700;color:var(--ink);line-height:1.35}
 .rptname span{display:block;font-size:var(--fs-s);color:var(--muted);margin-top:4px}
@@ -987,7 +991,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.15.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.16.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -2609,6 +2613,7 @@ function farmSpan(fid,from,to){
     bIn+=i;bOut+=o;
     return{e,i,o,other:[...other].join(' · ')||'—'}});
   return{inv,ice,cost,bx:bxRows,open,close:open+bIn-bOut,bIn,bOut,
+    lbl:from===to?arDate(to):`${arDate(from)} — ${arDate(to)}`,
     invBoxes:sum(inv,i=>i.boxes),invAmt:sumM(inv.filter(i=>+i.amount>0),i=>i.amount),
     drafts:inv.filter(i=>!(+i.amount>0)).length,
     iceQty:sum(ice,e=>e.qty),iceVal:sumM(ice,e=>(+e.qty||0)*(+e.unitPrice||0)),
@@ -2664,10 +2669,14 @@ function farmBlock(f,d){
      تقرير البكش، وحشره هنا كان بيزوّد أرقاماً بلا سؤال تجاوب عليه.
      التسمية صريحة بالاتجاه: «صادر للمزرعة» لا «صادر» وحدها — «صادر» بالنسبة
      للمزرعة عكسها بالنسبة للمخزن، والخلط هنا بيقلب الرقمين. */
-  P.push(`<div class="subh">البكش</div>
-    <div class="bxline">
-      <div class="out"><span class="k">صادر للمزرعة</span><span class="v">${d.bIn}</span></div>
-      <div class="in"><span class="k">وارد منها</span><span class="v">${d.bOut}</span></div></div>`);
+  P.push(`<div class="subh">البكش <b>${d.close} باقي</b></div>
+    <div class="bxtbl"><table>
+      <thead><tr><th class="n">صادر للمزرعة</th><th class="n">وارد منها</th>
+        <th class="n">الباقي عليها</th></tr></thead>
+      <tbody><tr><td class="n out">${d.bIn}</td><td class="n in">${d.bOut}</td>
+        <td class="n rest">${d.close}</td></tr></tbody></table></div>
+    <p class="note" style="margin:8px 2px 0">الباقي = إجمالي العهدة عند المزرعة
+      لحد آخر ${d.lbl}، مش فرق الصادر والوارد لوحده.</p>`);
   return `<div class="eyebrow">${esc(f.name)}
       <span class="dnet num">${d.invBoxes} صندوق · ${money(d.invAmt)}</span></div>
     <div class="card">${P.join('')}</div>`;
@@ -2678,7 +2687,12 @@ function farmBlockPrint(f,d){
   if(d.inv.length)P.push('<h4>البيع</h4>'+fsTblSales(d));
   if(d.ice.length)P.push('<h4>الثلج</h4>'+fsTblIce(d));
   if(d.cost.length)P.push('<h4>المصاريف</h4>'+fsTblCost(d));
-  P.push(`<h4>البكش</h4><p>صادر للمزرعة ${d.bIn} صندوق · وارد منها ${d.bOut} صندوق</p>`);
+  P.push(`<h4>البكش</h4>
+    <table><thead><tr><th class="n">صادر للمزرعة</th><th class="n">وارد منها</th>
+      <th class="n">الباقي عليها</th></tr></thead>
+    <tbody><tr><td class="n">${d.bIn}</td><td class="n">${d.bOut}</td>
+      <td class="n">${d.close}</td></tr></tbody></table>
+    <p>الباقي = إجمالي العهدة عند المزرعة حتى آخر ${d.lbl}.</p>`);
   return P.join('');
 }
 /*
@@ -2703,14 +2717,16 @@ function merchAsOf(to){
     .sort((a,b)=>b.bal-a.bal||a.m.name.localeCompare(b.m.name,'ar'));
   const T={op:sumM(rows,r=>r.op),inv:sumM(rows,r=>r.invAmt),col:sumM(rows,r=>r.colAmt),
     bal:sumM(rows,r=>r.bal),dft:rows.reduce((x,r)=>x+r.dft,0)};
-  const tbl=`<table><thead><tr><th>المبيع</th><th class="n">مبيعات</th>
-    <th class="n">تحصيل</th><th class="n">الصافي</th></tr></thead><tbody>
+  /* عمودان فقط: الاسم والصافي بعد الفواتير والتحصيل. تفصيل المبيعات
+     والتحصيلات موجود في جدول التحصيلات فوق وفي تقرير المبيع، وتكراره هنا
+     كان بيزوّد أربعة أرقام في السطر على ورقة الهدف منها رقم واحد. */
+  const tbl=`<table><thead><tr><th>المبيع</th>
+    <th class="n">الصافي آخر ${arDate(to)}</th></tr></thead><tbody>
     ${rows.map(r=>`<tr><td class="tname">${esc(r.m.name)}${
       r.dft?` <span class="tag">${r.dft} مسوّدة</span>`:''}</td>
-      <td class="n">${money(r.invAmt)}</td><td class="n">${money(r.colAmt)}</td>
-      ${mcell(r.bal)}</tr>`).join('')||`<tr><td colspan="4">لا مبايع عليهم حساب</td></tr>`}</tbody>
-    <tfoot><tr><td>الإجمالي (${rows.length} مبيع)</td><td class="n">${money(T.inv)}</td>
-      <td class="n">${money(T.col)}</td><td class="n">${money(T.bal)}</td></tr></tfoot></table>`;
+      ${mcell(r.bal)}</tr>`).join('')||`<tr><td colspan="2">لا مبايع عليهم حساب</td></tr>`}</tbody>
+    <tfoot><tr><td>الإجمالي (${rows.length} مبيع)</td>
+      <td class="n">${money(T.bal)}</td></tr></tfoot></table>`;
   return{rows,T,tbl};
 }
 /* تحصيلات المدى — جدول واحد يستعمله تقرير التحصيل وورقة التسليم */
