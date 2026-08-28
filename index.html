@@ -404,14 +404,8 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .mic.rec{background:var(--debt);border-color:var(--debt);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.55}}
 
-/* شريط الانتباه في الرئيسية: القرارات قبل الأرقام */
-.attn{width:100%;background:var(--debt-bg);border:1.5px solid var(--debt);border-radius:var(--r);
-  padding:12px 16px;margin-bottom:12px;display:flex;flex-direction:column;gap:3px;
-  font-family:inherit;text-align:right;cursor:pointer;color:var(--debt)}
-.attn .a1{display:flex;align-items:center;gap:8px;font-size:var(--fs-m);font-weight:600}
-.attn .ab{background:var(--debt);color:#fff;min-width:24px;height:24px;border-radius:12px;
-  display:grid;place-items:center;font-size:var(--fs-s);font-family:var(--num);margin-inline-start:auto}
-.attn .a2{font-size:var(--fs-s);opacity:.9}
+/* ملاحظة: كانت هنا نسخة أولى من `.attn` كُتبت مرتين والثانية (تحت) هي العاملة
+   — اتشالت في 4.17.0 مع الفئات الميتة `.a1` و`.ab` و`.a2`. */
 .allok{background:var(--credit-bg);border:1px solid var(--credit);color:var(--credit);
   border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:var(--fs-m);font-weight:600}
 
@@ -450,9 +444,20 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 /* شاشة القرارات في الرئيسية */
 .attn{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   overflow:hidden;margin-bottom:16px}
-.attnh{padding:12px 12px;font-size:var(--fs-s);font-weight:600;color:var(--ink-2);
-  background:var(--card-2);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
-.attnh span{background:var(--warn);color:#fff;font-size:var(--fs-xs);padding:1px 8px;border-radius:20px;font-family:var(--num)}
+.attnh{width:100%;padding:12px 12px;font-size:var(--fs-s);font-weight:600;color:var(--ink-2);
+  background:var(--card-2);display:flex;align-items:center;gap:8px;border:0;font-family:inherit;
+  text-align:right;cursor:pointer;min-height:48px}
+.attnh[aria-expanded=true]{border-bottom:1px solid var(--line)}
+.attnh .ab{background:var(--warn);color:#fff;font-size:var(--fs-xs);padding:1px 8px;
+  border-radius:20px;font-family:var(--num)}
+/* العدّاد أحمر لو فيه بند خطير — إشارة تُقرأ والقسم مطويّ */
+.attnh .ab.bad{background:var(--debt)}
+.attnh .car{margin-inline-start:auto;color:var(--faint);font-size:var(--fs-s)}
+/* صف طيّ داخل قائمة التفصيل (المزارع المصفّاة) */
+.drilltog{width:100%;background:var(--card-2);border:0;border-top:1px solid var(--line);
+  padding:12px;display:flex;align-items:center;gap:8px;font-family:inherit;font-size:var(--fs-s);
+  font-weight:600;color:var(--ink-2);text-align:right;cursor:pointer;min-height:48px}
+.drilltog .car{margin-inline-start:auto;color:var(--faint)}
 .attnrow{width:100%;background:none;border:0;border-bottom:1px solid var(--line);
   padding:12px 12px;display:flex;flex-direction:column;gap:3px;font-family:inherit;
   text-align:right;cursor:pointer;color:var(--ink);position:relative}
@@ -991,7 +996,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.16.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.17.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1556,10 +1561,12 @@ function vHome(){
 
   return `
   ${AT.length?`<div class="attn">
-    <div class="attnh">محتاج انتباهك <span>${AT.length}</span></div>
-    ${AT.map(x=>`<button class="attnrow t-${x.tone}" data-act="${x.act}">
+    <button class="attnh" data-act="drill" data-key="attn" aria-expanded="${!!d.attn}">
+      محتاج انتباهك <span class="ab ${AT.some(x=>x.tone==='bad')?'bad':''}">${AT.length}</span>
+      <span class="car">${d.attn?'▴':'▾'}</span></button>
+    ${d.attn?AT.map(x=>`<button class="attnrow t-${x.tone}" data-act="${x.act}">
       <span class="ar1"><b>${esc(x.t)}</b><span class="av">${esc(x.v)}</span></span>
-      <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join('')}
+      <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join(''):''}
   </div>`:`<div class="allok">✓ مافيش حاجة محتاجة انتباه — كله ماشي</div>`}
   ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:14px">
     <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز</div>
@@ -1585,11 +1592,16 @@ function vHome(){
         <span style="color:var(--muted);font-size:var(--fs-xs)">${f.cycleCount} فاتورة</span>
         <b>${money(f.cycleTotal)}</b><span class="go">‹</span></button>`).join(''):''}
     ${(()=>{const done=D.farms.filter(f=>!f.cycleCount);
-      return done.length?`<div class="drillsec">مصفّاة — اضغط لمراجعة الحساب</div>`+
+      /* المصفّاة بتتلمّ في سطر واحد: عندها كلها رصيد مقفول ومافيش قرار مطلوب،
+         وعرضها مفتوحة كان بيدفن المزارع النشطة تحت عشرات الأسطر. */
+      return done.length?`<button class="drilltog" data-act="drill" data-key="fdone"
+          aria-expanded="${!!d.fdone}">مصفّاة (${done.length})
+          <span class="car">${d.fdone?'▴':'▾'}</span></button>`
+        +(d.fdone?`<div class="drillsec">اضغط لمراجعة الحساب</div>`+
         done.map(f=>`<button class="drow" data-act="repFarm" data-id="${f.id}">
           <span class="tname">${esc(f.name)}</span>
           <span style="color:var(--muted);font-size:var(--fs-xs)">${f.settlements.length} تصفية</span>
-          <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):''})()}
+          <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):''):''})()}
   </div>`:''}
 
   ${secT(2,'البكش — العهدة','box')}
