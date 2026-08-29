@@ -773,19 +773,8 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
 .tscroll thead th{position:static}
 
 
-/* ---------------- صف التسجيل السريع في الرئيسية ----------------
-   أكثر ما يفعله أمين المخزن هو التسجيل لا القراءة، فأول ما تفتح الشاشة
-   يكون المسار جاهزاً بلمسة واحدة. مضغوط عمداً (٦٤ بكسل) حتى تبقى بطاقة
-   «مديونية المبايع» ظاهرة في نفس الشاشة — الأرصدة مطلوبة مش زيادة. */
-.quickrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.quickrow button{background:var(--card);border:1.5px solid var(--line-2);border-radius:12px;
-  padding:8px 4px;min-height:64px;font-family:inherit;font-size:var(--fs-xs);font-weight:600;
-  color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:4px;min-width:0}
-.quickrow button .ico{font-size:var(--ic-md)}
-.quickrow .q-acct{border-color:var(--c-acct)}.quickrow .q-acct .ico{color:var(--c-acct)}
-.quickrow .q-coll{border-color:var(--credit)}.quickrow .q-coll .ico{color:var(--credit)}
-.quickrow .q-box{border-color:var(--c-box)}.quickrow .q-box .ico{color:var(--c-box)}
+/* ملاحظة: كان هنا `.quickrow` — صف تسجيل في أعلى الرئيسية. اتشال في 4.21.0
+   لأنه بيكرّر الزر العائم بعد ما بقى أفعالاً صريحة، وكان بيزحّ الأرصدة. */
 
 /* ---------------- سطر التاريخ المطويّ ----------------
    التاريخ اليوم في كل الحالات تقريباً، وكان حقلاً بعرض الشاشة يقف بين
@@ -907,6 +896,7 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
   <div id="fabbd" data-act="fabClose"></div>
   <div id="fabmenu">
     <button data-act="fabGo" data-go="ops|ops|acct|fin|invoice" class="f-acct"><span>فاتورة بيع</span><i><svg class="ico"><use href="#i-doc"/></svg></i></button>
+    <button data-act="fabGo" data-go="ops|ops|acct|fin|collect" class="f-coll"><span>تحصيل</span><i><svg class="ico"><use href="#i-money"/></svg></i></button>
     <button data-act="fabGo" data-go="ops|ops|box"     class="f-box"><span>حركة بكش</span><i><svg class="ico"><use href="#i-box"/></svg></i></button>
     <button data-act="fabGo" data-go="ops|ops|drv"     class="f-drv"><span>رحلة سائق</span><i><svg class="ico"><use href="#i-truck"/></svg></i></button>
     <button data-act="fabGo" data-go="ops|ops|ice"     class="f-ice"><span>عملية ثلج</span><i><svg class="ico"><use href="#i-ice"/></svg></i></button>
@@ -1032,7 +1022,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.20.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.22.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1625,14 +1615,6 @@ function vHome(){
   const drvList=D.drivers.filter(x=>Math.abs(x.balance)>.004).sort((a,b)=>b.balance-a.balance);
 
   return `
-  <div class="quickrow">
-    <button class="q-acct" data-act="fabGo" data-go="ops|ops|acct|fin|invoice">
-      ${IC('doc')}فاتورة بيع</button>
-    <button class="q-coll" data-act="fabGo" data-go="ops|ops|acct|fin|collect">
-      ${IC('money')}تحصيل</button>
-    <button class="q-box" data-act="fabGo" data-go="ops|ops|box|box|out">
-      ${IC('box')}حركة بكش</button>
-  </div>
   ${AT.length?`<div class="attn">
     <button class="attnh" data-act="drill" data-key="attn" aria-expanded="${!!d.attn}">
       محتاج انتباهك <span class="ab ${AT.some(x=>x.tone==='bad')?'bad':''}">${AT.length}</span>
@@ -1764,7 +1746,7 @@ function custodyList(arr,key){
 /* الحسابات: الفعلان اليوميان بارزان، والباقي روابط ثانوية بعدّاداتها.
    كان خمسة تبويبات متساوية رغم أن اثنين منها يُستخدمان كل يوم والباقي أسبوعياً. */
 function vFin(){
-  const D=S.D,nd=D.drafts.length,na=D.activeFarms.length,nr=D.settlements.length;
+  const D=S.D,nd=D.drafts.length,na=D.activeFarms.length,nr=D.actSet.length;
   const cur=S.sub.fin;
   const main=`<div class="seg" data-seg="fin">
     <button data-sub="invoice" aria-selected="${cur==='invoice'}">${IC('doc')}فاتورة بيع</button>
@@ -3148,7 +3130,15 @@ function repBox(){
           مدى أكبر من يوم يعرض ملخصاً يومياً.</p></div>`;
   }
   if(S.sub.repbox==='daily'){
-    /* رصيد افتتاحي = كل الحركات قبل «من»، ثم يوم بيوم: وارد − صادر = رصيد ختامي */
+    /* رصيد افتتاحي = كل الحركات قبل «من»، ثم يوم بيوم: وارد − صادر = رصيد ختامي.
+       الوارد والصادر مفصولان سليم/تالف في المخزن وحده (قاعدة ٦: التالف في
+       المخزن فقط). كانا مدموجين في رقم واحد، فما كنتش تعرف صندوق راجع من
+       سائق دخل سليم ولا تالف إلا بفتح كشف الحركة. الفصل بلا أعمدة جديدة:
+       الرقم الأحمر بجانبه هو التالف، بنفس عُرف خانتَي الرصيد. */
+    const wh=loc===WH;
+    const dmgN=n=>n?` <span style="color:var(--debt)">+${n}ت</span>`:'';
+    const bal=(i,d2)=>`${i}${wh?dmgN(d2):''}`;
+    const mv=(i,d2)=>!i&&!d2?'':wh?`${i||0}${dmgN(d2)}`:`${i+d2||''}`;
     let oI=0,oD=0;
     ents.filter(e=>e.date<F.from).forEach(e=>legsOf(e).forEach(l=>{
       if(l.to===loc){l.cond==='intact'?oI+=l.count:oD+=l.count}
@@ -3161,16 +3151,18 @@ function repBox(){
     let ci=oI,cd=oD;
     const rows=Object.keys(days).sort().map(dt=>{const x=days[dt];
       const bi=ci,bd=cd;ci+=x.iIn-x.iOut;cd+=x.dIn-x.dOut;
-      return `<tr><td class="n">${arDate(dt)}</td><td class="n">${bi}${loc===WH?` <span style="color:var(--debt)">+${bd}ت</span>`:''}</td>
-        <td class="n cin">${x.iIn+x.dIn||''}</td><td class="n cout">${x.iOut+x.dOut||''}</td>
-        <td class="n" style="font-weight:600">${ci}${loc===WH?` <span style="color:var(--debt)">+${cd}ت</span>`:''}</td></tr>`}).join('');
-    const tin=Object.values(days).reduce((t,x)=>t+x.iIn+x.dIn,0);
-    const tout=Object.values(days).reduce((t,x)=>t+x.iOut+x.dOut,0);
+      return `<tr><td class="n">${arDate(dt)}</td><td class="n">${bal(bi,bd)}</td>
+        <td class="n cin">${mv(x.iIn,x.dIn)}</td><td class="n cout">${mv(x.iOut,x.dOut)}</td>
+        <td class="n" style="font-weight:600">${bal(ci,cd)}</td></tr>`}).join('');
+    const V=Object.values(days);
+    const tiI=sum(V,x=>x.iIn),tdI=sum(V,x=>x.dIn),tiO=sum(V,x=>x.iOut),tdO=sum(V,x=>x.dOut);
     const B=(i,d2)=>loc===WH?`${i} سليم · ${d2} تالف`:`${i}`;
     const tbl=`<table><thead><tr><th>اليوم</th><th class="n">رصيد أول اليوم</th>
-      <th class="n">وارد</th><th class="n">صادر</th><th class="n">رصيد آخر اليوم</th></tr></thead>
+      <th class="n">وارد${wh?' <span style="font-weight:400">سليم·تالف</span>':''}</th>
+      <th class="n">صادر${wh?' <span style="font-weight:400">سليم·تالف</span>':''}</th>
+      <th class="n">رصيد آخر اليوم</th></tr></thead>
       <tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td class="n">${B(oI,oD)}</td>
-      <td class="n cin">${tin}</td><td class="n cout">${tout}</td>
+      <td class="n cin">${mv(tiI,tdI)}</td><td class="n cout">${mv(tiO,tdO)}</td>
       <td class="n">${B(ci,cd)}</td></tr></tfoot></table>`;
     S.print={title:`تقرير البكش اليومي — ${D.nameOf(loc)}`,html:tbl};
     return t+`<div class="eyebrow">تقرير يومي — ${esc(D.nameOf(loc))}</div>
@@ -3588,7 +3580,11 @@ function cmpLine(cur,prev,label,fmt=money){
 function incomeSpan(from,to,ent){
   const D=S.D;
   const inSp=e=>(!from||e.date>=from)&&(!to||e.date<=to);
-  const ss=D.settlements.filter(s=>inSp(s)&&!D.dead.has(s.id)&&(!ent||s.farmId===ent));
+  /* `actSet` لا `settlements`: إلغاء التصفية حركة `settlement_reversal` منفصلة
+     تدخل `D.voided`، وهي **ليست** في `D.dead` (التي للـ`void`/`replaces` فقط).
+     كان التقرير يعدّ الملغاة والتصفية البديلة معاً فتظهر المزرعة بتصفيتين
+     وعمولة مضاعفة. باقي الشاشات كانت سليمة لأنها على `actSet` أصلاً. */
+  const ss=D.actSet.filter(s=>inSp(s)&&!D.dead.has(s.id)&&(!ent||s.farmId===ent));
   const comm=sumM(ss,s=>s.commission);
   const total=sumM(ss,s=>s.total);
   const boxBuy=sumM(D.live.filter(e=>e.type==='box'&&e.op==='purchase_in'&&inSp(e)
