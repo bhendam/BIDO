@@ -295,16 +295,18 @@ main>.rptname:first-child{margin-top:4px}
 .drow .zok{color:var(--muted);font-size:var(--fs-s);font-weight:500}
 
 /* ---------------- الجداول ---------------- */
-table{width:100%;border-collapse:collapse;font-size:var(--fs-m);text-align:center}
-th{text-align:center;font-size:var(--fs-xs);color:var(--muted);font-weight:600;
+table{width:100%;border-collapse:collapse;font-size:var(--fs-m);text-align:start}
+th{text-align:start;font-size:var(--fs-xs);color:var(--muted);font-weight:600;
   padding:8px 8px;background:var(--card-2);white-space:nowrap;border-bottom:1px solid var(--line-2)}
 th:first-child{border-start-start-radius:8px}
 th:last-child{border-start-end-radius:8px}
-td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);text-align:center}
+td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink);text-align:start}
 tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--card-2) 40%,transparent)}
 tr:last-child td{border-bottom:0}
-td.n,th.n{text-align:center}
-td.n{font-size:var(--fs-m);font-variant-numeric:tabular-nums}
+/* الأرقام على «بداية» السطر (= يمين في RTL) مع tabular-nums، فالآحاد تقع تحت
+   الآحاد ويُقرأ العمود بنظرة. التوسيط كان بيبطّل tabular-nums وهي مفعّلة. */
+td.n,th.n{text-align:start;font-variant-numeric:tabular-nums}
+td.n{font-size:var(--fs-m)}
 tfoot td{font-weight:600;border-top:2px solid var(--ink-2);background:var(--card-2);font-size:var(--fs-m)}
 tfoot tr:nth-child(even) td{background:var(--card-2)}
 .tname{font-weight:600}
@@ -408,6 +410,36 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 
 /* ملاحظة: كانت هنا نسخة أولى من `.attn` كُتبت مرتين والثانية (تحت) هي العاملة
    — اتشالت في 4.17.0 مع الفئات الميتة `.a1` و`.ab` و`.a2`. */
+/* شريط «النهارده» — صورة اليوم الجاري في سطر واحد فوق كل حاجة.
+   الأرقام دي كانت محسوبة في derive من زمان، بس ما كانتش بتظهر غير في نص
+   واتساب وورقة الطباعة: يعني المستخدم كان لازم يطبع عشان يعرف باع كام النهارده.
+   ارتفاعه مضبوط (~72px) عشان بطاقة مديونية المبايع تفضل في نفس الشاشة —
+   نفس قيد الـ٦٤px بتاع صف التسجيل في 4.18.0. */
+.today{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s2) var(--s3);margin-bottom:var(--s3);width:100%;display:block;
+  text-align:start;position:relative;overflow:hidden;color:inherit;cursor:pointer}
+.today::after{content:"";position:absolute;inset-block:0;inset-inline-start:0;
+  width:5px;background:var(--c-acct)}
+.todayh{display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-xs);
+  color:var(--muted);font-weight:600;margin-bottom:var(--s2)}
+.todayh .tdate{font-weight:400}
+.todayh .go{margin-inline-start:auto;font-size:var(--fs-s)}
+.todayg{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1)}
+.todayc{text-align:center;min-width:0}
+.todayc b{display:block;font-size:var(--fs-l);font-weight:700;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todayc span{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:2px}
+/* المسوّدات في شريط اليوم: رقم البيع ناقص طالما فيه فاتورة بلا مبلغ،
+   فالوسم بيقول للمستخدم إن الرقم اللي فوق مش نهائي (قاعدة ٨.٤). */
+.todayc .tdraft{display:inline;color:var(--warn);font-weight:700;font-size:var(--fs-xs)}
+/* اليوم الهادي: مافيش ولا حركة اتسجّلت — نقول كده صراحةً بدل أربع أصفار
+   بأكبر خط في السطر (نفس قاعدة «الصفر علامة لا رقم»). */
+.today.quiet .todayg{display:none}
+.today.quiet .todayh{margin-bottom:0;color:var(--muted);font-weight:400;font-size:var(--fs-s)}
+/* السطر المساعد الرمادي داخل صفوف القوائم — كان مكتوباً inline في ٩ مواضع
+   بنفس القيمتين، فأي تعديل عليه كان لازم يتكرّر تسعة. */
+.dsub{color:var(--muted);font-size:var(--fs-xs)}
+.whn{font-size:var(--fs-xl);font-weight:700}
 .allok{background:var(--credit-bg);border:1px solid var(--credit);color:var(--credit);
   border-radius:var(--r);padding:12px 16px;margin-bottom:12px;font-size:var(--fs-m);font-weight:600}
 
@@ -543,19 +575,29 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .qr button{flex:0 0 auto;background:var(--card);border:1.5px solid var(--line-2);color:var(--muted);
   padding:8px 12px;border-radius:22px;font-size:var(--fs-s);min-height:44px}
 .qr button[aria-selected=true]{background:var(--ink);color:var(--card);border-color:var(--ink);font-weight:600}
-/* رأس التقرير وسطر الفلتر */
-.rephead{width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;
-  font-family:inherit;text-align:right;cursor:pointer}
-.rephead .rh1{display:flex;align-items:center;gap:8px}
-.rephead .rh1 b{font-size:var(--fs-l);font-weight:600}
-.rephead .rh1 .go{margin-inline-start:auto;font-size:var(--fs-s);color:var(--accent);font-weight:600}
-.rephead .rh2{font-size:var(--fs-s);color:var(--muted)}
-.filtline{width:100%;background:var(--card-2);border:1px solid var(--line);border-radius:11px;
-  padding:12px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;
-  font-family:inherit;font-size:var(--fs-s);color:var(--ink-2);text-align:right;cursor:pointer;min-height:46px}
-.filtline span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.filtline .go{color:var(--accent);font-weight:600}
+/* .ico الأساسية display:block — جوّه زرار سطر واحد لازم inline-block
+   وإلا نزلت الأيقونة تحت النص وطوّلت الزرار. */
+.qr button .ico{display:inline-block;width:var(--ic-sm);height:var(--ic-sm);
+  margin-inline-end:var(--s1);vertical-align:-4px;fill:currentColor}
+/* شريط التقرير — طبقة تحكّم واحدة بدل ثلاثة صناديق فوق بعض.
+   كان: رأس (اسم + وصف) ثم شريط المختصرات ثم سطر الفلتر = ~١٨٤px قبل أول رقم،
+   ومع الترويسة تقريباً ربع الشاشة من غير ما تشوف حاجة من التقرير.
+   بقى: بطاقة واحدة سطرين — الاسم وتغييره فوق، والفلتر تحته بحدّ فاصل.
+   **وصف التقرير اتشال من الشاشة** وفضل في قائمة الاختيار (`.rd2`) حيث ينفع:
+   وقت الاختيار محتاج تعرف الفرق بين تقريرين، وبعد ما تفتحه إنت عارف. */
+.repbar{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  margin-bottom:var(--s3);overflow:hidden}
+.repbar>button{width:100%;background:none;border:0;font-family:inherit;
+  text-align:start;cursor:pointer;color:inherit;display:flex;align-items:center;
+  gap:var(--s2);padding:var(--s3) var(--s4);min-height:48px}
+.rephead b{font-size:var(--fs-l);font-weight:600;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rephead .go{font-size:var(--fs-s);color:var(--accent);font-weight:600;flex:0 0 auto}
+.filtline{border-top:1px solid var(--line)!important;background:var(--card-2);
+  font-size:var(--fs-s);color:var(--ink-2)}
+.filtline .fs{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filtline .go{color:var(--accent);font-weight:600;flex:0 0 auto}
+.filtline .ico{color:var(--muted);flex:0 0 auto}
 .repopt{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
   padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:2px;
   font-family:inherit;text-align:right;cursor:pointer;color:var(--ink);position:relative}
@@ -566,7 +608,13 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 /* صفّ التقرير في القائمة = زرار الاختيار + زرار التثبيت جنبه (زرار جوّه زرار HTML غلط) */
 .repline{display:flex;gap:4px;align-items:stretch;margin-bottom:8px}
 .repline .repopt{margin-bottom:0;flex:1;min-width:0}
+/* المثبّت = نجمة مصمتة، غير المثبّت = نجمة مفرّغة. الرمزان النصيان ★/☆
+   بيختلف شكلهما وعرضهما بين الأجهزة وبيجوا ملوّنين غصباً (قاعدة ١١)، فالفرق
+   بقى في التعبئة لا في محرف تاني. */
+.pinb .ico{fill:none}
+.pinb.on .ico{fill:currentColor}
 .pinb{flex:0 0 48px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
   font-size:var(--ic-md);color:var(--line-2);cursor:pointer;font-family:inherit}
 .pinb.on{color:var(--warn);border-color:var(--warn);background:var(--card)}
 .pinb:disabled{opacity:.35;cursor:default}
@@ -827,12 +875,11 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
   #print tfoot{display:table-footer-group}
   #print tr{page-break-inside:avoid;break-inside:avoid}
   #print th{background:#E8E8E8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;
-    border:0.6pt solid #555;padding:6px 7px;text-align:center;font-weight:700;font-size:9pt}
-  #print td{border:0.6pt solid #999;padding:5px 7px;text-align:center}
+    border:0.6pt solid #555;padding:6px 7px;text-align:right;font-weight:700;font-size:9pt}
+  #print td{border:0.6pt solid #999;padding:5px 7px;text-align:right}
   #print tbody tr:nth-child(even) td{background:#F6F6F6!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  #print td.n,#print th.n{text-align:center;font-variant-numeric:tabular-nums}
-  #print td.tname,#print th:first-child:not(.n),#print td:first-child:not(.n){text-align:right}
+  #print td.n,#print th.n{text-align:right;font-variant-numeric:tabular-nums}
   #print tfoot td{font-weight:700;border-top:1.6pt solid #000;background:#EDEDED!important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
 
@@ -875,6 +922,9 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
 <symbol id="i-install" viewBox="0 0 24 24"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.4"/><path d="M12 7.4v6.6"/><path d="m9.4 11.4 2.6 2.6 2.6-2.6"/></symbol>
 <symbol id="i-hash" viewBox="0 0 24 24"><path d="M9.6 3.8 7.8 20.2M16.4 3.8l-1.8 16.4M4.2 8.8h15.6M3.8 15.2h15.6"/></symbol>
 <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.7" cy="10.7" r="6.4"/><path d="m15.4 15.4 4.4 4.4"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3.8 5.6h16.4L13.8 13v6.2l-3.6-2v-4.2z"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.4 5.8.8-4.2 4.1 1 5.9L12 17l-5.2 2.8 1-5.9-4.2-4.1 5.8-.8z"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6.2 6.2 17.8 17.8M17.8 6.2 6.2 17.8"/></symbol>
 </svg>
 <header>
   <div class="brand">
@@ -1022,7 +1072,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.22.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.24.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1307,7 +1357,19 @@ function derive(entities,ledger){
       farmDue:sumM(farms,f=>f.balance),driverDue:sumM(drivers,d=>Math.max(d.balance,0)),
       iceDue:sumM(factories,f=>Math.max(f.balance,0)),iceBlocks:sum(factories,f=>f.blocks),
       todaySales:sumM(live.filter(e=>e.type==='invoice'&&e.date===t),e=>e.amount),
-      todayCollected:sumM(live.filter(e=>e.type==='collection'&&e.date===t),e=>e.amount)},
+      todayCollected:sumM(live.filter(e=>e.type==='collection'&&e.date===t),e=>e.amount),
+      /* أرقام اليوم الجاري — نقطة حساب واحدة يقرأ منها شريط الرئيسية ونص
+         واتساب وورقة الطباعة، فلا يختلف الرقم بين الشاشة والورقة.
+         الصادر/الوارد من منظور المخزن: رِجل داخلة إلى WH = وارد، وخارجة منه
+         = صادر. أي رِجل بين جهتين (بيع مباشر مزرعة→مبيع) لا تخصّ المخزن. */
+      todayBoxIn:sum(live.filter(e=>e.type==='box'&&e.date===t),
+        e=>sum(legsOf(e).filter(l=>l.to===WH),l=>l.count)),
+      todayBoxOut:sum(live.filter(e=>e.type==='box'&&e.date===t),
+        e=>sum(legsOf(e).filter(l=>l.from===WH),l=>l.count)),
+      todayInv:live.filter(e=>e.type==='invoice'&&e.date===t&&+e.amount>0).length,
+      todayDrafts:live.filter(e=>e.type==='invoice'&&e.date===t&&!(+e.amount>0)).length,
+      todayBoxSold:sum(live.filter(e=>e.type==='invoice'&&e.date===t),e=>e.boxes),
+      todayOps:live.filter(e=>e.date===t).length},
     todays:live.filter(e=>e.date===t)}}
 
 async function refresh(){
@@ -1320,6 +1382,7 @@ async function refresh(){
   S.bk=(await getMeta('backup'))||S.bk;
   S.wipeLog=(await getMeta('wipeLog'))||[];
   S.recentRep=(await getMeta('repRecent'))||[];
+  S.drill=(await getMeta('drill'))||S.drill;
   S.pinRep=(await getMeta('repPin'))||[];
   S.devId=(await getMeta('deviceId'))||"";
   if(!S.devId){S.devId=uid();await setMeta('deviceId',S.devId)}
@@ -1614,7 +1677,24 @@ function vHome(){
   const merchList=D.merchants.filter(m=>Math.abs(m.balance)>.004).sort((a,b)=>b.balance-a.balance);
   const drvList=D.drivers.filter(x=>Math.abs(x.balance)>.004).sort((a,b)=>b.balance-a.balance);
 
+  /* شريط اليوم فوق كل حاجة: المستخدم بيفتح التطبيق وهو عايز يعرف
+     «عملت إيه النهارده» قبل الأرصدة التراكمية. الضغط عليه يفتح ورقة التسليم. */
+  const tq=!k.todayOps;
+  const tcell=(v,l)=>`<div class="todayc"><b>${v}</b><span>${l}</span></div>`;
   return `
+  <button class="today${tq?' quiet':''}" data-act="goHand">
+    <div class="todayh">${IC('cal')}<span>النهارده</span>
+      <span class="tdate num">${arDate(todayISO())}</span>
+      ${tq?'<span>— لسه مافيش حركة اتسجّلت</span>'
+        :`<span class="tdate">· ${k.todayOps} حركة</span><span class="go">‹</span>`}</div>
+    ${tq?'':`<div class="todayg">
+      ${tcell(`<span class="num">${money(k.todaySales)}</span>`,
+        `بيع${k.todayInv?` · ${k.todayInv}`:''}${k.todayDrafts?` <b class="tdraft">+${k.todayDrafts}م</b>`:''}`)}
+      ${tcell(`<span class="num">${money(k.todayCollected)}</span>`,'تحصيل')}
+      ${tcell(`<span class="num">${k.todayBoxOut}</span>`,'بكش صادر')}
+      ${tcell(`<span class="num">${k.todayBoxIn}</span>`,'بكش وارد')}
+    </div>`}
+  </button>
   ${AT.length?`<div class="attn">
     <button class="attnh" data-act="drill" data-key="attn" aria-expanded="${!!d.attn}">
       محتاج انتباهك <span class="ab ${AT.some(x=>x.tone==='bad')?'bad':''}">${AT.length}</span>
@@ -1623,7 +1703,7 @@ function vHome(){
       <span class="ar1"><b>${esc(x.t)}</b><span class="av">${esc(x.v)}</span></span>
       <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join(''):''}
   </div>`:`<div class="allok">✓ مافيش حاجة محتاجة انتباه — كله ماشي</div>`}
-  ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:14px">
+  ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:var(--s4)">
     <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز</div>
     <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
     <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
@@ -1644,7 +1724,7 @@ function vHome(){
       D.activeFarms.sort((a,b)=>b.cycleTotal-a.cycleTotal).map(f=>
       `<button class="drow" data-act="settleFarm" data-id="${f.id}"><span class="tname">${esc(f.name)}
         ${f.cycleStart?`<span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</span>
-        <span style="color:var(--muted);font-size:var(--fs-xs)">${f.cycleCount} فاتورة</span>
+        <span class="dsub">${f.cycleCount} فاتورة</span>
         <b>${money(f.cycleTotal)}</b><span class="go">‹</span></button>`).join(''):''}
     ${(()=>{const done=D.farms.filter(f=>!f.cycleCount);
       /* المصفّاة بتتلمّ في سطر واحد: عندها كلها رصيد مقفول ومافيش قرار مطلوب،
@@ -1679,15 +1759,15 @@ function vHome(){
       <div class="val sm num">${D.custody.farms}</div><div class="sub">صندوق</div></button>
   </div>
   ${d.cm?custodyList(D.mBox,'cm'):''}${d.cf?custodyList(D.fBox,'cf'):''}
-  <div class="card" style="margin-top:10px">
-    <div class="lbl" style="font-size:var(--fs-xs);color:var(--muted);font-weight:600;margin-bottom:8px">عهدة المخزن</div>
+  <div class="card" style="margin-top:var(--s3)">
+    <div class="lbl dsub" style="font-weight:600;margin-bottom:var(--s2)">عهدة المخزن</div>
     <div class="row">
-      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">سليم</div>
-        <div class="val num" style="font-size:var(--fs-xl);font-weight:700;color:var(--paid)">${D.wh.intact}</div></div>
-      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">تالف</div>
-        <div class="val num" style="font-size:var(--fs-xl);font-weight:700;color:var(--debt)">${D.wh.damaged}</div></div>
-      <div><div class="sub" style="font-size:var(--fs-xs);color:var(--muted)">الإجمالي</div>
-        <div class="val num" style="font-size:var(--fs-xl);font-weight:700">${D.wh.total}</div></div>
+      <div><div class="sub dsub">سليم</div>
+        <div class="val num whn" style="color:var(--paid)">${D.wh.intact}</div></div>
+      <div><div class="sub dsub">تالف</div>
+        <div class="val num whn" style="color:var(--debt)">${D.wh.damaged}</div></div>
+      <div><div class="sub dsub">الإجمالي</div>
+        <div class="val num whn">${D.wh.total}</div></div>
     </div>
   </div>
 
@@ -1707,10 +1787,10 @@ function vHome(){
   </button>
   ${d.ice?`<div class="drill">${D.factories.length?D.factories.map(f=>
     `<button class="drow" data-act="repFactory" data-id="${f.id}"><span class="tname">${esc(f.name)}</span>
-      <span style="color:var(--muted);font-size:var(--fs-xs)">${f.blocks} بلاطة</span>
+      <span class="dsub">${f.blocks} بلاطة</span>
       <b>${money(f.balance)}</b><span class="go">‹</span></button>`).join(''):'<div class="empty" style="margin:8px 0">لا يوجد مصانع</div>'}</div>`:''}
 
-  <div class="btnrow" style="margin-top:18px">
+  <div class="btnrow" style="margin-top:var(--s5)">
     <button class="btn wa" data-act="shareDaily">${IC('share')}ملخص اليوم واتساب</button>
     <button class="btn ghost" data-act="printDaily">${IC('print')}طباعة PDF</button>
   </div>`;
@@ -1724,7 +1804,7 @@ const pct=(a,b)=>b>0?Math.max(0,Math.round(a/b*100)):0;
 */
 function custodyList(arr,key){
   const row=x=>`<button class="drow" data-act="repEntity" data-id="${x.id}"><span class="tname">${esc(x.name)}</span>
-      <span style="color:var(--muted);font-size:var(--fs-xs)">${x.box.loss?`فاقد ${x.box.loss}`:''}${x.box.intact<0?' · عندنا':''}</span>
+      <span class="dsub">${x.box.loss?`فاقد ${x.box.loss}`:''}${x.box.intact<0?' · عندنا':''}</span>
       ${x.box.total||x.box.intact<0
         ?`<b style="color:${x.box.intact<0?'var(--credit)':'inherit'}">${x.box.intact}</b>`
         :`<b class="zok">✓ مسلَّم</b>`}<span class="go">‹</span></button>`;
@@ -2480,7 +2560,8 @@ function repPick(){
         <span class="rl">${l}</span><span class="rd2">${d}</span>
         ${k===cur?'<span class="go">✓</span>':''}</button>
       <button type="button" class="pinb${on?' on':''}" data-rpin="${k}"${!on&&full?' disabled':''}
-        aria-label="تثبيت في الشريط المختصر" title="تثبيت في الشريط المختصر">${on?'★':'☆'}</button></div>`};
+        aria-pressed="${on}" aria-label="تثبيت في الشريط المختصر"
+        title="تثبيت في الشريط المختصر">${IC('star')}</button></div>`};
   const draw=q=>{
     const t=arNorm(q);
     if(t){
@@ -2489,7 +2570,7 @@ function repPick(){
         :`<div class="empty">مفيش تقرير بـ«${esc(q.trim())}» — جرّب كلمة زي: فلوس · بكش · ثلج · تالف · تحصيل · جرد</div>`;
     }
     let h='';
-    if(pins().length)h+=`<div class="drillsec">المثبّتة ★</div>`+pins().map(row).join('');
+    if(pins().length)h+=`<div class="drillsec">المثبّتة</div>`+pins().map(row).join('');
     if(recs().length)h+=`<div class="drillsec">آخر ما فتحت</div>`+recs().map(row).join('');
     return h+[...new Set(REPS.map(r=>r[3]))].map(g=>`<div class="drillsec">${g}</div>`+
       REPS.filter(r=>r[3]===g).map(r=>row(r[0])).join('')).join('');
@@ -2498,10 +2579,10 @@ function repPick(){
   /* بلا focus تلقائي: القائمة نفسها هي الطريق الأسرع في الغالب، وفتح كيبورد
      الموبايل من غير طلب بيغطّيها. الكتابة اختيار مش إجبار. */
   d.innerHTML=`<div class="sheet"><h3>اختر التقرير</h3>
-    <p class="sub">دوّر بالاسم أو بالمعنى — أو ثبّت (★) اللي بتفتحه كل يوم</p>
+    <p class="sub">دوّر بالاسم أو بالمعنى — أو ثبّت بالنجمة اللي بتفتحه كل يوم</p>
     <div class="field"><input id="rpq" placeholder="بحث… (فلوس · بكش · ثلج · تالف)" autocomplete="off" enterkeyhint="search"></div>
     <div id="rplist" style="max-height:54vh;overflow:auto">${draw('')}</div>
-    <p class="note" id="rpnote" style="margin:8px 0 0">${pins().length>=PINMAX?`وصلت ${PINMAX} مثبّتة — شيل واحداً قبل ما تثبّت غيره.`:'★ = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'}</p>
+    <p class="note" id="rpnote" style="margin:8px 0 0">${pins().length>=PINMAX?`وصلت ${PINMAX} مثبّتة — شيل واحداً قبل ما تثبّت غيره.`:'النجمة = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'}</p>
     <button type="button" class="btn ghost" id="rpx" style="margin-top:10px">إلغاء</button></div>`;
   d.classList.add('on');
   const close=()=>{d.classList.remove('on');d.innerHTML='';d.onclick=null};
@@ -2509,7 +2590,7 @@ function repPick(){
   const redraw=()=>{$('#rplist').innerHTML=draw(q.value);
     $('#rpnote').textContent=pins().length>=PINMAX
       ?`وصلت ${PINMAX} مثبّتة — شيل واحداً قبل ما تثبّت غيره.`
-      :'★ = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'};
+      :'النجمة = يظهر كزرار مختصر فوق التقرير من غير ما تفتح القائمة.'};
   q.addEventListener('input',redraw);
   d.onclick=ev=>{
     if(ev.target===d||ev.target.id==='rpx')return close();
@@ -2526,7 +2607,7 @@ function repQuick(){
   const ks=pins.length?pins:(S.recentRep||[]).filter(repKnown).slice(0,4);
   if(ks.length<2)return '';
   return `<div class="qr" style="margin:0 0 10px">${ks.map(k=>
-    `<button data-act="repSel" data-r="${k}" aria-selected="${k===cur}">${pins.length?'★ ':''}${repInfo(k)[1]}</button>`).join('')}</div>`;
+    `<button data-act="repSel" data-r="${k}" aria-selected="${k===cur}">${pins.length?IC('star'):''}${repInfo(k)[1]}</button>`).join('')}</div>`;
 }
 /* سطر الفلتر: ملخّص في سطر، ويتوسّع بالضغط */
 const fsum=()=>{
@@ -2536,11 +2617,13 @@ const fsum=()=>{
   return `${per} · ${e}${F.q?` · «${F.q}»`:''}`;
 };
 function vRep(){
-  const r=S.rep||'hand',[,lbl,desc]=repInfo(r);
-  const head=`<button class="rephead" data-act="repPick">
-    <span class="rh1"><b>${lbl}</b><span class="go">تغيير ▾</span></span>
-    <span class="rh2">${desc}</span></button>`+repQuick();
-  if(r==='hand')return head+handover()+repActions();
+  const r=S.rep||'hand',[,lbl]=repInfo(r);
+  /* سطر الفلتر جوّه نفس البطاقة: الاتنين تحكّم في نفس التقرير، وفصلهما في
+     صندوقين بحدّين كان بيقول للعين إنهما شيئان مختلفان. */
+  const bar=inner=>`<div class="repbar">
+    <button class="rephead" data-act="repPick"><b>${lbl}</b><span class="go">تغيير ▾</span></button>
+    ${inner}</div>`+repQuick();
+  if(r==='hand')return bar('')+handover()+repActions();
   S.sub.repbox=r;
   const fn={all:repAll,drv:repDrv,ice:repIce,drvAll:repDrv,iceAll:repIce,
     income:repIncome,aging:repAging,boxLoss:repBoxLoss,
@@ -2548,9 +2631,11 @@ function vRep(){
     costDaily:repCostDaily,
     boxAll:repBoxAll,farmsAll:repFarmsAll,merchAll:repMerchAll,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
-  const line=`<button class="filtline" data-act="fToggle">
-    <span>${IC('search')}${esc(fsum())}</span><span class="go">${S.fopen?'▴':'✎'}</span></button>`;
-  return head+line+(S.fopen?filterBar():'')+fn()+repActions();
+  /* أيقونة فلتر لا عدسة بحث: السطر بيفلتر مدة وجهة، والعدسة كانت بتوعد ببحث. */
+  const line=`<button class="filtline" data-act="fToggle">${IC('filter')}
+    <span class="fs">${esc(fsum())}</span>
+    <span class="go">${S.fopen?'▴':'تعديل'}</span></button>`;
+  return bar(line)+(S.fopen?filterBar():'')+fn()+repActions();
 }
 function repActions(){
   const F=S.F;
@@ -2586,7 +2671,8 @@ function filterBar(){
       <div class="fent">
         <button type="button" class="btn ghost" data-act="fPick" data-et="${etype}" style="flex:1;text-align:right">
           ${cur?esc(cur.name):(F.ent===WH?'المخزن':'كل الجهات')}</button>
-        ${F.ent?`<button type="button" class="btn ghost sm" data-act="fClear">✕</button>`:''}
+        ${F.ent?`<button type="button" class="btn ghost sm" data-act="fClear"
+          aria-label="مسح اختيار الجهة">${IC('x')}</button>`:''}
       </div></div>`}
     <div class="field" style="margin:12px 0 0"><label>بحث في الملاحظات</label>
       <input data-role="fQ" value="${esc(F.q)}" placeholder="نوع سمك، رقم عربية…"></div>
@@ -2594,6 +2680,8 @@ function filterBar(){
 }
 /* صفحة اختيار الجهة للتقارير: المزارع النشطة أولاً كمقترحات، ثم بحث في الكل */
 /* بحث موحّد: خانة واحدة تدوّر في الجهات والفواتير والحركات وتوديك للنتيجة */
+const SLBL={farm:'مزرعة',merchant:'مبيع',driver:'سائق',ice:'مصنع'};
+const lblOf=t=>SLBL[t]||'';
 function openSearch(){
   const D=S.D;
   const draw=q=>{
@@ -2604,17 +2692,27 @@ function openSearch(){
     const ents=[...D.farms.map(x=>[x,'مزرعة','farm']),...D.merchants.map(x=>[x,'مبيع','merchant']),
       ...D.drivers.map(x=>[x,'سائق','driver']),...D.factories.map(x=>[x,'مصنع','ice'])]
       .filter(([x])=>(x.name+' '+(x.place||'')).toLowerCase().includes(t));
+    /* الرصيد في نتيجة البحث نفسها: البحث كان بيوصّل لاسم الجهة وبس، والمستخدم
+       بيدوّر على الرقم لا على الاسم — فكان لازم ضغطة تانية على تقرير كامل
+       عشان يشوف رقماً هو أصلاً محسوب. البكش بيظهر للمزارع والمبايع وحدهم
+       (السائق ملوش عهدة — قاعدة ٧ — والمصنع حساب نقدي بحت). */
+    const sbal=(x,ty)=>{
+      const bx=(ty==='farm'||ty==='merchant')?D.boxOf(x.id):null;
+      return `<span class="dsub">${lblOf(ty)}${x.place?' · '+esc(x.place):''}${
+        bx&&(bx.total||bx.intact<0)?` · بكش ${bx.intact}`:''}</span>
+        ${Math.abs(+x.balance||0)<.004?`<b class="zok">✓</b>`
+          :`<b class="num">${money(x.balance)}</b>`}`};
     if(ents.length)out.push(`<div class="drillsec">جهات (${ents.length})</div>`+
-      ents.slice(0,20).map(([x,lbl,ty])=>`<button type="button" class="drow" data-sv2="ent" data-id="${x.id}" data-t="${ty}">
+      ents.slice(0,20).map(([x,,ty])=>`<button type="button" class="drow" data-sv2="ent" data-id="${x.id}" data-t="${ty}">
         <span class="tname">${esc(x.name)}</span>
-        <span style="color:var(--muted);font-size:var(--fs-xs)">${lbl}${x.place?' · '+esc(x.place):''}</span>
+        ${sbal(x,ty)}
         <span class="go">‹</span></button>`).join(''));
     const ops=D.live.filter(e=>searchStr(e).includes(t)).sort((a,b)=>b.seq-a.seq);
     if(ops.length)out.push(`<div class="drillsec">حركات (${ops.length})</div>`+
       ops.slice(0,20).map(e=>`<button type="button" class="drow" data-sv2="op" data-id="${e.id}">
         <span class="tname">${esc(({invoice:'فاتورة',collection:'تحصيل',settlement:'تصفية',trip:'رحلة',
           ice_op:'ثلج',driver_advance:'سلفة',box:BOXOP[e.op]||'بكش'})[e.type]||e.type)}</span>
-        <span style="color:var(--muted);font-size:var(--fs-xs)">${esc(searchStr(e).slice(0,40))}</span>
+        <span class="dsub">${esc(searchStr(e).slice(0,40))}</span>
         <span class="go num">${arDate(e.date)}</span></button>`).join(''));
     return out.join('')||`<div class="empty">لا نتائج لـ «${esc(q)}»</div>`;
   };
@@ -4446,7 +4544,18 @@ function onClick(ev){
     case 'goHome':S.tab='home';S.toTop=true;return render();
     case 'more':S.page=(S.page||0)+1;return render();
     case 'setMore':S.setp=(S.setp||0)+1;return render();
-    case 'drill':S.drill[b.dataset.key]=!S.drill[b.dataset.key];return render();
+    case 'goHand':
+      /* ورقة تسليم اليوم على مدى اليوم الواحد — نفس ما يفعله selectRep
+         للتقارير اليومية، فلا يفتح التقرير على مدى الشهر ويربك القارئ. */
+      S.F={...S.F,from:todayISO(),to:todayISO(),range:'today',ent:'',q:'',type:''};
+      setRep('hand');S.tab='rep';S.toTop=true;return render();
+    case 'drill':
+      S.drill[b.dataset.key]=!S.drill[b.dataset.key];
+      /* الطيّ محفوظ: «قراءة الأرصدة» هي شغل الشاشة دي، وإجبار المستخدم
+         يفتح نفس الأقسام مع كل فتحة للتطبيق كان بيخلّي الأرقام «موجودة
+         بس مش لاقيها». محفوظ في meta لأنه تفضيل عرض لا بيانات محاسبية. */
+      setMeta('drill',S.drill).catch(()=>{});
+      return render();
     /* بلا render: الرسم يهدم النموذج ويضيّع اللي اتكتب فيه */
     case 'dateOpen':{const w=b.closest('form')||document;
       const f=w.querySelector('[data-role=dfield]'),l=w.querySelector('[data-role=dline]');
@@ -5241,6 +5350,30 @@ function runTests(){
        bx('issue_farm',[{from:'WH',to:'f1',cond:'intact',count:130}])]);
   ok("العهدة بالسالب مسموحة ومحسوبة",d.wh.intact===-30&&d.boxOf('f1').intact===130);
   ok("الفاقد لا يتأثر بالرصيد السالب",d.boxOf('WH').loss===0);
+
+  /* --- أرقام اليوم الجاري (شريط الرئيسية) --- */
+  const TD=todayISO();
+  d=D([{...inv('a',1000,20),date:TD},{...inv('b',0,15),date:TD},
+       {...inv('c',700,10),date:'2020-01-01'},
+       {type:'collection',merchantId:'m1',amount:400,date:TD},
+       {type:'collection',merchantId:'m1',amount:900,date:'2020-01-01'}]);
+  ok("بيع اليوم لا يشمل أيام أخرى",d.kpi.todaySales===1000);
+  ok("تحصيل اليوم لا يشمل أيام أخرى",d.kpi.todayCollected===400);
+  ok("عدد فواتير اليوم بلا المسوّدات",d.kpi.todayInv===1&&d.kpi.todayDrafts===1);
+  ok("صناديق اليوم تشمل المسوّدة (البكش اتحرّك فعلاً)",d.kpi.todayBoxSold===35);
+  ok("عدّاد عمليات اليوم يعدّ الحركات المؤرَّخة اليوم",d.kpi.todayOps===3);
+
+  d=D([{type:'box',op:'issue_farm',date:TD,legs:[{from:'WH',to:'f1',cond:'intact',count:100}]},
+       {type:'box',op:'return_in',date:TD,legs:[{from:'m1',to:'WH',cond:'intact',count:40}]},
+       {type:'box',op:'sale_move',date:TD,legs:[{from:'f1',to:'m1',cond:'intact',count:70}]},
+       {type:'box',op:'issue_farm',date:'2020-01-01',legs:[{from:'WH',to:'f2',cond:'intact',count:900}]}]);
+  ok("صادر اليوم من المخزن وحده",d.kpi.todayBoxOut===100);
+  ok("وارد اليوم إلى المخزن وحده",d.kpi.todayBoxIn===40);
+  ok("حركة بين جهتين لا تدخل صادر/وارد المخزن",
+     d.kpi.todayBoxOut===100&&d.kpi.todayBoxIn===40);
+
+  d=D([{...inv('a',1000),date:TD},{type:'void',voidOf:'a'}]);
+  ok("الملغاة لا تدخل أرقام اليوم",d.kpi.todaySales===0&&d.kpi.todayOps===0);
 
   S.diag={kind:'tests',rows:R,pass:R.filter(x=>x.ok).length,total:R.length};
   render();
