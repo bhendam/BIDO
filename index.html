@@ -1082,7 +1082,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="4.27.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="4.28.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -1151,14 +1151,16 @@ const VIRT={'#PURCHASE':'شراء جديد','#RECYCLE':'إعادة تدوير','
   '#ADJ':'تصحيح رصد','#OPEN':'رصيد افتتاحي','#SUPPLY':'مصدر الاستبدال'};
 const isVirt=k=>typeof k==='string'&&k[0]==='#';
 const CONDAR={intact:'سليم',damaged:'تالف'};
-const BOXOP={issue_farm:'صرف سليم لمزرعة',scrap_out:'تالف لإعادة التدوير',return_in:'وارد راجع',
+const BOXOP={issue_farm:'صرف سليم لمزرعة',issue_merchant:'صرف سليم لمبيع',
+  scrap_out:'تالف لإعادة التدوير',return_in:'وارد راجع',
   factory_replace:'استبدال بكش',purchase_in:'شراء جديد',sale_move:'بكش بيع سمك',
-  empty_back:'فارغة من مبيع لمزرعة',farm_swap:'تحويل بين مزرعتين',audit:'جرد وتسوية',
+  empty_back:'فارغة من مبيع لمزرعة',farm_swap:'تحويل بين مزرعتين',merch_swap:'تحويل بين مبيعين',audit:'جرد وتسوية',
   fix_d2i:'تصحيح: تالف ← سليم',fix_i2d:'تصحيح: سليم ← تالف',out_noone:'خروج بدون متلقي',in_nosource:'دخول بدون مصدر',
   opening_box:'رصيد بكش افتتاحي'};
 /* حقول كل عملية بكش — تُستخدم في الإدخال والتعديل معاً */
 const BOXF={
   issue_farm:[['toId','المزرعة','ent','farm'],['count','عدد الصناديق','num'],['driverId','السائق','ent','driver',1]],
+  issue_merchant:[['toId','المبيع','ent','merchant'],['count','عدد الصناديق','num'],['driverId','السائق','ent','driver',1]],
   scrap_out:[['count','عدد التالف','num']],
   return_in:[['fromId','الجهة المُرجِعة','ent','farmerchant'],
     ['okCount','بكش سليم','num',null,1],['dmgCount','بكش تالف','num',null,1],
@@ -1168,6 +1170,8 @@ const BOXF={
   sale_move:[['farmId','من مزرعة','ent','farm'],['merchantId','إلى مبيع','ent','merchant'],['count','العدد','num'],['driverId','السائق','ent','driver',1]],
   empty_back:[['merchantId','من مبيع','ent','merchant'],['farmId','إلى مزرعة','ent','farm'],['count','العدد','num'],['driverId','السائق','ent','driver',1]],
   farm_swap:[['fromId','من مزرعة','ent','farm'],['toId','إلى مزرعة','ent','farm'],['count','العدد','num']],
+  merch_swap:[['fromId','من مبيع','ent','merchant'],['toId','إلى مبيع','ent','merchant'],
+    ['count','العدد','num'],['driverId','السائق','ent','driver',1]],
   fix_d2i:[['count','العدد','num']],
   fix_i2d:[['count','العدد','num']],
   out_noone:[['locId','من موقع','ent','loc'],['cond','الحالة','cond'],['count','العدد','num']],
@@ -1178,6 +1182,10 @@ function buildLegs(op,p){
   const n=k=>Math.max(0,Math.round(+p[k]||0)),v=k=>p[k]||"";
   const L={
     issue_farm:()=>[[WH,v('toId'),'intact',n('count')]],
+    /* نفس شكل صرف المزرعة: المخزن يخرج سليماً والجهة تستلم سليماً.
+       القاعدة ٦ محفوظة — عهدة الجهات «سليم» وحده. ولا مبلغ في الحركة،
+       فمديونية المبيع لا تتأثر (القاعدة ٥). */
+    issue_merchant:()=>[[WH,v('toId'),'intact',n('count')]],
     scrap_out:()=>[[WH,'#RECYCLE','damaged',n('count')]],
     /* قاعدة النموذج: عهدة الجهات «سليم» فقط، والتالف لا يوجد إلا في المخزن.
        الصندوق خرج للجهة سليماً، فيُخصم من عهدتها سليماً حتى لو رجع تالفاً،
@@ -1190,6 +1198,7 @@ function buildLegs(op,p){
     sale_move:()=>[[v('farmId'),v('merchantId'),'intact',n('count')]],
     empty_back:()=>[[v('merchantId'),v('farmId'),'intact',n('count')]],
     farm_swap:()=>[[v('fromId'),v('toId'),'intact',n('count')]],
+    merch_swap:()=>[[v('fromId'),v('toId'),'intact',n('count')]],
     /* تصحيح الحالة في المخزن وحده — لا وجود لتالف خارجه */
     fix_d2i:()=>[[WH,'#ADJ','damaged',n('count')],['#ADJ',WH,'intact',n('count')]],
     fix_i2d:()=>[[WH,'#ADJ','intact',n('count')],['#ADJ',WH,'damaged',n('count')]],
@@ -2167,9 +2176,9 @@ function vOps(){
 /* --- بكش --- */
 /* كل عملية بكش في تبويب مستقل — الشاشة الواحدة كانت تحمل ستة نماذج فوق بعض */
 const BOXGROUP={
-  out:[['issue_farm','صرف لمزرعة'],['scrap_out','تالف للتدوير']],
+  out:[['issue_farm','صرف لمزرعة'],['issue_merchant','صرف لمبيع'],['scrap_out','تالف للتدوير']],
   in:[['return_in','وارد راجع'],['factory_replace','استبدال'],['purchase_in','شراء جديد']],
-  move:[['sale_move','بيع سمك'],['empty_back','فارغة لمزرعة'],['farm_swap','بين مزرعتين']],
+  move:[['sale_move','بيع سمك'],['empty_back','فارغة لمزرعة'],['farm_swap','بين مزرعتين'],['merch_swap','بين مبيعين']],
   /* الشائع أولاً، والنادر خلف زر — كان ستة نماذج متساوية تزحم الشاشة */
   adj:[['audit','جرد'],['opening_box','رصيد افتتاحي']],
   adjRare:[['fix_d2i','تالف ← سليم'],['fix_i2d','سليم ← تالف'],
@@ -2177,6 +2186,7 @@ const BOXGROUP={
 };
 const BOXHINT={
   issue_farm:'يخرج من رصيد المخزن السليم ويُقيَّد على المزرعة كعُهدة مرتجعة.',
+  issue_merchant:'بكش فاضية من المخزن للمبيع مباشرة، بلا مرور بمزرعة. عُهدة مرتجعة عليه — مش بيع سمك ولا فلوس على حسابه.',
   scrap_out:'خروج نهائي بلا انتظار عودة — لا يُقيَّد على أحد.',
   return_in:'سجّل السليم والتالف معاً. لو التالف بإهمال يُقيَّد رقماً على السائق للمتابعة فقط — لا فلوس ولا عهدة، والصناديق تدخل المخزن عادي.',
   factory_replace:'تالف يخرج وسليم يدخل بدلاً منه من مصدر الاستبدال.',
@@ -2184,6 +2194,7 @@ const BOXHINT={
   sale_move:'تنقل العُهدة من المزرعة إلى المبيع. المخزن لا يدخل هذه الحركة.',
   empty_back:'رجوع البكش الفارغة من المبيع إلى مزرعة.',
   farm_swap:'نقل عُهدة بين مزرعتين مباشرة.',
+  merch_swap:'نقل عُهدة بين مبيعين مباشرة. المخزن مايدخلش الحركة، ومديونية الاتنين ما تتغيّرش.',
   fix_d2i:'تصحيح خطأ رصد داخل المخزن — التالف لا يوجد إلا فيه، والإجمالي لا يتغيّر.',
   fix_i2d:'تصحيح خطأ رصد داخل المخزن — الإجمالي لا يتغيّر.',
   out_noone:'ضياع أو سرقة — يُقيَّد فاقداً على الموقع. خارج المخزن يُحسب سليماً.',
@@ -5389,6 +5400,22 @@ function runTests(){
   d=D([bx('in_nosource',[{from:'#EXT',to:'WH',cond:'damaged',count:10}]),
        bx('fix_d2i',[{from:'WH',to:'#ADJ',cond:'damaged',count:10},{from:'#ADJ',to:'WH',cond:'intact',count:10}])]);
   ok("تصحيح تالف←سليم يحافظ على الإجمالي",d.wh.total===10&&d.wh.intact===10&&d.wh.damaged===0);
+
+  /* صرف مباشر من المخزن لمبيع: عهدة على المبيع وخصم من المخزن، بلا أثر مالي */
+  d=D([{type:'box',op:'issue_merchant',legs:[{from:'WH',to:'m1',cond:'intact',count:40}]}]);
+  ok("صرف المخزن لمبيع يقيّد عهدة عليه",d.boxOf('m1').intact===40&&d.boxOf('m1').damaged===0);
+  ok("صرف المخزن لمبيع يخصم من المخزن",d.wh.intact===-40);
+  ok("صرف المخزن لمبيع لا يمسّ مديونيته",d.merchants[0].balance===0);
+  /* تحويل بين مبيعين: مجموع العهدة ثابت والمخزن لا يدخل.
+     يحتاج مبيعاً ثانياً، فنشتقّه بقائمة جهات موسَّعة بدل تعديل E المشتركة
+     التي تعتمد عليها اختبارات قبله بترتيب عناصرها. */
+  const E2=[...E,{id:'m2',type:'merchant',name:'مبيع٢'}];
+  d=derive(E2,mk([{type:'box',op:'issue_merchant',legs:[{from:'WH',to:'m1',cond:'intact',count:40}]},
+       {type:'box',op:'merch_swap',legs:[{from:'m1',to:'m2',cond:'intact',count:15}]}]));
+  ok("تحويل بين مبيعين ينقل العهدة",d.boxOf('m1').intact===25&&d.boxOf('m2').intact===15);
+  ok("تحويل بين مبيعين لا يمسّ المخزن",d.wh.intact===-40);
+  ok("تحويل بين مبيعين يحفظ مجموع العهدة",d.custody.merchants===40);
+  ok("تحويل بين مبيعين لا يمسّ مديونية أي منهما",d.merchants.every(m=>m.balance===0));
 
   d=D([inv('a',500,20),bx('sale_move',[{from:'f1',to:'m1',cond:'intact',count:20}],{auto:true,invoiceId:'a'})]);
   ok("حركة البكش لا تغيّر أي رصيد مالي",d.merchants[0].balance===500&&d.farms[0].balance===500);
