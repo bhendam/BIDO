@@ -180,10 +180,10 @@ header{
 #hsearch{margin-inline-start:auto;background:var(--card-2);border:1px solid var(--line);
   width:42px;height:42px;border-radius:12px;font-size:var(--ic-sm);cursor:pointer;color:var(--ink-2);
   display:grid;place-items:center;flex:0 0 auto}
-.brand .today{margin-inline-start:12px;text-align:left;font-size:var(--fs-xs);color:var(--muted)}
-.brand .today b{display:block;font-size:var(--fs-s);color:var(--ink-2);font-weight:600;
+.hdate{margin-inline-start:12px;text-align:left;font-size:var(--fs-xs);color:var(--muted)}
+.hdate b{display:block;font-size:var(--fs-s);color:var(--ink-2);font-weight:600;
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
-.hdr-sub{margin-top:1px;font-size:var(--fs-xs);color:var(--muted);font-weight:400}
+.hdr-sub{margin-top:1px;font-size:var(--fs-xs);color:var(--muted);font-weight:400;white-space:nowrap}
 /* السطر ده للتشخيص، مش محتاج يقعد على شاشات الشغل — بيقصّر الترويسة
    ويسيب مساحة أكبر للمحتوى في العمليات والتقارير. */
 .hdr-sub:empty{display:none}
@@ -698,8 +698,8 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 
 /* ---------------- التنقّل ---------------- */
 nav{position:fixed;inset-inline:0;bottom:0;z-index:50;background:var(--card);
-  border-top:1px solid var(--line-2);display:flex;padding:5px 2px calc(5px + env(safe-area-inset-bottom))}
-nav button{flex:1;background:none;padding:8px 1px;color:var(--muted);display:flex;flex-direction:column;
+  border-top:1px solid var(--line-2);display:flex;justify-content:center;padding:5px 2px calc(5px + env(safe-area-inset-bottom))}
+nav button{flex:1;max-width:205px;background:none;padding:8px 1px;color:var(--muted);display:flex;flex-direction:column;
   align-items:center;gap:3px;font-size:var(--fs-xs);font-weight:500;min-height:52px}
 nav button .ic{font-size:var(--ic-lg);line-height:0;opacity:.62;display:grid;place-items:center}
 nav button[aria-selected=true]{color:var(--accent);font-weight:600}
@@ -796,6 +796,11 @@ input,select,textarea,.field,.pick{scroll-margin-block:96px}
    الاسم يمين والأرقام وسط جدولي: العين بتمسح عمود الأسماء رأسياً أسرع
    لما كل الأسماء تبدأ من نفس الحافة. */
 td.tname{text-align:right}
+/* صف يفتح كشف الجهة: سهم صغير بعد الاسم على الشاشة بس — الطباعة والـCSV نظيفة */
+tr[data-act]{cursor:pointer}
+@media screen{tr[data-act] td.tname::after{content:"‹";margin-inline-start:6px;color:var(--muted);font-weight:400}}
+tr.zero td{color:var(--muted)}
+tr.zero td.tname{font-weight:400}
 th:first-child:not(.n),td:first-child:not(.n){text-align:right;padding-inline-start:12px}
 
 
@@ -943,7 +948,7 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
     <div class="mark" id="hdrLogo">🐟</div>
     <div><h1 id="hdrName">دفتر السماكة</h1><div class="hdr-sub" id="hdrSub">—</div></div>
     <button id="hsearch" data-act="openSearch" aria-label="بحث"><svg class="ico"><use href="#i-search"/></svg></button>
-    <div class="today"><span>اليوم</span><b id="hdrDate">—</b></div>
+    <div class="hdate"><span>اليوم</span><b id="hdrDate">—</b></div>
   </div>
   <div class="band"></div>
 </header>
@@ -1004,6 +1009,8 @@ const money=n=>nf.format(Math.round((+n||0)*100)/100);
 const EGP=n=>money(n)+" ج.م";
 /* المبالغ في الجداول: صنف لوني ثابت — الأحمر «عليه» والأخضر «له» — ولا نعتمد
    على اللون وحده، فالرقم السالب يظل مسبوقاً بإشارته. */
+/* صف بلا رصيد ولا حركة جارية: يتشاف لكن ما يزاحمش اللي عليه أرقام */
+const zr=v=>Math.abs(+v||0)<.005;
 const mcell=(v,flip)=>{const n=+v||0;const cls=Math.abs(n)<.005?'':((flip?-n:n)>0?'money-pos':'money-neg');
   return `<td class="n ${cls}">${money(n)}</td>`};
 const todayISO=()=>new Date().toLocaleDateString('en-CA');
@@ -1443,7 +1450,7 @@ function render(){
   const sy=window.scrollY;
   $('#hdrDate').textContent=arDate(todayISO());
   $('#hdrName').textContent=S.co.name||"دفتر السماكة";
-  $('#hdrSub').textContent=(S.tab==='home'||S.tab==='set')?`نسخة ${APPVER} · يعمل بدون إنترنت`:'';
+  $('#hdrSub').textContent=(S.tab==='home'||S.tab==='set')?`نسخة ${APPVER}`:'';
   const hl=$('#hdrLogo');
   hl.className='mark'+(S.co.logo?'':' own');
   hl.innerHTML=S.co.logo?`<img src="${S.co.logo}" alt="">`:BRANDMARK;
@@ -3158,7 +3165,7 @@ function repAcct(){
   const D=S.D,F=S.F;
   const target=F.ent?D.merchants.concat(D.farms).find(x=>x.id===F.ent):null;
   if(!target){
-    const rows=D.merchants.map(m=>`<tr><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
+    const rows=D.merchants.map(m=>`<tr class="${zr(m.balance)&&!m.invoiced?'zero':''}" data-act="repMerchant" data-id="${m.id}"><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
       <td class="n">${money(m.collected)}</td>${mcell(m.balance)}</tr>`).join('');
     const mfoot=`<tfoot><tr><td>الإجمالي (${D.merchants.length} مبيع)</td>
       <td class="n">${money(sumM(D.merchants,m=>m.invoiced))}</td>
@@ -3167,7 +3174,7 @@ function repAcct(){
     const ffoot=`<tfoot><tr><td>الإجمالي (${D.farms.length} مزرعة)</td>
       <td class="n">${sum(D.farms,f=>f.cycleCount)}</td><td class="n">${sum(D.farms,f=>f.cycleBoxes)}</td>
       <td class="n">${money(sumM(D.farms,f=>f.balance))}</td></tr></tfoot>`;
-    const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}</td><td class="n">${f.cycleCount}</td>
+    const frows=D.farms.map(f=>`<tr class="${zr(f.balance)&&!f.cycleCount?'zero':''}" data-act="repFarm" data-id="${f.id}"><td class="tname">${esc(f.name)}</td><td class="n">${f.cycleCount}</td>
       <td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
     const mth=`<thead><tr><th>المبيع</th><th class="n">فواتير</th><th class="n">محصّل</th><th class="n">الرصيد</th></tr></thead>`;
     const fth=`<thead><tr><th>المزرعة</th><th class="n">فواتير الدورة</th><th class="n">صناديق</th><th class="n">الرصيد</th></tr></thead>`;
@@ -4047,7 +4054,7 @@ function farmIceTab(farm){
 /* ============ تقارير عامة (أرصدة كل الجهات في نوع واحد) ============ */
 function repFarmsAll(){
   const D=S.D;
-  const frows=D.farms.map(f=>`<tr><td class="tname">${esc(f.name)}${f.cycleStart?` <span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</td>
+  const frows=D.farms.map(f=>`<tr class="${zr(f.balance)&&!f.cycleCount?'zero':''}" data-act="repFarm" data-id="${f.id}"><td class="tname">${esc(f.name)}${f.cycleStart?` <span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</td>
     <td class="n">${f.cycleCount}</td><td class="n">${f.cycleBoxes}</td>${mcell(f.balance,1)}</tr>`).join('');
   const ffoot=`<tfoot><tr><td>الإجمالي (${D.farms.length} مزرعة)</td>
     <td class="n">${sum(D.farms,f=>f.cycleCount)}</td><td class="n">${sum(D.farms,f=>f.cycleBoxes)}</td>
@@ -4065,7 +4072,7 @@ function repFarmsAll(){
 }
 function repMerchAll(){
   const D=S.D;
-  const rows=D.merchants.map(m=>`<tr><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
+  const rows=D.merchants.map(m=>`<tr class="${zr(m.balance)&&!m.invoiced?'zero':''}" data-act="repMerchant" data-id="${m.id}"><td class="tname">${esc(m.name)}</td><td class="n">${money(m.invoiced)}</td>
     <td class="n">${money(m.collected)}</td>${mcell(m.balance)}</tr>`).join('');
   const mfoot=`<tfoot><tr><td>الإجمالي (${D.merchants.length} مبيع)</td>
     <td class="n">${money(sumM(D.merchants,m=>m.invoiced))}</td>
@@ -4080,7 +4087,7 @@ function repMerchAll(){
       ['إجمالي المحصَّل',money(sumM(D.merchants,m=>m.collected))]])}
     ${rows?`<div class="tscroll">${mtbl}</div>`:'<div class="empty">لا يوجد</div>'}
     <p class="note">الأحمر = مديونية عليه · الأخضر = دفعة مقدّمة له.
-      لكشف مبيع واحد: «مبيع واحد» من شريط الباب فوق، وفواتيره جوّه الكشف.</p></div>`;
+      اضغط على أي مبيع لكشفه بالفواتير.</p></div>`;
 }
 /* ============ حركة البكش العامة ============
    سجل كل حركات البكش في كل الجهات — كان مبنياً وغير مستدعى، أصبح تقريراً مستقلاً. */
@@ -4238,7 +4245,7 @@ async function doWipe(){
    ومصدر واحد للحقيقة يمنع تعارض المستمعات. */
 function paintFab(){
   const w=$('#fabwrap');if(!w)return;
-  const hide=S.tab==='set'||S.tab==='rep';
+  const hide=S.tab!=='home';
   if(hide)S.fab=false;
   w.classList.toggle('hide',hide);
   w.classList.toggle('on',!!S.fab);
