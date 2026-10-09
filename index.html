@@ -68,6 +68,7 @@
 
   /* هوية الأقسام — للأيقونات والأشرطة فقط */
   --c-acct:#0E6E7D;   --c-box:#5E45AC;   --c-drv:#8F6200;  --c-ice:#15628F;
+  --on-c:#fff;                  /* نص فوق لون المجال (شارة القسم) */
   --wa:#0F7A6C;                 /* واتساب — لون العلامة نفسه */
   --tape-k:#B9CFD6;             /* نص شريط الإيصال على خلفية داكنة */
   --tape-d:#3A5E6B;
@@ -119,7 +120,7 @@ body[data-theme=ice]    {--accent:var(--c-ice);--accent-soft:var(--info-bg)}
     --credit:#5FC79B; --credit-bg:#0F3125;
     --warn:#DCA94F;   --warn-bg:#33270F;
     --info:#5CAEE0;   --info-bg:#0F2C3F;
-    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0;
+    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0; --on-c:#0E1519;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
     --dlgbg:rgba(0,0,0,.66);
   }
@@ -133,7 +134,7 @@ html[data-mode=dark]{
     --credit:#5FC79B; --credit-bg:#0F3125;
     --warn:#DCA94F;   --warn-bg:#33270F;
     --info:#5CAEE0;   --info-bg:#0F2C3F;
-    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0;
+    --c-acct:#3FB0C0; --c-box:#A48CF0; --c-drv:#DCA94F; --c-ice:#5CAEE0; --on-c:#0E1519;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.5);
     --dlgbg:rgba(0,0,0,.66);
 }
@@ -178,7 +179,7 @@ header{
 .brand .mark.own{background:none}
 .brand .mark img,.brand .mark svg{width:100%;height:100%;object-fit:cover;display:block}
 #hsearch{margin-inline-start:auto;background:var(--card-2);border:1px solid var(--line);
-  width:42px;height:42px;border-radius:12px;font-size:var(--ic-sm);cursor:pointer;color:var(--ink-2);
+  width:44px;height:44px;border-radius:12px;font-size:var(--ic-sm);cursor:pointer;color:var(--ink-2);
   display:grid;place-items:center;flex:0 0 auto}
 .hdate{margin-inline-start:12px;text-align:left;font-size:var(--fs-xs);color:var(--muted)}
 .hdate b{display:block;font-size:var(--fs-s);color:var(--ink-2);font-weight:600;
@@ -197,7 +198,7 @@ main{padding:16px 12px 8px;max-width:820px;margin:0 auto}
 .sec-title.s-box span.n{background:var(--c-box)}
 .sec-title.s-drv span.n{background:var(--c-drv)}
 .sec-title.s-ice span.n{background:var(--c-ice)}
-.sec-title span.n{background:var(--accent);color:#fff;width:22px;height:22px;border-radius:7px;
+.sec-title span.n{background:var(--accent);color:var(--on-c);width:22px;height:22px;border-radius:7px;
   display:grid;place-items:center;font-size:var(--fs-xs);font-weight:600;font-family:var(--num)}
 main>.sec-title:first-child{margin-top:4px}
 
@@ -270,6 +271,7 @@ main>.rptname:first-child{margin-top:4px}
 .tile.box::after{background:var(--c-box)}
 .tile .lbl{font-size:var(--fs-s);color:var(--muted);font-weight:500;display:flex;align-items:center;gap:4px}
 .tile .lbl .car{margin-inline-start:auto;color:var(--faint);font-size:var(--fs-s)}
+.tile .lbl .go{margin-inline-start:auto;color:var(--primary);font-weight:600}
 .tile .val{font-size:var(--fs-2xl);font-weight:600;margin-top:3px;line-height:1.25;color:var(--ink);
   font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr}
 .tile .val.sm{font-size:var(--fs-xl)}
@@ -335,7 +337,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid var(--accent);outline-
 .with-btn button{flex:0 0 auto;white-space:nowrap;padding-inline:12px}
 
 button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing:0}
-.btn{background:var(--primary);color:#fff;padding:12px 16px;width:100%;
+.btn{background:var(--primary);color:var(--on-c);padding:12px 16px;width:100%;
   font-size:var(--fs-l);line-height:1.3;min-height:52px}
 .btn:active{transform:translateY(1px)}
 .btn.brass{background:var(--warn)}
@@ -362,7 +364,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
   /* لا flex هنا: text-overflow ما بيشتغلش على حاوية flex، فالاسم الطويل كان
      بيتقصّ من غير نقط ولا يبان إنه ناقص. block + line-height بيوسّط رأسياً. */
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pchip[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.pchip[aria-pressed=true]{background:var(--accent);color:var(--on-c);border-color:var(--accent);font-weight:600}
 /* زر بسطرين (اسم + سطر فرعي زي تاريخ الدورة) — الارتفاع يزيد للسطر التاني بس */
 .pchip.two{line-height:1.35;padding:8px 12px}
 .pchip .psub{display:block;font-size:var(--fs-xs);opacity:.7;font-weight:400;
@@ -386,6 +388,12 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .fent{display:flex;gap:8px;align-items:stretch}
 .fent .btn{min-height:50px}
 
+/* أول تشغيل: خطوة واحدة واضحة بدل شبكة أصفار */
+.card.first{margin-bottom:var(--s4)}
+.card.first>b{display:block;font-size:var(--fs-l);font-weight:700;margin-bottom:var(--s1)}
+.card.first .btnrow{margin:var(--s4) 0}
+.linkbtn{background:none;border:0;padding:0 2px;color:var(--primary);font:inherit;font-weight:600;
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:44px}
 .rarebtn{width:100%;background:none;border:1px dashed var(--line-2);color:var(--muted);
   padding:8px;border-radius:10px;font-family:inherit;font-size:var(--fs-s);margin-top:8px;cursor:pointer}
 
@@ -482,7 +490,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
   background:var(--card-2);display:flex;align-items:center;gap:8px;border:0;font-family:inherit;
   text-align:right;cursor:pointer;min-height:48px}
 .attnh[aria-expanded=true]{border-bottom:1px solid var(--line)}
-.attnh .ab{background:var(--warn);color:#fff;font-size:var(--fs-xs);padding:1px 8px;
+.attnh .ab{background:var(--warn);color:var(--on-c);font-size:var(--fs-xs);padding:1px 8px;
   border-radius:20px;font-family:var(--num)}
 /* العدّاد أحمر لو فيه بند خطير — إشارة تُقرأ والقسم مطويّ */
 .attnh .ab.bad{background:var(--debt)}
@@ -527,7 +535,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .qn button{background:var(--card-2);border:1.5px solid var(--line);border-radius:20px;
   padding:8px 16px;font-size:var(--fs-m);font-family:var(--num);font-variant-numeric:tabular-nums;
   color:var(--ink-2);min-height:42px;cursor:pointer}
-.qn button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.qn button[aria-pressed=true]{background:var(--accent);color:var(--on-c);border-color:var(--accent);font-weight:600}
 
 /* تبويب فصل المجموعات فوق الاقتراحات */
 .pkg{display:flex;gap:4px;background:var(--card-2);padding:4px;border-radius:11px;
@@ -537,7 +545,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .pkg button[aria-pressed=true]{background:var(--card);color:var(--ink);font-weight:600;
   box-shadow:0 1px 3px rgba(10,31,42,.12)}
 .pchip.pkwh{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
-.pchip.pkwh[aria-pressed=true]{background:var(--accent);color:#fff}
+.pchip.pkwh[aria-pressed=true]{background:var(--accent);color:var(--on-c)}
 
 /* نسبة المكتب كرقمين: ٤ / ٩٦ */
 .ratio{display:flex;align-items:center;gap:8px}
@@ -569,7 +577,7 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .seg.inner{background:none;padding:0;gap:8px;border:0}
 .seg.inner button{flex:0 0 auto;border:1.5px solid var(--line-2);background:var(--card);
   padding:8px 16px;font-size:var(--fs-s);border-radius:22px;min-height:44px}
-.seg.inner button[aria-selected=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.seg.inner button[aria-selected=true]{background:var(--accent);color:var(--on-c);border-color:var(--accent)}
 .qr{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
 .qr::-webkit-scrollbar{display:none}
 .qr button{flex:0 0 auto;background:var(--card);border:1.5px solid var(--line-2);color:var(--muted);
@@ -634,10 +642,10 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .tline .v{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;font-weight:600;white-space:nowrap}
 .tline.minus .v{color:var(--debt)}
 .tline.rule{border-top:1.5px solid var(--line-2);margin-top:8px;padding-top:12px}
-.tline.total{margin-top:8px;padding:12px 12px;background:var(--ink);color:#fff;border-radius:10px}
+.tline.total{margin-top:8px;padding:12px 12px;background:var(--ink);color:var(--bg);border-radius:10px}
 .tline.total .k{color:#B9CFD6;font-weight:600}
 .tline.total .dots{border-bottom-color:#3A5E6B}
-.tline.total .v{font-size:var(--fs-xl);color:#fff}
+.tline.total .v{font-size:var(--fs-xl);color:var(--bg)}
 
 /* ---------------- بطاقات الحركات (مضغوطة) ----------------
    العمليات قد تتجاوز ٥٠ في اليوم: سطر واحد لكل حركة، والتفاصيل بالضغط. */
@@ -715,7 +723,7 @@ nav button[aria-selected=true] .ico{stroke-width:2.1}
   transition:opacity .18s;pointer-events:none}
 #fabwrap.on #fabbd{opacity:1;visibility:visible;pointer-events:auto}
 #fab{position:absolute;inset-inline-end:16px;bottom:calc(92px + env(safe-area-inset-bottom));
-  width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;border:0;
+  width:60px;height:60px;border-radius:50%;background:var(--primary);color:var(--on-c);border:0;
   box-shadow:0 10px 26px -8px rgba(10,31,42,.55);display:grid;place-items:center;cursor:pointer;
   pointer-events:auto;transition:transform .2s}
 #fab span{font-size:var(--ic-xl);line-height:1;font-weight:300;margin-top:-3px}
@@ -745,8 +753,11 @@ html[data-mode=dark] #fabmenu .f-box i{background:#241C3D}
 
 #toast{position:fixed;inset-inline:16px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:95;
   display:flex;flex-direction:column;gap:8px;pointer-events:none;align-items:center}
-.toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:24px;font-size:var(--fs-m);
+.toast{background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:24px;font-size:var(--fs-m);
   font-weight:500;box-shadow:0 14px 34px -12px rgba(10,31,42,.65);animation:pop .22s ease;max-width:100%}
+/* فوق شريط الحفظ الملتصق مش عليه: «واحدة تانية» بتتداس ورا بعض */
+body[data-hasform] #toast{bottom:calc(164px + env(safe-area-inset-bottom))}
+.toast.err,.toast.ok{color:var(--on-c)}
 .toast.err{background:var(--debt)}
 .toast.ok{background:var(--credit)}
 @keyframes pop{from{opacity:0;transform:translateY(10px)}}
@@ -947,7 +958,7 @@ thead th{position:sticky;top:var(--hdrh,64px);z-index:4}
   <div class="brand">
     <div class="mark" id="hdrLogo">🐟</div>
     <div><h1 id="hdrName">دفتر السماكة</h1><div class="hdr-sub" id="hdrSub">—</div></div>
-    <button id="hsearch" data-act="openSearch" aria-label="بحث"><svg class="ico"><use href="#i-search"/></svg></button>
+    <button id="hsearch" data-act="openSearch" aria-label="بحث"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg></button>
     <div class="hdate"><span>اليوم</span><b id="hdrDate">—</b></div>
   </div>
   <div class="band"></div>
@@ -1088,7 +1099,8 @@ function buzz(k){
   try{navigator.vibrate(k==='err'?[24,42,24]:12)}catch(_){}
 }
 function toast(m,k=""){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;
-  $('#toast').appendChild(t);buzz(k);setTimeout(()=>t.remove(),2800)}
+  /* توست واحد: الجديد يلغي القديم — اتنين فوق بعض كانوا بيغطّوا نص الشاشة */
+  $('#toast').replaceChildren(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
 const APPVER="4.28.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
@@ -1662,7 +1674,7 @@ function noteField(name='note',ph='',lbl='ملاحظة'){
 }
 const opt=(items,sel,ph)=>`<option value="">${ph}</option>`+items.map(i=>`<option value="${i.id}"${i.id===sel?' selected':''}>${esc(i.name)}</option>`).join('');
 const seg=(key,tabs,cur,inner)=>`<div class="seg${inner?' inner':''}" data-seg="${key}">`+tabs.map(([k,l])=>`<button data-sub="${k}" aria-selected="${cur===k}">${l}</button>`).join('')+`</div>`;
-const secT=(n,t,d)=>`<div class="sec-title${d?' s-'+d:''}"><span class="n">${n}</span>${t}</div>`;
+const secT=(n,t,d)=>`<div class="sec-title${d?' s-'+d:''}"><span class="n" aria-hidden="true">${n}</span>${t}</div>`;
 
 /* ---------- ١) الرئيسية ---------- */
 /* ما الذي يحتاج انتباهك — يُحسب من كل السجل لا من فترة.
@@ -1714,6 +1726,21 @@ function vHome(){
      «عملت إيه النهارده» قبل الأرصدة التراكمية. الضغط عليه يفتح ورقة التسليم. */
   const tq=!k.todayOps;
   const tcell=(v,l)=>`<div class="todayc"><b>${v}</b><span>${l}</span></div>`;
+  /* أول تشغيل: لا جهات ولا حركات. عشر خانات «0» ما بتقولش حاجة —
+     الخطوة الوحيدة الممكنة هي تسجيل الجهات، فنقولها صراحة. */
+  if(!S.ledger.length&&!S.entities.some(e=>!e.deleted))return `
+  <div class="card first">
+    <b>أهلاً — نبدأ بالجهات</b>
+    <p class="note">كل فاتورة وكل حركة بكش بتتسجّل على مزرعة أو مبيع أو سائق.
+      سجّل اللي بتتعامل معاهم مرة واحدة، والأرقام هتظهر هنا لوحدها.</p>
+    <div class="btnrow">
+      <button class="btn" data-act="fabGo" data-go="set|set|farm">أضف مزرعة</button>
+      <button class="btn ghost" data-act="fabGo" data-go="set|set|merchant">أضف مبيع</button></div>
+    <p class="note" style="margin:0">عندك نسخة احتياطية من جهاز تاني؟
+      <button type="button" class="linkbtn" data-act="importJSON">دمجها هنا</button></p>
+  </div>`+(!isStandalone()?`<button class="tile" data-act="install">
+    <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز <span class="go">${S.canInstall?'جاهز ‹':'الطريقة ‹'}</span></div>
+    <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:'');
   return `
   <button class="today${tq?' quiet':''}" data-act="goHand">
     <div class="todayh">${IC('cal')}<span>النهارده</span>
@@ -1737,8 +1764,7 @@ function vHome(){
       <span class="ar2">${esc(x.hint)}<span class="go">‹</span></span></button>`).join(''):''}
   </div>`:`<div class="allok">✓ مافيش حاجة محتاجة انتباه — كله ماشي</div>`}
   ${!isStandalone()?`<button class="tile" data-act="install" style="margin-bottom:var(--s4)">
-    <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز</div>
-    <div class="val sm">${S.canInstall?'جاهز للتثبيت':'طريقة التثبيت'}</div>
+    <div class="lbl">${IC('install')}ثبّت التطبيق على الجهاز <span class="go">${S.canInstall?'جاهز ‹':'الطريقة ‹'}</span></div>
     <div class="sub">يفتح لوحده وسط تطبيقاتك بملء الشاشة، ويشتغل بدون إنترنت</div></button>`:''}
   ${secT(1,'الحسابات','acct')}
   <button class="tile debt" data-act="drill" data-key="merch" aria-expanded="${!!d.merch}">
@@ -1819,7 +1845,7 @@ function vHome(){
   ${secT(4,'الثلج','ice')}
   <button class="tile ice" data-act="drill" data-key="ice" aria-expanded="${!!d.ice}">
     <div class="lbl">إجمالي مديونية الثلج <span class="car">${d.ice?'▴':'▾'}</span></div>
-    <div class="val num" style="color:#0A6E9E">${money(k.iceDue)}</div>
+    <div class="val num" style="color:var(--c-ice)">${money(k.iceDue)}</div>
     <div class="sub">${k.iceBlocks} بلاطة إجمالاً · ${D.factories.length} مصنع</div>
   </button>
   ${d.ice?`<div class="drill">${D.factories.length?D.factories.map(f=>
@@ -1958,7 +1984,7 @@ function fSettle(){
     ${dateLine(f.date,'date','تاريخ التصفية')}
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
-    <div class="field"><label>نسبة المكتب <span class="hint">بسط على مقام — ٤ / ٩٦ أو ٥ / ٧٠</span></label>
+    <div class="field"><label>نسبة المكتب <span class="hint">بسط على مقام — <span class="num">4 / 96</span> أو <span class="num">5 / 70</span></span></label>
       <div class="ratio">
         <input type="text" name="office" data-role="office" inputmode="decimal" value="${f.office??4}" aria-label="البسط">
         <span>/</span>
@@ -5117,7 +5143,7 @@ async function doSettle(f){
   if(!x.cycleCount)return toast("لا توجد فواتير غير مصفّاة","err");
   const c=calcSettlement({total:x.cycleTotal,office:+g('office').value||0,farmRatio:+g('farmRatio').value||0,
     commission:+g('commission').value||0,expenses:+g('expenses').value||0,prevDebt:+g('prevDebt').value||0,commissionTouched:true});
-  if(!(c.office>0&&c.farmRatio>0))return toast("اكتب النسبة بسطاً ومقاماً، مثل ٤ / ٩٦","err");
+  if(!(c.office>0&&c.farmRatio>0))return toast("اكتب النسبة بسطاً ومقاماً، مثل 4 / 96","err");
   if(!await requireOwner("اعتماد تصفية مزرعة"))return;
   if(!await ask("اعتماد تصفية «"+x.name+"»",`الإجمالي: ${money(c.total)} ج.م\nالمستحق النهائي: ${money(c.payable)} ج.م\nالدورة تُقفل ولا تُعدَّل بعد الاعتماد.`,{ok:"اعتماد"}))return;
   const rec=await append({type:'settlement',date:f.date.value||todayISO(),farmId:x.id,...c,
