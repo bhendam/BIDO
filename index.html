@@ -1631,14 +1631,17 @@ function quickNums(target,vals){
   ملاحظة: الحقل موجود في الـDOM دايماً (مخفي) — لو اتبنى عند الضغط كان
   render() هيهدم النموذج ويضيّع اللي اتكتب فيه.
 */
-function dateLine(val,name='date'){
-  const v=val||todayISO(),t=todayISO(),y=addDays(t,-1);
-  const lbl=v===t?'النهارده':(v===y?'إمبارح':arDate(v));
-  return `<div class="dline" data-role="dline">${IC('cal')}
-    <span>التاريخ</span><b>${lbl} · ${arDate(v)}</b>
+function dateLbl(v){
+  const t=todayISO(),y=addDays(t,-1);
+  return (v===t?'النهارده · ':(v===y?'إمبارح · ':''))+arDate(v);
+}
+function dateLine(val,name='date',label='التاريخ'){
+  const v=val||todayISO();
+  return `<div class="dwrap"><div class="dline" data-role="dline">${IC('cal')}
+    <span>${esc(label)}</span><b data-role="dlbl">${dateLbl(v)}</b>
     <button type="button" data-act="dateOpen">تغيير</button></div>
-  <div class="field" data-role="dfield" hidden><label>التاريخ</label>
-    <input type="date" name="${name}" value="${v}" required></div>`;
+  <div class="field" data-role="dfield" hidden><label>${esc(label)}</label>
+    <input type="date" name="${name}" value="${v}" required></div></div>`;
 }
 /* الملاحظة اختيارية في كل النماذج تقريباً، فتتطوى خلف زر */
 function noteField(name='note',ph='',lbl='ملاحظة'){
@@ -1934,7 +1937,7 @@ function fSettle(){
     <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
       ${entPick('farmId','farm',f.farmId||"",{items:D.activeFarms,
         sub:x=>x.cycleStart?'دورة '+arDate(x.cycleStart):''})}</div>
-    <div class="field"><label>تاريخ التصفية</label><input type="date" name="date" value="${f.date||todayISO()}" required></div>
+    ${dateLine(f.date,'date','تاريخ التصفية')}
     <div class="field locked"><label>إجمالي فواتير الدورة <span class="hint">آلي</span></label><input name="total" data-role="total" readonly value="${f.total||0}"></div>
     <p data-role="cyc" class="note" style="margin:-6px 2px 14px"></p>
     <div class="field"><label>نسبة المكتب <span class="hint">بسط على مقام — ٤ / ٩٦ أو ٥ / ٧٠</span></label>
@@ -2126,7 +2129,7 @@ function costCashForm(farmId){
   return `<form data-form="costItem" data-cat="cash" data-farm="${farmId}" data-day="">
     <div class="field"><label>نوع العملية</label><input name="note" placeholder="سحب نقدية / مصروف…" required></div>
     <div class="field"><label>المبلغ</label><input type="number" name="amount" step="0.01" inputmode="decimal" placeholder="0.00"></div>
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <button class="btn" type="submit">تسجيل</button></form>`;
 }
 function costCashView(farm){
@@ -2228,7 +2231,7 @@ function auditForm(){
   const D=S.D;
   return `<div class="card"><form data-form="audit">
     <p class="note" style="margin:0 0 14px">${BOXHINT.audit||'الفرق بين المعدود والدفتري يُقيَّد آلياً.'}</p>
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>الجهة المجرودة <span class="hint">اختر «المخزن» لجرد المخزن</span></label>
       ${entPick('locId','loc','')}</div>
     <div class="row"><div class="field"><label>المعدود سليم</label><input type="number" name="cIntact" min="0" step="1" inputmode="numeric" value="0"></div>
@@ -2242,7 +2245,7 @@ function boxForm(op,btn,extra=""){
   const f=BOXF[op]||[];
   return lastOps(['box'],[op])+`<div class="card"><form data-form="box" data-op="${op}">
     ${BOXHINT[op]?`<p class="note" style="margin:0 0 14px">${BOXHINT[op]}</p>`:''}
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     ${f.map(([k,l,t,e,o])=>fieldHTML(k,l,t,e,o)).join('')}${extra}
     <div class="field"><label>ملاحظة</label><input name="note"></div>
     <button class="btn" type="submit">${btn}</button></form></div>`;
@@ -2259,7 +2262,7 @@ function fieldHTML(k,l,t,e,optional,val=""){
   if(t==='cond')return `<div class="field"><label>${l}</label><select name="${k}">
     <option value="intact"${val==='intact'?' selected':''}>سليم</option><option value="damaged"${val==='damaged'?' selected':''}>تالف</option></select></div>`;
   if(t==='text')return `<div class="field"><label>${l}</label><input name="${k}" value="${esc(val)}"></div>`;
-  if(t==='date')return `<div class="field"><label>${l}</label><input type="date" name="${k}" value="${val||todayISO()}" required></div>`;
+  if(t==='date')return dateLine(val,k,l);
   if(t==='ent')return `<div class="field"><label>${l}${optional?' <span class="hint">اختياري</span>':''}</label>
       ${entPick(k,e,val,{optional})}</div>`;
   return '';
@@ -2343,7 +2346,7 @@ function opsDrv(){
 function drvTrips(){
   const D=S.D;
   return lastOps(['trip'])+`<div class="eyebrow">تسجيل رحلة</div><div class="card"><form data-form="trip">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
     <div class="field"><label>الرحلة / نوعها</label>${entPick('routeId','route','',{role:'routePick'})}
       ${D.routes.length?'':'<p class="note" style="color:var(--debt)">لا توجد رحلات معرَّفة — أضفها من «الإعدادات ← الرحلات».</p>'}</div>
@@ -2356,7 +2359,7 @@ function drvTrips(){
 function drvAdv(){
   const D=S.D;
   return lastOps(['driver_advance'])+`<div class="eyebrow">سلفة سائق</div><div class="card"><form data-form="driver_advance">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>السائق</label>${entPick('driverId','driver','')}</div>
     <div class="field"><label>مبلغ السلفة (ج.م)</label>
       ${micField('amount','required')}</div>
@@ -2391,7 +2394,7 @@ function drvDamage(){
     :`<div class="empty">لا يوجد تالف مسجَّل على سائق بعد.<br>يتسجّل من «بكش ← وارد ← وارد راجع» باختيار السائق وسبب التالف.</div>`}
   <div class="eyebrow">تصفية عدّاد سائق</div>
   <div class="card"><form data-form="dmgclear">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>السائق</label>${entPick('driverId','driver','',{role:'dpick'})}
       <p data-role="dhint" class="note">اختر سائقاً لعرض عدّاده.</p></div>
     <div class="field"><label>عدد الصناديق المصفّاة</label>
@@ -2419,7 +2422,7 @@ function drvSettle(){
     <p class="note">الرصيد بالجنيه: موجب = مستحق للسائق · سالب = سلف زائدة عليه.<br>
       عمود «تالف مفتوح» بالصناديق — عدّاد متابعة منفصل تماماً عن الفلوس.</p></div>
   <div class="eyebrow">تصفية حساب سائق</div><div class="card"><form data-form="driver_payment">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>السائق</label>${entPick('driverId','driver','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر سائقاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
@@ -2439,7 +2442,7 @@ function opsIce(){
 function iceOp(){
   const D=S.D;
   return lastOps(['ice_op'])+`<div class="eyebrow">عملية ثلج</div><div class="card"><form data-form="ice_op">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'facPick'})}</div>
     <div class="row"><div class="field"><label>عدد البلاطات</label><input type="number" name="qty" min="1" step="1" inputmode="numeric" required></div>
       <div class="field"><label>سعر البلاطة <span class="hint">آلي · قابل للتعديل</span></label>
@@ -2458,7 +2461,7 @@ function iceSettle(){
   return `<div class="card"><table><thead><tr><th>المصنع</th><th class="n">بلاطات</th><th class="n">القيمة</th><th class="n">افتتاحي</th><th class="n">مدفوع</th><th class="n">الرصيد</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="note">حساب نقدي فقط — مصنع الثلج لا تُقيَّد عليه عهدة بكش.</p></div>
   <div class="eyebrow">تصفية حساب مصنع</div><div class="card"><form data-form="factory_payment">
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}" required></div>
+    ${dateLine()}
     <div class="field"><label>المصنع</label>${entPick('factoryId','ice','',{role:'apick'})}
       <p data-role="ahint" class="note">اختر مصنعاً لعرض رصيده.</p></div>
     <div class="field"><label>المبلغ المدفوع</label><div class="with-btn">
@@ -4144,7 +4147,7 @@ function OPENF(t){
     <input type="hidden" name="openBoxSign" value="1">
     <input type="number" name="openIntact" min="0" step="1" inputmode="numeric" value="0" placeholder="0">
     <p class="note">${BOXNOTE[t]||''}</p></div>`:''}
-  <div class="field"><label>تاريخ الرصيد الافتتاحي</label><input type="date" name="openDate" value="${todayISO()}"></div>`;
+  ${dateLine('','openDate','تاريخ الرصيد الافتتاحي')}`;
 }
 /* تُسجَّل كحركتين في السجل: نقدية وبكش — لا كخانة في البطاقة */
 async function postOpening(ent,p){
@@ -4297,7 +4300,7 @@ function setData(){
     <div class="row">
       <div class="field"><label>بكش سليم</label><input type="number" name="oIntact" min="0" step="1" inputmode="numeric" value="0"></div>
       <div class="field"><label>بكش تالف</label><input type="number" name="oDamaged" min="0" step="1" inputmode="numeric" value="0"></div></div>
-    <div class="field"><label>التاريخ</label><input type="date" name="date" value="${todayISO()}"></div>
+    ${dateLine()}
     <button class="btn ghost" type="submit">تسجيل رصيد المخزن</button>
     <p class="note">يُسجَّل كحركة مؤرَّخة، وتقدر تكرّرها لو ظهر رصيد إضافي.</p></form></div>`;
 }
@@ -4649,10 +4652,11 @@ function onClick(ev){
       setMeta('drill',S.drill).catch(()=>{});
       return render();
     /* بلا render: الرسم يهدم النموذج ويضيّع اللي اتكتب فيه */
-    case 'dateOpen':{const w=b.closest('form')||document;
-      const f=w.querySelector('[data-role=dfield]'),l=w.querySelector('[data-role=dline]');
-      if(f){f.hidden=false;const i=f.querySelector('input');if(i)try{i.focus()}catch(_){}}
-      if(l)l.hidden=true;return}
+    case 'dateOpen':{const w=b.closest('.dwrap')||b.closest('form')||document;
+      const f=w.querySelector('[data-role=dfield]');
+      if(f){f.hidden=false;const i=f.querySelector('input');
+        if(i){try{i.focus()}catch(_){} try{i.showPicker&&i.showPicker()}catch(_){}}}
+      return}
     case 'noteOpen':{const w=b.closest('form')||document;
       const f=w.querySelector('[data-role=nfield]');
       if(f){f.hidden=false;const i=f.querySelector('input');if(i)try{i.focus()}catch(_){}}
@@ -5838,6 +5842,12 @@ function importJSON(){
    فلا يتكرر خطأ «زر خارج الحاوية لا يستجيب». */
 document.addEventListener('click',onClick);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')fabToggle(false)});
+/* سطر التاريخ يكتب التاريخ بصيغة واحدة (يوم/شهر/سنة) مهما كانت صيغة حقل المتصفح،
+   فيتبع الحقل عند كل تغيير، ويرجع معه عند reset بعد الحفظ. */
+const dateSync=w=>{const i=$('input[type=date]',w),b=$('[data-role=dlbl]',w);if(i&&b&&i.value)b.textContent=dateLbl(i.value)};
+document.addEventListener('change',e=>{const w=e.target.closest&&e.target.closest('.dwrap');if(w)dateSync(w)});
+document.addEventListener('reset',e=>setTimeout(()=>e.target.querySelectorAll('.dwrap').forEach(w=>{
+  dateSync(w);const f=$('[data-role=dfield]',w);if(f)f.hidden=true})),true);
 $('#nav').addEventListener('click',ev=>{const b=ev.target.closest('button[data-tab]');if(!b)return;
   S.tab=b.dataset.tab;S.toTop=true;render()});
 /* ============ التثبيت كتطبيق ============
