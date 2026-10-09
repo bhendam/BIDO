@@ -43,7 +43,7 @@ ok('لا «٦٢ اختباراً» خارج جدول الدروس', stale.length
 
 /* ٥) الأيقونات */
 const icons=[...html.matchAll(/symbol id="i-([a-z0-9]+)"/g)].map(m=>m[1]);
-ok('عدد الأيقونات = ٣١', icons.length===31, icons.length);
+ok('عدد الأيقونات = ٣٣', icons.length===33, icons.length);
 ok('الوثيقة تذكر العدد', doc.includes('**'+AR(icons.length)+' أيقونة**'));
 ok('كل أيقونة مذكورة في القائمة', icons.every(i=>doc.includes(i)),
    icons.filter(i=>!doc.includes(i)).join(','));
