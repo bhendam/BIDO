@@ -1946,7 +1946,10 @@ function fCollect(){
 function fSettle(){
   const D=S.D;
   if(!D.activeFarms.length)return `<div class="empty"><b>لا توجد مزرعة جاهزة للتصفية</b>التصفية تحتاج فواتير غير مصفّاة.</div>`;
-  const f=S.form.settle||{};
+  let f=S.form.settle||{};
+  /* دورة مفتوحة واحدة بس: مافيش اختيار أصلاً، فنختارها ونملأ إجماليها */
+  if(!f.farmId&&D.activeFarms.length===1){const x=D.activeFarms[0];
+    f={...f,farmId:x.id,total:Math.round(x.cycleTotal*100)/100}}
   return `<div class="eyebrow brass">تصفية وأرشفة دورة مزرعة</div>
   <div class="card"><form data-form="settle">
     <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
@@ -2223,14 +2226,16 @@ function opsBox(){
   const D=S.D;
   if(!D.farms.length&&!D.merchants.length)return `<div class="empty"><b>لا توجد جهات</b>أضف مزرعة أو مبيعاً من «الإعدادات».</div>`;
   const g=S.sub.box;
-  const head=seg('box',[["out","صادر"],["in","وارد"],["move","تحويلات"],["adj","جرد وتسويات"],["bal","الأرصدة"]],g,true);
-  if(g==='bal')return head+`<div style="height:14px"></div>`+bxBal();
+  if(g==='bal')return `<button class="rarebtn" data-act="boxBal">‹ رجوع لعمليات البكش</button>`
+    +`<div style="height:6px"></div>`+bxBal();
+  const head=seg('box',[["out","صادر"],["in","وارد"],["move","تحويلات"],["adj","جرد وتسويات"]],g,true);
   const rare=g==='adj'&&S.rare;
   const ops=(BOXGROUP[g]||[]).concat(rare?BOXGROUP.adjRare:[]);
   if(!ops.some(o=>o[0]===S.sub.boxop))S.sub.boxop=ops[0][0];
   const op=S.sub.boxop;
   return head+`<div style="height:10px"></div>`+seg('boxop',ops,op,true)
     +(g==='adj'?`<button class="rarebtn" data-act="rare">${rare?'▴ إخفاء العمليات النادرة':'▾ عمليات نادرة (تصحيح رصد · بلا طرف)'}</button>`:'')
+    +`<button class="rarebtn" data-act="boxBal">أرصدة البكش ‹</button>`
     +`<p class="note" style="margin:12px 0">${IC('lock')}حركات البكش لا تمسّ مديونية مبيع ولا مستحق مزرعة.</p>`
     +boxLog([op],3)
     +(op==='audit'?auditForm():boxForm(op,'تسجيل الحركة',op==='sale_move'?invPicker():''));
@@ -2258,12 +2263,16 @@ function auditForm(){
 }
 function boxForm(op,btn,extra=""){
   const f=BOXF[op]||[];
+  const K=S.boxKeep&&S.boxKeep.op===op?S.boxKeep:{vals:{}};
   return lastOps(['box'],[op])+`<div class="card"><form data-form="box" data-op="${op}">
     ${BOXHINT[op]?`<p class="note" style="margin:0 0 14px">${BOXHINT[op]}</p>`:''}
-    ${dateLine()}
-    ${f.map(([k,l,t,e,o])=>fieldHTML(k,l,t,e,o)).join('')}${extra}
-    <div class="field"><label>ملاحظة</label><input name="note"></div>
-    <button class="btn" type="submit">${btn}</button></form></div>`;
+    ${dateLine(K.date)}
+    ${f.map(([k,l,t,e,o])=>fieldHTML(k,l,t,e,o,K.vals[k]||'')).join('')}${extra}
+    ${noteField()}
+    ${f.some(x=>x[2]==='ent')?`<div class="btnrow savebar">
+      <button class="btn" type="button" data-act="saveAgain">حفظ وواحدة تانية</button>
+      <button class="btn ghost" type="submit">حفظ وخلاص</button></div>`
+      :`<button class="btn" type="submit">${btn}</button>`}</form></div>`;
 }
 function fieldHTML(k,l,t,e,optional,val=""){
   const D=S.D;
@@ -4630,6 +4639,7 @@ function onClick(ev){
   const go=(tab,sub)=>{if(tab==='fin'){tab='ops';sub={ops:'acct',...(sub||{})}}
     S.tab=tab;if(sub)Object.assign(S.sub,sub);S.toTop=true;render()};
   switch(a){
+    case 'boxBal':S.sub.box=S.sub.box==='bal'?(S.boxPrev||'out'):(S.boxPrev=S.sub.box,'bal');return render();
     case 'saveAgain':{const f=b.closest('form');if(!f)return;S.again=true;
       if(f.requestSubmit)f.requestSubmit();
       else f.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));return}
@@ -4938,6 +4948,11 @@ const readForm=f=>{const o={};[...f.elements].forEach(el=>{
   o[el.name]=numeric?AR2EN(el.value).trim():el.value;});return o};
 async function onSubmit(ev){
   ev.preventDefault();const f=ev.currentTarget,kind=f.dataset.form,p=readForm(f);
+  /* التركيز يطلع من النموذج قبل الحفظ: append() بيرسم من جديد، ولو التركيز جوّه
+     النموذج render() بيرجّع كل القيم — فيفضل العدد/المبلغ مكتوب بعد الحفظ وضغطة
+     تانية تسجّل نفس الحركة مرتين. القيم اللي المفروض تفضل (واحدة تانية) ليها
+     مسار صريح: S.invKeep و S.boxKeep. */
+  try{document.activeElement&&document.activeElement.blur()}catch(_){}
   /* حماية من الضغط المزدوج: نفس الفاتورة كانت تُسجَّل مرتين على الشبكات البطيئة */
   const sb=f.querySelector('button[type=submit]');
   if(sb){if(sb.disabled)return;sb.disabled=true;setTimeout(()=>sb.disabled=false,1200)}
@@ -5052,6 +5067,7 @@ async function syncInvoiceBox(inv,oldBoxId){
   await append(rec);
 }
 async function doBox(op,p,f,replaces){
+  const again=S.again;S.again=false;
   const legs=buildLegs(op,p);
   if(!legs.length)return toast("اكتب عدداً أكبر من صفر","err");
   if(legs.some(l=>!l.from||!l.to))return toast("اختر الجهات المطلوبة","err");
@@ -5061,7 +5077,18 @@ async function doBox(op,p,f,replaces){
   await append({type:'box',op,date:p.date||todayISO(),legs,params:p,
     driverId:p.driverId||null,dmgReason:p.dmgReason||null,
     invoiceId:p.invoiceId||null,cost:+p.cost||0,note:p.note,replaces});
-  if(f)f.reset();toast((BOXOP[op]||'حركة')+" — تم","ok");
+  /* append() رسم من جديد ورجّع قيم النموذج اللي كان فيه التركيز، فـf هنا نسخة
+     مفصولة عن الشاشة — نشتغل على النموذج الحي. وإلا فضل العدد مكتوب بعد الحفظ
+     وضغطة تانية بتسجّل نفس الحركة مرتين. */
+  if(f){
+    /* «واحدة تانية»: الجهات والسائق والتاريخ يفضلوا، والأعداد والملاحظة تتمسح */
+    S.boxKeep=again?{op,date:p.date,vals:Object.fromEntries((BOXF[op]||[])
+      .filter(x=>x[2]==='ent'||x[2]==='cond'||x[2]==='reason').map(x=>[x[0],p[x[0]]||'']))}:null;
+    render();
+    if(again){const n=$(`form[data-form="box"][data-op="${op}"] input[type=number]`);if(n)try{n.focus()}catch(_){}
+      return toast((BOXOP[op]||'حركة')+" — تم · نفس الجهات جاهزة","ok")}
+  }
+  toast((BOXOP[op]||'حركة')+" — تم","ok");
 }
 /*
   الجرد: العجز يخرج من الجهة إلى #LOSS ويظهر فاقداً عليها،
