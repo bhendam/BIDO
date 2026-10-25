@@ -1479,10 +1479,12 @@ async function refresh(){
   S.sec=(await getMeta('security'))||S.sec;
   S.bk=(await getMeta('backup'))||S.bk;
   S.wipeLog=(await getMeta('wipeLog'))||[];
-  S.recentRep=(await getMeta('repRecent'))||[];
+  /* مفاتيح قبل 5.0.0 بتتحوّل مرة عند التحميل — وإلا «الأرصدة» يتكرّر في الشريط وما يتشالش */
+  const mig=a=>[...new Set((a||[]).map(k=>REPALIAS[k]?REPALIAS[k][0]:k))];
+  S.recentRep=mig(await getMeta('repRecent'));
   S.hand={tpls:(await getMeta('handTpl'))||[],days:(await getMeta('handDays'))||{},last:(await getMeta('handLast'))||'full'};
   S.drill=(await getMeta('drill'))||S.drill;
-  S.pinRep=(await getMeta('repPin'))||[];
+  S.pinRep=mig(await getMeta('repPin'));
   S.devId=(await getMeta('deviceId'))||"";
   if(!S.devId){S.devId=uid();await setMeta('deviceId',S.devId)}
   S.chainTip=S.ledger.length?S.ledger[S.ledger.length-1].hash||"":"";
@@ -2029,8 +2031,11 @@ function fSettle(){
   if(!D.activeFarms.length)return `<div class="empty"><b>لا توجد مزرعة جاهزة للتصفية</b>التصفية تحتاج فواتير غير مصفّاة.</div>`;
   let f=S.form.settle||{};
   /* دورة مفتوحة واحدة بس: مافيش اختيار أصلاً، فنختارها ونملأ إجماليها */
+  /* لازم نفس اللي بيملاه مستمع تغيير المزرعة (wireSettle): الإجمالي **والمصاريف** —
+     من غيرها المصاريف تفضل صفر والمستحق يطلع أكبر من الحقيقي بقيمتها */
   if(!f.farmId&&D.activeFarms.length===1){const x=D.activeFarms[0];
-    f={...f,farmId:x.id,total:Math.round(x.cycleTotal*100)/100}}
+    f={...f,farmId:x.id,total:Math.round(x.cycleTotal*100)/100,
+      expenses:Math.round(x.cycleExpenseTotal*100)/100}}
   return `<div class="eyebrow brass">تصفية وأرشفة دورة مزرعة</div>
   <div class="card"><form data-form="settle">
     <div class="field"><label>المزرعة <span class="hint">${D.activeFarms.length} دورة مفتوحة</span></label>
@@ -2344,7 +2349,8 @@ function auditForm(){
 }
 function boxForm(op,btn,extra=""){
   const f=BOXF[op]||[];
-  const K=S.boxKeep&&S.boxKeep.op===op?S.boxKeep:{vals:{}};
+  /* نفس اليوم بس: التطبيق بيفضل مفتوح، وجهات امبارح ما ينفعش تستناك النهارده */
+  const K=S.boxKeep&&S.boxKeep.op===op&&S.boxKeep.at===todayISO()?S.boxKeep:{vals:{}};
   return lastOps(['box'],[op])+`<div class="card"><form data-form="box" data-op="${op}">
     ${BOXHINT[op]?`<p class="note" style="margin:0 0 14px">${BOXHINT[op]}</p>`:''}
     ${dateLine(K.date)}
@@ -2692,7 +2698,8 @@ function selectRep(k){
   k=repKey(k);
   setRep(k);S.page=0;S.toTop=true;S.fopen=false;
   if(REPNOENT.has(k))S.F.ent='';
-  if(k==='daily'&&S.F.from!==S.F.to){const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
+  /* باب «اليوم» بيعدّ حركة النهارده، فلازم يفتح على يوم واحد — مش على مدى التقرير اللي قبله */
+  if((k==='daily'||k==='hand')&&!(S.F.from&&S.F.from===S.F.to)){const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
   /* حجم الشغل بلا مدى = الشهر ده (من غير مدى مافيش «فترة سابقة» نقارن بيها) */
   if(k==='volume'&&!(S.F.from&&S.F.to)){S.F.from=monthStart();S.F.to=todayISO();S.F.range='month'}
   /* حساب السواقين بيتعمل آخر الأسبوع على الأسبوع اللي خلص (جمعة ← خميس) */
@@ -2982,19 +2989,12 @@ function farmSpan(fid,from,to){
   const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
   /* رصيد أول المدة = كل الحركات قبلها. المزرعة جهة، وعهدتها «سليم» دائماً
      (قاعدة ٦) فرقم واحد بلا تقسيم سليم/تالف. */
-  let open=0;
-  ents.filter(e=>e.date<from).forEach(e=>legsOf(e).forEach(l=>{
-    if(l.to===fid)open+=l.count; if(l.from===fid)open-=l.count}));
-  const bx=ents.filter(e=>inR2(e)&&legsOf(e).some(l=>l.from===fid||l.to===fid)).sort((a,b)=>a.seq-b.seq);
-  let bIn=0,bOut=0;
-  const bxRows=bx.map(e=>{
-    let i=0,o=0;const other=new Set();
-    legsOf(e).forEach(l=>{
-      if(l.to===fid){i+=l.count; if(l.from!==fid&&l.from!=='#ADJ')other.add(D.nameOf(l.from))}
-      if(l.from===fid){o+=l.count; if(l.to!==fid&&l.to!=='#ADJ')other.add(D.nameOf(l.to))}});
-    bIn+=i;bOut+=o;
-    return{e,i,o,other:[...other].join(' · ')||'—'}});
-  return{inv,ice,cost,bx:bxRows,open,close:open+bIn-bOut,bIn,bOut,
+  /* أرقام البكش من boxLedger — نفس حساب كل تقارير البكش، فالمزرعة والمبيع في
+     نفس الورقة ما يفترقوش */
+  const B=boxLedger(ents,fid,from,to);
+  const bIn=sum(B.rows,r=>r.ii+r.id),bOut=sum(B.rows,r=>r.oi+r.od);
+  const bxRows=B.rows.map(r=>({e:r.e,i:r.ii+r.id,o:r.oi+r.od,other:boxPairs(r.e)}));
+  return{inv,ice,cost,bx:bxRows,open:B.open.i+B.open.d,close:B.close.i+B.close.d,bIn,bOut,
     lbl:from===to?arDate(to):`${arDate(from)} — ${arDate(to)}`,
     invBoxes:sum(inv,i=>i.boxes),invAmt:sumM(inv.filter(i=>+i.amount>0),i=>i.amount),
     drafts:inv.filter(i=>!(+i.amount>0)).length,
@@ -3144,6 +3144,8 @@ const hItemLbl=(k,i)=>((hSec(k)||[,,[]])[2].find(x=>x[0]===i)||[,i])[1];
 const hTpls=()=>[HFULL,...(S.hand.tpls||[])];
 const hTpl=id=>hTpls().find(t=>t.id===id)||HFULL;
 const hDay=d=>S.hand.days[d]||{};
+/* يوم التسليم المعروض — S.F.from ممكن يبقى '' (بعد فتح كشف جهة) والشاشة بتعرض النهارده */
+const hKey=()=>S.F.from||todayISO();
 /* حفظ عرض لا بيانات محاسبية: لو فشل، الشغل يكمّل في الجلسة ولا يقع */
 function hSave(){saveRepPref('handTpl',S.hand.tpls);saveRepPref('handDays',S.hand.days);saveRepPref('handLast',S.hand.last)}
 function hDaySet(d,fn){const x={tpl:S.hand.last,hide:[],add:[],...hDay(d)};
@@ -3197,7 +3199,8 @@ function editDiff(o,e){
 function handData(from,to){
   const D=S.D;
   const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
-  const mbox=D.merchants.map(m=>({m,B:boxLedger(ents,m.id,from,to)})).filter(x=>x.B.rows.length);
+  const touched=new Set();ents.forEach(e=>{if(e.date>=from&&e.date<=to)legsOf(e).forEach(l=>{touched.add(l.from);touched.add(l.to)})});
+  const mbox=D.merchants.filter(m=>touched.has(m.id)).map(m=>({m,B:boxLedger(ents,m.id,from,to)})).filter(x=>x.B.rows.length);
   const L=D.live.filter(e=>e.date>=from&&e.date<=to);
   const drv=D.drivers.map(d=>{const t=L.filter(e=>e.type==='trip'&&e.driverId===d.id),
       a=L.filter(e=>e.type==='driver_advance'&&e.driverId===d.id);
@@ -3348,7 +3351,8 @@ function handover(){
           return `${HSUMLBL[k]}: كان ${f(was[k])} · بقى ${f(now[k])}`}).join(' — ')}</span></div></div>`
       :`<div class="diff over" style="margin-bottom:12px"><span>اتسلّم ${esc(at)}</span><b>✓ مطابق للدفتر</b></div>`}
   const mod=B.hidden||V.add.length;
-  S.print={title:(V.one?'تسليم يوم ':'تسليم فترة ')+arDate(V.from)+(V.one?'':' — '+arDate(V.to)),html:handPrintHTML()};
+  /* نسخة الورق بتتبني لما تتطلب بس (طباعة · واتساب · CSV) — مش مع كل رسم */
+  S.print={title:(V.one?'تسليم يوم ':'تسليم فترة ')+arDate(V.from)+(V.one?'':' — '+arDate(V.to)),get html(){return handPrintHTML()}};
   return `<div class="qr" style="margin-bottom:10px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}" aria-selected="${isR(k)}">${l}</button>`).join('')}
     <button data-act="fToggle">${IC('cal')}مخصّص</button></div>
   ${S.fopen?filterBar():''}
@@ -3387,7 +3391,7 @@ function handTplSheet(){
     ${secs}
     ${ro?'':`<button type="button" class="btn ghost danger" data-act="tplDel" data-id="${cur.id}" style="margin-top:12px">${IC('trash')}مسح «${esc(cur.name)}»</button>`}`);
 }
-async function handReset(){const d=S.F.from;
+async function handReset(){const d=hKey();
   if(!await ask("رجّع الأصل","تلغي كل الإخفاء والإضافات على تسليم "+arDate(d)+"؟",{ok:"رجّع"}))return;
   hDaySet(d,x=>{x.hide=[];x.add=[]});render()}
 async function tplDel(id){
@@ -3408,7 +3412,7 @@ function tplMove(p,d){tplEdit(t=>{
   if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]})}
 /* شيت «إضافة بند»: حركات يوم تاني تتضاف لورقة اليوم بتاريخها */
 function handAddSheet(day){
-  const D=S.D,cur=new Set(hDay(S.F.from).add||[]);
+  const D=S.D,cur=new Set(hDay(hKey()).add||[]);
   const list=D.live.filter(e=>e.date===day&&e.type!=='void'&&!cur.has(e.id)).sort((a,b)=>a.seq-b.seq);
   openSheet('إضافة بند من يوم تاني','الحركة تظهر بتاريخها في «مضاف من أيام تانية» — مش بتدخل مجاميع اليوم',
     `<div class="field"><label>اليوم</label><input type="date" id="haDay" value="${day}"></div>
@@ -3551,7 +3555,7 @@ function repBox(){
       <td class="n" style="font-weight:600">${fmt(r.ai,r.ad)}</td>
       <td>${esc(boxPairs(r.e))}</td><td>${esc(r.e.driverId?D.nameOf(r.e.driverId):'—')}</td></tr>`).join('');
     const T=B.rows.reduce((a,r)=>({ii:a.ii+r.ii,id:a.id+r.id,oi:a.oi+r.oi,od:a.od+r.od}),{ii:0,id:0,oi:0,od:0});
-    const aud=ents.filter(e=>e.op==='audit'&&e.date===day&&e.locId===loc).sort((a,b)=>a.seq-b.seq).pop();
+    const aud=ents.filter(e=>e.op==='audit'&&e.date===day&&e.locId===loc&&e.counted&&e.book).sort((a,b)=>a.seq-b.seq).pop();
     const nc=W?5:3;   /* أعمدة الأرقام بعد «العملية»، والرصيد آخرها */
     const tbl=`<table><thead><tr><th>العملية</th>
       <th class="n">وارد${W?' سليم':''}</th>${W?'<th class="n">وارد تالف</th>':''}
@@ -4914,7 +4918,7 @@ function onClick(ev){
     case 'goBoxAdj':return go('ops',{ops:'box',box:'adj',boxop:'opening_box'});
     case 'goDmg':return go('ops',{ops:'drv',drv:'dmg'});
     case 'repMerchant':S.F.ent=id;S.F.range='all';S.F.from='';S.F.to='';setRep('merchEnt');S.page=0;S.fopen=false;return go('rep');
-    case 'repDriver':S.F.ent=id;setRep('drv');S.page=0;S.fopen=false;return go('rep');
+    case 'repDriver':S.F.ent=id;S.sub.drvRep='detail';setRep('drv');S.page=0;S.fopen=false;return go('rep');
     case 'repFactory':S.F.ent=id;setRep('ice');S.page=0;S.fopen=false;return go('rep');
     case 'repEntity':S.F.ent=id;setRep('boxAll');S.page=0;S.fopen=false;return go('rep');
     case 'allType':S.F.type=b.dataset.t;S.page=0;return render();
@@ -4946,19 +4950,19 @@ function onClick(ev){
       (S.F.from===S.F.to?'ورقة تسليم يوم ':'ورقة تسليم فترة ')+arDate(S.F.from||todayISO()),
       handPrintHTML(),fname('تسليم',dtag(S.F.from||todayISO())));
     case 'handEdit':S.handEdit=!S.handEdit;return render();
-    case 'handTpl':return handTplSheet();
+    case 'handTpl':S.hand.last=hTpl(hDay(hKey()).tpl||S.hand.last).id;return handTplSheet();
     case 'handAdd':return handAddSheet(addDays(S.F.from||todayISO(),-1));
-    case 'handAddId':hDaySet(S.F.from,x=>{if(!x.add.includes(b.dataset.id))x.add.push(b.dataset.id)});
+    case 'handAddId':hDaySet(hKey(),x=>{if(!x.add.includes(b.dataset.id))x.add.push(b.dataset.id)});
       closeSheet();toast("اتضافت لورقة اليوم","ok");return render();
-    case 'handUnadd':hDaySet(S.F.from,x=>{x.add=x.add.filter(i=>i!==b.dataset.id)});return render();
-    case 'handHide':hDaySet(S.F.from,x=>{if(!x.hide.includes(b.dataset.p))x.hide.push(b.dataset.p)});return render();
+    case 'handUnadd':hDaySet(hKey(),x=>{x.add=x.add.filter(i=>i!==b.dataset.id)});return render();
+    case 'handHide':hDaySet(hKey(),x=>{if(!x.hide.includes(b.dataset.p))x.hide.push(b.dataset.p)});return render();
     case 'handReset':return handReset();
-    case 'handDeliver':hDaySet(S.F.from,x=>{x.tpl=hTpl(x.tpl).id;x.delivered={at:new Date().toISOString(),sums:handSums(S.F.from,S.F.from)}});
+    case 'handDeliver':hDaySet(hKey(),x=>{x.tpl=hTpl(x.tpl).id;x.delivered={at:new Date().toISOString(),sums:handSums(hKey(),hKey())}});
       toast("اتسجّل وقت التسليم ومجاميعه","ok");return render();
-    case 'tplUse':S.hand.last=b.dataset.id;if(S.F.from===S.F.to)hDaySet(S.F.from,x=>{x.tpl=b.dataset.id});hSave();handTplSheet();return render();
+    case 'tplUse':S.hand.last=b.dataset.id;if((S.F.from||'')===(S.F.to||''))hDaySet(hKey(),x=>{x.tpl=b.dataset.id});hSave();handTplSheet();return render();
     case 'tplNew':{const n=(($('#tplName')||{}).value||'').trim();if(!n)return toast("اكتب اسم الاسطمبة","err");
       const src=hTpl(S.hand.last),t={id:'t'+uid(),name:clean(n),secs:JSON.parse(JSON.stringify(src.secs))};
-      S.hand.tpls=[...(S.hand.tpls||[]),t];S.hand.last=t.id;if(S.F.from===S.F.to)hDaySet(S.F.from,x=>{x.tpl=t.id});
+      S.hand.tpls=[...(S.hand.tpls||[]),t];S.hand.last=t.id;if((S.F.from||'')===(S.F.to||''))hDaySet(hKey(),x=>{x.tpl=t.id});
       hSave();handTplSheet();return render()}
     case 'tplDel':return tplDel(b.dataset.id);
     case 'tplTog':return tplToggle(b.dataset.p);
@@ -5320,7 +5324,7 @@ async function doBox(op,p,f,replaces){
      وضغطة تانية بتسجّل نفس الحركة مرتين. */
   if(f){
     /* «واحدة تانية»: الجهات والسائق والتاريخ يفضلوا، والأعداد والملاحظة تتمسح */
-    S.boxKeep=again?{op,date:p.date,vals:Object.fromEntries((BOXF[op]||[])
+    S.boxKeep=again?{op,at:todayISO(),date:p.date,vals:Object.fromEntries((BOXF[op]||[])
       .filter(x=>x[2]==='ent'||x[2]==='cond'||x[2]==='reason').map(x=>[x[0],p[x[0]]||'']))}:null;
     render();
     if(again){const n=$(`form[data-form="box"][data-op="${op}"] input[type=number]`);if(n)try{n.focus()}catch(_){}

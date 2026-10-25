@@ -34,7 +34,10 @@ const { chromium } = require('playwright');
   await sub('fin','collect');await p.click('.pick[data-name="merchantId"] .pchip[data-pv]:not([data-pv=""])');await p.fill('form[data-form="collection"] input[name="amount"]','100');
   await p.click('form[data-form="collection"] button[type="submit"]');await dlg();await p.waitForTimeout(500);
   console.log('collection amount after save:',await p.$eval('form[data-form="collection"] [name="amount"]',e=>e.value));
+  /* مراجعة 5.0.0: مزرعة واحدة مفتوحة وعليها مصاريف — المصاريف لازم تتملى مع الاختيار الآلي */
+  await p.evaluate(async()=>{const f=S.D.activeFarms[0];await append({type:'farm_cost',date:todayISO(),farmId:f.id,cat:'labor',amount:300})});
   await p.click('[data-act="finGo"][data-s="settle"]');await p.waitForTimeout(500);
+  console.log('settle expenses:',await p.$eval('[data-role="expenses"]',e=>e.value),'payable:',await p.$eval('[data-role="payable"]',e=>e.value));
   console.log('settle total:',await p.$eval('[data-role="total"]',e=>e.value));
   await p.screenshot({path:process.env.OUT+'/settle-pre.png'});
   await b.close();

@@ -91,6 +91,10 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
   await shot('r22-tpl-sheet');
   console.log('TPL',JSON.stringify(await p.evaluate(()=>({last:S.hand.last,tpl:hTpl(S.hand.last).secs.map(x=>x[0]),day:S.hand.days[todayISO()].tpl}))));
   await p.evaluate(()=>closeSheet());await shot('r23-hand-tpl');
+  /* مراجعة 5.0.0: التسليم بعد فتح كشف جهة (S.F.from='') — التعديل يتحفظ على النهارده */
+  console.log('HKEY',JSON.stringify(await p.evaluate(()=>{S.F.from='';S.F.to='';S.F.range='all';
+    selectRep('hand');const r=[S.F.from,S.F.to];hDaySet(hKey(),x=>{x.hide.push('sec:wh')});
+    return{range:r,savedToday:(S.hand.days[todayISO()].hide||[]).includes('sec:wh'),emptyKey:!!S.hand.days['']}})));
   console.log('DRV',JSON.stringify(await p.evaluate(()=>({range:[S.F.from,S.F.to],
     rows:S.D.drivers.map(d=>{const x=drvSpan(S.D.live,d.id,S.F.from,S.F.to);return[d.name,x.open,x.trips,x.trip,x.adv,x.pay,x.close]}),
     allTime:S.D.drivers.map(d=>[d.name,drvSpan(S.D.live,d.id,'','').close,d.balance])}))));
