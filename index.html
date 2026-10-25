@@ -2532,36 +2532,35 @@ function iceSettle(){
   (farmEnt · farmDaily · costDaily · farmsAll) والفرق بينها غير واضح من
   الاسم، فكان المستخدم يحتاج أن يعرف اسم التقرير قبل أن يعرف إجابته.
 */
+/* التقارير بالموقف لا بالكيان (5.0.0): صاحب الشغل بيراجع كل يوم · جهة جهة ·
+   كل فترة · ولما رقم يلفت نظره — فالأبواب الأربعة هي الأربع مواقف دي.
+   [المفتاح, الاسم, الوصف, الباب, الاسم المختصر] */
 const REPS=[
-  ['hand','تسليم اليوم','ملخص الحركة والملاحظات — لقفل اليوم','اليوم','تسليم اليوم'],
+  ['hand','تسليم اليوم','كل اللي حصل في اليوم — للمراجعة والتسليم','اليوم','التسليم'],
+  ['daily','جرد المخزن اليومي','كل عملية على المخزن بالسليم والتالف والرصيد بعدها','اليوم','المخزن'],
 
-  ['farmsAll','المزارع عموماً','أرصدة كل المزارع في صف واحد','المزارع','عموماً'],
-  ['farmEnt','تقرير المزرعة','بكش أو فواتير وتصفيات أو ثلج لمزرعة واحدة','المزارع','مزرعة واحدة'],
-  ['farmDaily','تقرير المزرعة اليومي','مبيعات وعهدة بكش وثلج المزرعة في يوم واحد','المزارع','يوم واحد'],
-  ['costDaily','مصاريف المزارع اليومي','مصاريف يوم واحد لكل مزرعة بالبنود والتفصيل','المزارع','مصاريف'],
+  ['farmEnt','حساب مزرعة','بكش يوم بيوم · فواتير وتصفيات · ثلج · مصاريف','الجهات','مزرعة'],
+  ['merchEnt','حساب مبيع','بكش يوم بيوم · فواتير وتحصيل','الجهات','مبيع'],
+  ['drv','السواقين','حساب الأسبوع: تفصيلي ومجمّع بنوع الرحلة · التالف','الجهات','سواقين'],
+  ['ice','مصنع ثلج','بلاطات وسعر ومدفوع ورصيد','الجهات','ثلج'],
+  ['bal','الأرصدة','رصيد كل مزرعة ومبيع وسواق ومصنع','الجهات','الأرصدة'],
 
-  ['merchAll','المبايع عموماً','أرصدة كل المبايع في صف واحد','المبايع','عموماً'],
-  ['merchEnt','تقرير المبيع','فواتير وتحصيل وبكش لمبيع واحد','المبايع','مبيع واحد'],
-  ['aging','أعمار الديون','مديونية كل مبيع موزَّعة على شرائح العمر','المبايع','المتأخر'],
-  ['colDaily','تقرير التحصيل','تحصيلات يوم واحد لكل المبايع مع الإجمالي','المبايع','التحصيل'],
+  ['income','دخل المكتب','العمولة في الفترة وصافي دخل المكتب','الفترة','الدخل'],
+  ['aging','المتأخرين','مديونية كل مبيع متقسّمة على قِدمها','الفترة','المتأخرين'],
+  ['boxLoss','فاقد البكش','المشترى مقابل الموجود ونسبة الفاقد','الفترة','الفاقد'],
+  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال — كل السائقين','الفترة','التالف'],
 
-  ['boxAll','حركة البكش العامة','كل حركات البكش في كل الجهات والمخزن','البكش','الحركة'],
-  ['daily','جرد المخزن اليومي','رصيد افتتاحي وعمليات اليوم والرصيد الختامي والفعلي','البكش','المخزن'],
-  ['audit','الجرد','فروق العدّ بين الدفتري والفعلي','البكش','فروق العدّ'],
-  ['boxLoss','فاقد البكش','المشترى مقابل الموجود ونسبة الفاقد','البكش','الفاقد'],
-
-  ['drv','السائقين','حساب رحلات أو تقرير تالف لكل سائق','سائقين وثلج','سائق'],
-  ['drvAll','السائقين عموماً','أرصدة كل السائقين في صف واحد','سائقين وثلج','كل السائقين'],
-  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال — كل السائقين','سائقين وثلج','التالف'],
-  ['ice','الثلج','بلاطات وسعر ورصيد كل مصنع','سائقين وثلج','مصنع'],
-  ['iceAll','المصانع عموماً','أرصدة كل مصانع الثلج في صف واحد','سائقين وثلج','كل المصانع'],
-
-  ['income','دخل المكتب','العمولة المحصَّلة في الفترة وصافي دخل المكتب','العمولة','دخل المكتب'],
-
-  ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','السجل','كل العمليات']
+  ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','التتبّع','كل العمليات'],
+  ['boxAll','حركة البكش العامة','كل حركات البكش بالرصيد بعد كل حركة','التتبّع','البكش'],
+  ['audit','فروق الجرد','الفرق بين المعدود والدفتري','التتبّع','الجرد']
 ];
-const repInfo=k=>REPS.find(r=>r[0]===k)||REPS[0];
-const repKnown=k=>REPS.some(r=>r[0]===k);
+/* مفاتيح قديمة (قبل 5.0.0) ممكن تكون محفوظة في المثبّتة/الأخيرة أو في روابط
+   جوّه التطبيق — كل واحد بيتحوّل للتقرير اللي اندمج فيه بدل ما يقع. */
+const REPALIAS={farmsAll:['bal','farm'],merchAll:['bal','merchant'],drvAll:['bal','driver'],
+  iceAll:['bal','ice'],farmDaily:['farmEnt'],colDaily:['hand'],costDaily:['hand']};
+const repKey=k=>{const a=REPALIAS[k];if(!a)return k;if(a[1])S.sub.bal=a[1];return a[0]};
+const repInfo=k=>REPS.find(r=>r[0]===(REPALIAS[k]?REPALIAS[k][0]:k))||REPS[0];
+const repKnown=k=>REPS.some(r=>r[0]===(REPALIAS[k]?REPALIAS[k][0]:k));
 /* الاسم المختصر (r[4]) لشريط المجموعة: جوّه باب «المزارع» السؤال هو «عموماً؟
    مزرعة واحدة؟ يوم واحد؟» — تكرار كلمة «المزرعة» في كل زرّ يملأ الشريط بلا
    معلومة. الاسم الكامل (r[1]) يبقى في العنوان وفي القائمة. */
@@ -2571,17 +2570,13 @@ const repShort=k=>{const r=repInfo(k);return r[4]||r[1]};
    رقم واحد محسوب أصلاً في derive، فقراءته من الباب توفّر فتح التقرير كله.
    كل الأرقام من D أو من incomeSpan القائمة — بلا نقطة حساب جديدة. */
 const GATES=[
-  ['المزارع','farmsAll','money','brass',D=>[money(sumM(D.farms,f=>f.balance)),
-    `مستحق · ${D.farms.length} مزرعة`]],
-  ['المبايع','merchAll','doc','debt',D=>[money(sumM(D.merchants,m=>m.balance)),
-    `مديونية · ${D.merchants.length} مبيع`]],
-  ['البكش','boxAll','box','box',D=>[D.custody.all,
-    `مخزن ${D.wh.total} · بره ${D.custody.merchants+D.custody.farms}`]],
-  ['سائقين وثلج','drv','truck','paid',D=>[money(sumM(D.drivers,d=>d.balance)),
-    `ثلج ${money(sumM(D.factories,f=>f.balance))}`]],
-  ['العمولة','income','chart','',D=>[money(incomeSpan(monthStart(),todayISO(),'').comm),
+  ['اليوم','hand','cal','acct',D=>[D.kpi.todayOps,
+    `حركة النهارده · بيع ${money(D.kpi.todaySales)}`]],
+  ['الجهات','bal','money','brass',D=>[money(sumM(D.merchants,m=>m.balance)),
+    `على المبايع · للمزارع ${money(sumM(D.farms,f=>f.balance))}`]],
+  ['الفترة','income','chart','',D=>[money(incomeSpan(monthStart(),todayISO(),'').comm),
     'عمولة الشهر']],
-  ['السجل','all','grid','',()=>[S.ledger.length,'حركة مسجَّلة']]
+  ['التتبّع','all','grid','',()=>[S.ledger.length,'حركة مسجَّلة']]
 ];
 
 /* كلمات يدوّر بها صاحب الشغل بالمعنى لا بالاسم الرسمي: «فلوس مزرعة» تودّي
@@ -2590,20 +2585,14 @@ const REPKEY={
   income:'دخل ربح مكسب عمولة نسبه المكتب كسبت كام ايراد',
   aging:'ديون متاخره اعمار تقادم قديم مستحق تحصيل متأخر مخاطر تركز',
   boxLoss:'فاقد ضايع عجز بكش شراء نسبه تسرب',
-  hand:'تسليم ورديه نهايه اليوم قفل ملخص استلام',
+  hand:'تسليم ورديه نهايه اليوم قفل ملخص استلام مراجع تحصيل مصاريف مزرعه يوم',
   daily:'جرد مخزن بكش يومي رصيد افتتاحي ختامي عدد',
-  farmDaily:'مزرعه يوم واحد مبيعات ثلج بكش تاريخ معين',
-  colDaily:'تحصيل فلوس نقديه قبض مبايع تجار يوم',
-  costDaily:'مصاريف مصروفات تكاليف عمال نوله ثلج نثريات يوم مزرعه صرف',
   farmEnt:'مزرعه كشف حساب فلوس مستحق فواتير فاتوره تصفيه بكش ثلج مربي',
   merchEnt:'مبيع تاجر صاله كشف حساب فلوس مديونيه دين تحصيل بكش فاتوره فواتير',
   drv:'سائق سواق سايق عربيه نقل رحلات سروح سلف اجره تالف',
   ice:'ثلج بلاطات مصنع تلج سعر',
   boxAll:'بكش صناديق عهده حركه شيل رجع',
-  farmsAll:'مزارع كل ارصده مستحقات عموما',
-  merchAll:'مبايع تجار كل ارصده مديونيه ديون عموما',
-  drvAll:'سائقين سواقين كل ارصده عموما',
-  iceAll:'مصانع ثلج تلج كل ارصده عموما',
+  bal:'ارصده كل عموما مزارع مبايع تجار سواقين سائقين مصانع مستحقات مديونيه ديون',
   audit:'جرد فرق عد فعلي دفتري نقص زياده',
   dmg:'تالف كسر خرده اهمال سائقين نسبه',
   all:'كل العمليات سجل حركات تعديل حذف بحث ارشيف فواتير فاتوره'};
@@ -2633,14 +2622,14 @@ function pushRecentRep(k){
    من صفحة الجهة أو من البحث، مش من القائمة بس. */
 /* نقطة واحدة: أي مسار يفتح تقريراً (القائمة · الباب · صفحة الجهة · شريط
    «النهارده») يمرّ من هنا، فتُطفأ شاشة الأبواب ولا يحتاج كل نداء أن يتذكّرها. */
-const setRep=k=>{S.rep=k;S.repGate=false;pushRecentRep(k)};
+const setRep=k=>{k=repKey(k);S.rep=k;S.repGate=false;pushRecentRep(k)};
 /* اختيار تقرير — نقطة واحدة يستدعيها الشريط المختصر والقائمة معاً */
 function selectRep(k){
   if(!repKnown(k))return;
+  k=repKey(k);
   setRep(k);S.page=0;S.toTop=true;S.fopen=false;
   if(REPNOENT.has(k))S.F.ent='';
-  if((k==='farmDaily'||k==='colDaily'||k==='costDaily')&&S.F.from!==S.F.to){
-    const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
+  if(k==='daily'&&S.F.from!==S.F.to){const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
   closeSheet();render();
   /* تقرير جهة واحدة بلا جهة مختارة = شاشة إرشاد فاضية وخطوة زيادة في الفلتر،
      فنفتح مُختار الجهة على طول. ولو المختار حالياً من نوع تاني (مبيع في تقرير
@@ -2728,10 +2717,7 @@ function repGate(){
       <div class="lbl">${IC(ic)}${g}</div>
       <div class="val sm num">${v}</div>
       <div class="sub">${esc(sub)}</div></button>`};
-  return `<button class="tile" data-act="repSel" data-r="hand" style="margin-bottom:16px">
-      <div class="lbl">${IC('cal')}تسليم اليوم<span class="car">›</span></div>
-      <div class="sub">ملخص حركة اليوم — لقفل اليوم والتوقيع</div></button>
-    ${repQuick()}
+  return `${repQuick()}
     <div class="grid2">${GATES.map(tile).join('')}</div>
     <button class="btn ghost" data-act="repPick" style="margin-top:16px">${IC('search')}كل التقارير · بحث بالمعنى</button>`;
 }
@@ -2752,16 +2738,17 @@ function vRep(){
     ${inner}</div>`+repGroupBar();
   if(r==='hand')return bar('')+handover()+repActions();
   S.sub.repbox=r;
-  const fn={all:repAll,drv:repDrv,ice:repIce,drvAll:repDrv,iceAll:repIce,
+  const fn={all:repAll,drv:repDrv,ice:repIce,
     income:repIncome,aging:repAging,boxLoss:repBoxLoss,
-    farmEnt:repFarmEnt,merchEnt:repMerchEnt,farmDaily:repFarmDaily,colDaily:repCollDaily,
-    costDaily:repCostDaily,
-    boxAll:repBoxAll,farmsAll:repFarmsAll,merchAll:repMerchAll,
+    farmEnt:repFarmEnt,merchEnt:repMerchEnt,
+    boxAll:repBoxAll,bal:repBal,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
   /* أيقونة فلتر لا عدسة بحث: السطر بيفلتر مدة وجهة، والعدسة كانت بتوعد ببحث. */
   const line=`<button class="filtline" data-act="fToggle">${IC('filter')}
     <span class="fs">${esc(fsum())}</span>
     <span class="go">${S.fopen?'▴':'تعديل'}</span></button>`;
+  /* الأرصدة حالية مش بتاعة مدة — سطر فلتر بتواريخ كان بيوهم إن الرقم رقم الفترة */
+  if(r==='bal')return bar('')+fn()+repActions();
   return bar(line)+(S.fopen?filterBar():'')+fn()+repActions();
 }
 function repActions(){
@@ -2774,16 +2761,16 @@ function repActions(){
       <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}`;
 }
 /* تقارير عامة بلا فلترة جهة — «عموماً» يعني كل الجهات، فإخفاء الحقل أوضح من عرضه معطّلاً */
-const REPNOENT=new Set(['farmsAll','merchAll','drvAll','iceAll','boxLoss']);
+const REPNOENT=new Set(['bal','boxLoss']);
 /* نوع الجهة اللي يفلتر بها كل تقرير — مستخرَج من filterBar علشان selectRep
    يقدر يفتح مُختار الجهة الصحيح بنفس الخريطة بلا تكرار. */
 const REPET={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
   drv:'driver',ice:'ice',all:'farmerchant',farmEnt:'farm',merchEnt:'merchant',
-  farmDaily:'farm',colDaily:'merchant',costDaily:'farm',boxAll:'loc',
+  boxAll:'loc',
   income:'farm',aging:'merchant'};
 const repEt=k=>REPET[k]||'farmerchant';
 /* تقارير لا تعرض شيئاً بلا جهة مختارة — دي اللي نفتح لها المُختار تلقائياً */
-const REPNEEDENT=new Set(['farmEnt','merchEnt','farmDaily']);
+const REPNEEDENT=new Set(['farmEnt','merchEnt']);
 function filterBar(){
   const F=S.F,D=S.D;
   const etype=repEt(S.rep);
@@ -3669,119 +3656,6 @@ function repIce(){
     <div class="eyebrow">أرصدة المصانع</div><div class="card"><div class="tscroll">${bal}</div></div>`;
 }
 
-/* ============ تقرير المزرعة اليومي ============
-   اختيار مزرعة + يوم واحد: مبيعات اليوم، عهدة البكش لهذا اليوم، وعمليات الثلج باسم المزرعة. */
-function repFarmDaily(){
-  const D=S.D,F=S.F;
-  const farm=F.ent?D.farms.find(f=>f.id===F.ent):null;
-  const day=(F.from&&F.from===F.to)?F.from:'';
-  if(!farm||!day)return `<div class="empty"><b>اختر مزرعة ويوم واحد</b>
-    افتح الفلتر فوق واختر المزرعة، واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
-    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="fPick" data-et="farm">اختر مزرعة</button>
-    <button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
-  /* نفس حساب ورقة التسليم — كان مكرّراً هنا حرفياً قبل 4.13.0 */
-  const d=farmSpan(farm.id,day,day);
-  const salesTbl=fsTblSales(d),iceTbl=fsTblIce(d),boxTbl=fsTblBox(d);
-  const oi=d.open,ci=d.close,ice=d.ice,inv=d.inv;
-  S.print={title:`تقرير المزرعة اليومي — ${farm.name} — ${arDate(day)}`,phone:farm.phone,
-    html:`<h3>عمليات الثلج باسم المزرعة</h3>${iceTbl}
-      <h3>عمليات البيع</h3>${salesTbl}
-      <h3>المصاريف</h3>${fsTblCost(d)}
-      <h3>عهدة البكش</h3><p>رصيد أول اليوم: ${oi} صندوق — رصيد آخر اليوم: ${ci} صندوق</p>${boxTbl}`};
-  return `<div class="rptname"><b>${esc(farm.name)}</b><span>تقرير يومي — ${arDate(day)}</span></div>
-    <div class="eyebrow ice">عمليات الثلج باسم المزرعة</div>
-    <div class="card">${ice.length?`<div class="tscroll">${iceTbl}</div>`:'<div class="empty">لا عمليات ثلج باسم المزرعة في هذا اليوم</div>'}</div>
-    <div class="eyebrow acct">عمليات البيع</div>
-    <div class="card">${inv.length?`<div class="tscroll">${salesTbl}</div>`:'<div class="empty">لا فواتير بيع في هذا اليوم</div>'}</div>
-    <div class="eyebrow brass">مصاريف اليوم</div>
-    <div class="card">${d.cost.length?`<div class="tscroll">${fsTblCost(d)}</div>`:'<div class="empty">لا مصاريف مسجَّلة في هذا اليوم</div>'}</div>
-    <div class="eyebrow box">عهدة البكش لهذا اليوم</div>
-    <div class="card">
-      <div class="diff"><span>رصيد أول اليوم</span><b>${oi} صندوق</b></div>
-      ${d.bx.length?`<div class="tscroll">${boxTbl}</div>`:'<div class="empty">لا حركات بكش في هذا اليوم</div>'}
-      <div class="diff over"><span>رصيد آخر اليوم</span><b>${ci} صندوق</b></div>
-    </div>`;
-}
-/* ============ تقرير التحصيل ============
-   يوم واحد: كل التحصيلات (كل المبايع، أو مبيع واحد لو اتفلتر) والإجمالي. */
-function repCollDaily(){
-  const D=S.D,F=S.F;
-  const day=(F.from&&F.from===F.to)?F.from:'';
-  if(!day)return `<div class="empty"><b>اختر يوماً واحداً</b>
-    افتح الفلتر فوق واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
-    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
-  /* نفس جدول ورقة التسليم — نقطة واحدة بدل جدولين يفترقان مع الوقت */
-  const{items,total,tbl}=colSpan(day,day,F.ent);
-  S.print={title:`تقرير التحصيل — ${arDate(day)}`,html:tbl};
-  return `<div class="eyebrow">تحصيلات ${arDate(day)}${F.ent?` — ${esc(D.nameOf(F.ent))}`:''}</div>
-    <div class="card">
-    ${repSum([['إجمالي تحصيل اليوم',money(total),'over'],['عدد التحصيلات',items.length]])}
-    ${items.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا تحصيلات في هذا اليوم</div>'}</div>`;
-}
-
-/* ============ مصاريف المزارع — يوم واحد ============
-   «صرفت كام النهارده وعلى إيه» — سؤال آخر اليوم قبل القفل.
-   بيقرأ من كل السجل (D.live) لا من farm.openCosts: openCosts بتحتوي البنود
-   غير المغطّاة بتصفية فقط، فلو الدورة اتصفّت بقى التقرير التاريخي فاضي. */
-const COSTCOLS=[['ice','ثلج'],['trip','سيارات'],['labor','عمال'],['misc','نثريات']];
-function repCostDaily(){
-  const D=S.D,F=S.F;
-  const day=(F.from&&F.from===F.to)?F.from:'';
-  if(!day)return `<div class="empty"><b>اختر يوماً واحداً</b>
-    افتح الفلتر فوق واختر «اليوم» أو اكتب نفس التاريخ في «من» و«إلى».
-    <div class="btnrow" style="margin-top:10px"><button type="button" class="btn ghost sm" data-act="range" data-r="today">اليوم</button></div></div>`;
-  const items=D.live.filter(e=>e.type==='farm_cost'&&e.date===day&&(!F.ent||e.farmId===F.ent))
-    .sort((a,b)=>a.seq-b.seq);
-  const one=F.ent?D.farms.find(f=>f.id===F.ent):null;
-
-  /* تجميع لكل مزرعة، بترتيب الاسم */
-  const byF={};
-  items.forEach(c=>{if(c.farmId)(byF[c.farmId]||(byF[c.farmId]=[])).push(c)});
-  const farms=D.farms.filter(f=>byF[f.id]).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
-  const catSum=(arr,k)=>sumM(arr.filter(c=>c.cat===k),c=>c.amount);
-
-  /* الجدول المجمّع: مزرعة في كل سطر، بند في كل عمود.
-     النقدية عمود مستقل — بتتحمّل على الدورة مع التصفية لكن شاشة قفل اليوم
-     بتعدّ البنود الأربعة وحدها، فخلطها في نفس العمود بيخلّي الرقمين مختلفين
-     بلا تفسير. */
-  const rowOf=(nm,arr)=>`<tr><td class="tname">${esc(nm)}</td>
-    ${COSTCOLS.map(([k])=>`<td class="n">${catSum(arr,k)?money(catSum(arr,k)):'—'}</td>`).join('')}
-    <td class="n">${catSum(arr,'cash')?money(catSum(arr,'cash')):'—'}</td>
-    <td class="n" style="font-weight:700">${money(sumM(arr,c=>c.amount))}</td></tr>`;
-  const gTot=sumM(items,c=>c.amount);
-  const sumTbl=`<table><thead><tr><th>المزرعة</th>
-    ${COSTCOLS.map(([,l])=>`<th class="n">${l}</th>`).join('')}
-    <th class="n">نقدية</th><th class="n">الإجمالي</th></tr></thead>
-    <tbody>${farms.map(f=>rowOf(f.name,byF[f.id])).join('')
-      ||`<tr><td colspan="7">لا مصاريف في هذا اليوم</td></tr>`}</tbody>
-    <tfoot><tr><td>الإجمالي (${farms.length} مزرعة)</td>
-      ${COSTCOLS.map(([k])=>`<td class="n">${money(catSum(items,k))}</td>`).join('')}
-      <td class="n">${money(catSum(items,'cash'))}</td>
-      <td class="n">${money(gTot)}</td></tr></tfoot></table>`;
-
-  /* تفصيل كل مزرعة: بند ببند بالبيان — عشان تعرف الرقم راح فين لا كام بس */
-  const detTbl=arr=>`<table><thead><tr><th>البند</th><th>بيان</th><th class="n">المبلغ</th></tr></thead>
-    <tbody>${arr.map(c=>`<tr><td>${esc(CATLBL[c.cat]||c.cat)}</td>
-      <td>${esc(costLabel(c))}</td><td class="n">${money(c.amount)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="2">الإجمالي (${arr.length} بند)</td>
-      <td class="n">${money(sumM(arr,c=>c.amount))}</td></tr></tfoot></table>`;
-  const secs=farms.map(f=>`<div class="eyebrow brass">${esc(f.name)}
-    <span class="dnet num">${money(sumM(byF[f.id],c=>c.amount))} ج.م</span></div>
-    <div class="card"><div class="tscroll">${detTbl(byF[f.id])}</div></div>`).join('');
-
-  S.print={title:`مصاريف المزارع — ${arDate(day)}${one?` — ${one.name}`:''}`,phone:one?.phone,
-    html:sumTbl+farms.map(f=>`<h3>${esc(f.name)}</h3>`+detTbl(byF[f.id])).join('')};
-
-  if(!items.length)return `<div class="eyebrow brass">مصاريف ${arDate(day)}${one?` — ${esc(one.name)}`:''}</div>
-    <div class="card"><div class="empty">لا مصاريف مسجَّلة في هذا اليوم</div></div>`;
-
-  return `<div class="eyebrow brass">مصاريف ${arDate(day)}${one?` — ${esc(one.name)}`:''}</div>
-    <div class="card"><div class="tscroll">${sumTbl}</div>
-    <div class="diff over" style="margin-top:12px"><span>إجمالي اليوم</span><b>${money(gTot)}</b></div>
-    <p class="note">«نقدية» = سحب ومصاريف عامة — بتتحمّل على الدورة مع التصفية،
-    لكن شاشة قفل اليوم بتعدّ البنود الأربعة وحدها.</p></div>
-    ${secs}`;
-}
 /*
   مقارنة بالمدة السابقة بنفس الطول.
   كل التقارير لقطات: بتقول «الرقم كذا» ومبتقولش «بيزيد ولا بينقص». سطر واحد
@@ -4087,6 +3961,28 @@ function farmIceTab(farm){
     <div class="diff" style="margin-top:12px"><span>إجمالي القيمة</span><b>${money(totVal)}</b></div></div>`;
 }
 /* ============ تقارير عامة (أرصدة كل الجهات في نوع واحد) ============ */
+/* الأرصدة: «عموماً» الأربعة في تقرير واحد بتبويب — السطر يفتح كشف الجهة */
+function repBal(){
+  const D=S.D,K=S.sub.bal||'merchant';
+  const tabs=seg('bal',[["merchant","مبايع"],["farm","مزارع"],["driver","سواقين"],["ice","مصانع"]],K,true)
+    +`<div style="height:14px"></div>`;
+  if(K==='farm')return tabs+repFarmsAll();
+  if(K==='driver'||K==='ice'){
+    const L=K==='driver'?D.drivers:D.factories,act=K==='driver'?'repDriver':'repFactory';
+    const rows=L.slice().sort((a,b)=>b.balance-a.balance||a.name.localeCompare(b.name,'ar'))
+      .map(x=>`<tr class="${zr(x.balance)?'zero':''}" data-act="${act}" data-id="${x.id}">
+        <td class="tname">${esc(x.name)}</td>${mcell(x.balance,1)}</tr>`).join('');
+    const lbl=K==='driver'?'السواق':'المصنع';
+    const tbl=`<table><thead><tr><th>${lbl}</th><th class="n">الرصيد</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr><td>الإجمالي (${L.length})</td>
+      <td class="n">${money(sumM(L,x=>x.balance))}</td></tr></tfoot></table>`;
+    S.print={title:K==='driver'?"أرصدة السواقين":"أرصدة المصانع",html:tbl};
+    return tabs+`<div class="card">${repSum([['المستحق لهم',money(sumM(L,x=>x.balance)),'short']])}
+      ${rows?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا يوجد</div>'}
+      <p class="note">اضغط على أي ${lbl} لكشفه.</p></div>`;
+  }
+  return tabs+repMerchAll();
+}
 function repFarmsAll(){
   const D=S.D;
   const frows=D.farms.map(f=>`<tr class="${zr(f.balance)&&!f.cycleCount?'zero':''}" data-act="repFarm" data-id="${f.id}"><td class="tname">${esc(f.name)}${f.cycleStart?` <span class="tag">دورة ${arDate(f.cycleStart)}</span>`:''}</td>

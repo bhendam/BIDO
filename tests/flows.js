@@ -1,0 +1,41 @@
+const { chromium } = require('playwright');
+(async()=>{
+  const b=await chromium.launch({executablePath:process.env.CHROMIUM||'/opt/pw-browsers/chromium'}).catch(()=>chromium.launch());
+  const p=await (await b.newContext({viewport:{width:390,height:844},locale:'ar-EG',hasTouch:true,isMobile:true})).newPage();
+  p.on('pageerror',e=>console.log('PAGEERR',e.message));
+  await p.goto('http://localhost:'+process.env.PORT+'/index.html');await p.waitForTimeout(1200);
+  const dlg=async()=>{await p.waitForTimeout(300);const x=await p.$('#dlg.on [data-r="1"]');if(x){await x.click();await p.waitForTimeout(300)}};
+  const nav=async t=>{await p.click(`#nav [data-tab="${t}"]`);await p.waitForTimeout(300)};
+  const sub=async(s,k)=>{await p.click(`[data-seg="${s}"] [data-sub="${k}"]`);await p.waitForTimeout(300)};
+  await nav('set');
+  for(const [t,n] of [['farm','مزرعة أ'],['merchant','مبيع أ']]){await sub('set',t);await p.fill('form[data-form="entity"] input[name="name"]',n);await p.click('form[data-form="entity"] button[type="submit"]');await p.waitForTimeout(400);await dlg()}
+  console.log('FAB visible on set:',await p.$eval('#fabwrap',e=>!e.classList.contains('hide')));
+  await nav('ops');console.log('FAB visible on ops:',await p.$eval('#fabwrap',e=>!e.classList.contains('hide')));
+  await sub('ops','box');
+  await p.click('.pick[data-name="toId"] .pchip[data-pv]:not([data-pv=""])');
+  await p.fill('form[data-form="box"] input[name="count"]','10');
+  await p.click('form[data-form="box"] [data-act="saveAgain"]');await dlg();await p.waitForTimeout(500);
+  console.log('after again:',JSON.stringify(await p.evaluate(()=>({n:S.ledger.length,to:document.querySelector('form[data-form="box"] [name="toId"]').value,count:document.querySelector('form[data-form="box"] [name="count"]').value,toast:(document.querySelector('#toast')||{}).textContent}))));
+  await p.fill('form[data-form="box"] input[name="count"]','5');
+  await p.click('form[data-form="box"] button[type="submit"]');await dlg();await p.waitForTimeout(500);
+  console.log('after plain:',await p.evaluate(()=>S.ledger.length), 'last count', await p.evaluate(()=>S.ledger.at(-1).legs.map(l=>l.count)),'form count now:',await p.$eval('form[data-form="box"] [name="count"]',e=>e.value),'to now:',await p.$eval('form[data-form="box"] [name="toId"]',e=>e.value));
+  await p.click('[data-act="boxBal"]');await p.waitForTimeout(300);
+  console.log('bal view has back link:',!!await p.$('[data-act="boxBal"]'));
+  await p.click('[data-act="boxBal"]');await p.waitForTimeout(300);
+  // priced invoice then settlement preselect
+  await sub('ops','acct');
+  const g=await p.$('.pick[data-name="farmId"] [data-g="new"]');console.log('invoice picker opens on new:',await g.getAttribute('aria-pressed'));
+  await p.click('.pick[data-name="farmId"] .pchip[data-pv]:not([data-pv=""])');
+  await p.click('.pick[data-name="merchantId"] .pchip[data-pv]:not([data-pv=""])');
+  await p.fill('form[data-form="invoice"] input[name="boxes"]','20');
+  await p.fill('form[data-form="invoice"] input[name="amount"]','9600');
+  await p.click('form[data-form="invoice"] button[type="submit"]');await dlg();await p.waitForTimeout(500);
+  console.log('invoice amount after save:',await p.$eval('form[data-form="invoice"] [name="amount"]',e=>e.value), 'farms active', await p.evaluate(()=>S.D.activeFarms.length));
+  await sub('fin','collect');await p.click('.pick[data-name="merchantId"] .pchip[data-pv]:not([data-pv=""])');await p.fill('form[data-form="collection"] input[name="amount"]','100');
+  await p.click('form[data-form="collection"] button[type="submit"]');await dlg();await p.waitForTimeout(500);
+  console.log('collection amount after save:',await p.$eval('form[data-form="collection"] [name="amount"]',e=>e.value));
+  await p.click('[data-act="finGo"][data-s="settle"]');await p.waitForTimeout(500);
+  console.log('settle total:',await p.$eval('[data-role="total"]',e=>e.value));
+  await p.screenshot({path:process.env.OUT+'/settle-pre.png'});
+  await b.close();
+})().catch(e=>{console.error(e);process.exit(1)});
