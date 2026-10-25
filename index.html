@@ -1725,11 +1725,7 @@ function attention(){
   if(oldF.length)add('warn','دورات مفتوحة من أكتر من ٣ أسابيع',
     oldF.slice(0,3).map(f=>f.name).join(' · ')+(oldF.length>3?` +${oldF.length-3}`:''),
     'راجع تصفيتها','goFarms');
-  /* عهدة راكدة: بكش عند جهة بلا أي حركة من أسبوعين */
-  const lastMove={};
-  D.live.filter(e=>e.type==='box').forEach(e=>legsOf(e).forEach(l=>{
-    [l.from,l.to].forEach(x=>{if(x&&!isVirt(x)&&x!==WH)lastMove[x]=e.date>(lastMove[x]||'')?e.date:lastMove[x]}) }));
-  const stale=[...D.mBox,...D.fBox].filter(x=>x.box.intact>0&&(!lastMove[x.id]||lastMove[x.id]<addDays(todayISO(),-STALE)));
+  const stale=staleCustody().map(r=>r.x);
   if(stale.length)add('warn','عهدة بكش راكدة',
     stale.slice(0,3).map(x=>`${x.name} (${x.box.intact})`).join(' · ')+(stale.length>3?` +${stale.length-3}`:''),
     `مافيش حركة من ${STALE} يوم — راجعها`,'goBox');
@@ -2590,8 +2586,8 @@ const REPS=[
 
   ['income','دخل المكتب','العمولة في الفترة وصافي دخل المكتب','الفترة','الدخل'],
   ['aging','المتأخرين','مديونية كل مبيع متقسّمة على قِدمها','الفترة','المتأخرين'],
-  ['boxLoss','فاقد البكش','المشترى مقابل الموجود ونسبة الفاقد','الفترة','الفاقد'],
-  ['dmg','تالف السائقين','نسبة التلف والتالف بإهمال — كل السائقين','الفترة','التالف'],
+  ['boxWhere','البكش رايح فين','الفاقد · العهدة الراكدة · التالف على السواقين','الفترة','البكش'],
+  ['volume','حجم الشغل','بيع وبكش كل مزرعة ومبيع قصاد الفترة اللي فاتت','الفترة','حجم الشغل'],
 
   ['all','كل العمليات','سجل شامل بفلترة بالنوع — للتعديل والحذف','التتبّع','كل العمليات'],
   ['boxAll','حركة البكش العامة','كل حركات البكش بالرصيد بعد كل حركة','التتبّع','البكش'],
@@ -2600,7 +2596,8 @@ const REPS=[
 /* مفاتيح قديمة (قبل 5.0.0) ممكن تكون محفوظة في المثبّتة/الأخيرة أو في روابط
    جوّه التطبيق — كل واحد بيتحوّل للتقرير اللي اندمج فيه بدل ما يقع. */
 const REPALIAS={farmsAll:['bal','farm'],merchAll:['bal','merchant'],drvAll:['bal','driver'],
-  iceAll:['bal','ice'],farmDaily:['farmEnt'],colDaily:['hand'],costDaily:['hand']};
+  iceAll:['bal','ice'],farmDaily:['farmEnt'],colDaily:['hand'],costDaily:['hand'],
+  boxLoss:['boxWhere'],dmg:['boxWhere']};
 const repKey=k=>{const a=REPALIAS[k];if(!a)return k;if(a[1])S.sub.bal=a[1];return a[0]};
 const repInfo=k=>REPS.find(r=>r[0]===(REPALIAS[k]?REPALIAS[k][0]:k))||REPS[0];
 const repKnown=k=>REPS.some(r=>r[0]===(REPALIAS[k]?REPALIAS[k][0]:k));
@@ -2627,7 +2624,8 @@ const GATES=[
 const REPKEY={
   income:'دخل ربح مكسب عمولة نسبه المكتب كسبت كام ايراد',
   aging:'ديون متاخره اعمار تقادم قديم مستحق تحصيل متأخر مخاطر تركز',
-  boxLoss:'فاقد ضايع عجز بكش شراء نسبه تسرب',
+  boxWhere:'فاقد ضايع عجز بكش شراء نسبه تسرب راكده عهده تالف كسر اهمال سواقين سائقين',
+  volume:'حجم شغل مبيعات بيع مقارنه زياده نقص اكتر مزرعه مبيع شهر اسبوع',
   hand:'تسليم ورديه نهايه اليوم قفل ملخص استلام مراجع تحصيل مصاريف مزرعه يوم',
   daily:'جرد مخزن بكش يومي رصيد افتتاحي ختامي عدد',
   farmEnt:'مزرعه كشف حساب فلوس مستحق فواتير فاتوره تصفيه بكش ثلج مربي',
@@ -2637,7 +2635,6 @@ const REPKEY={
   boxAll:'بكش صناديق عهده حركه شيل رجع',
   bal:'ارصده كل عموما مزارع مبايع تجار سواقين سائقين مصانع مستحقات مديونيه ديون',
   audit:'جرد فرق عد فعلي دفتري نقص زياده',
-  dmg:'تالف كسر خرده اهمال سائقين نسبه',
   all:'كل العمليات سجل حركات تعديل حذف بحث ارشيف فواتير فاتوره'};
 
 /* تطبيع عربي بسيط: التشكيل والتطويل والهمزات والتاء المربوطة والألف المقصورة —
@@ -2673,6 +2670,8 @@ function selectRep(k){
   setRep(k);S.page=0;S.toTop=true;S.fopen=false;
   if(REPNOENT.has(k))S.F.ent='';
   if(k==='daily'&&S.F.from!==S.F.to){const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
+  /* حجم الشغل بلا مدى = الشهر ده (من غير مدى مافيش «فترة سابقة» نقارن بيها) */
+  if(k==='volume'&&!(S.F.from&&S.F.to)){S.F.from=monthStart();S.F.to=todayISO();S.F.range='month'}
   /* حساب السواقين بيتعمل آخر الأسبوع على الأسبوع اللي خلص (جمعة ← خميس) */
   if(k==='drv'&&S.F.range!=='lwk'&&S.F.range!=='wk'){const[a]=weekOf(todayISO());
     S.F.from=addDays(a,-7);S.F.to=addDays(a,-1);S.F.range='lwk'}
@@ -2787,7 +2786,7 @@ function vRep(){
   const fn={all:repAll,drv:repDrv,ice:repIce,
     income:repIncome,aging:repAging,boxLoss:repBoxLoss,
     farmEnt:repFarmEnt,merchEnt:repMerchEnt,
-    boxAll:repBoxAll,bal:repBal,
+    boxAll:repBoxAll,bal:repBal,boxWhere:repBoxWhere,volume:repVolume,
     stmt:repBox,daily:repBox,audit:repBox,dmg:repBox}[r]||(()=>'<div class="empty">تقرير غير معروف</div>');
   /* أيقونة فلتر لا عدسة بحث: السطر بيفلتر مدة وجهة، والعدسة كانت بتوعد ببحث. */
   const line=`<button class="filtline" data-act="fToggle">${IC('filter')}
@@ -2807,7 +2806,7 @@ function repActions(){
       <p class="note">ورقة واحدة تجمع النقدية والعهدة والتالف — للتسليم والتوقيع.</p>`:''}`;
 }
 /* تقارير عامة بلا فلترة جهة — «عموماً» يعني كل الجهات، فإخفاء الحقل أوضح من عرضه معطّلاً */
-const REPNOENT=new Set(['bal','boxLoss']);
+const REPNOENT=new Set(['bal','boxWhere','volume']);
 /* نوع الجهة اللي يفلتر بها كل تقرير — مستخرَج من filterBar علشان selectRep
    يقدر يفتح مُختار الجهة الصحيح بنفس الخريطة بلا تكرار. */
 const REPET={stmt:'loc',daily:'loc',audit:'loc',dmg:'driver',
@@ -3847,6 +3846,75 @@ function repAging(){
 /* ============ فاقد البكش ============
    البكش أصل يُشترى بفلوس. التطبيق كان يتابع العهدة والتالف، ومافيش رقم
    يقول: اشتريت كام وعندي كام وضاع كام. */
+/* عهدة راكدة: بكش عند جهة بلا أي حركة من STALE يوم — مصدر واحد للرئيسية
+   ولتقرير «البكش رايح فين» */
+function staleCustody(){
+  const D=S.D,lastMove={};
+  D.live.filter(e=>e.type==='box').forEach(e=>legsOf(e).forEach(l=>{
+    [l.from,l.to].forEach(x=>{if(x&&!isVirt(x)&&x!==WH)lastMove[x]=e.date>(lastMove[x]||'')?e.date:lastMove[x]}) }));
+  const lim=addDays(todayISO(),-STALE);
+  return [...D.mBox,...D.fBox].filter(x=>x.box.intact>0&&(!lastMove[x.id]||lastMove[x.id]<lim))
+    .map(x=>({x,last:lastMove[x.id]||'',
+      days:lastMove[x.id]?Math.round((new Date(todayISO()+'T12:00')-new Date(lastMove[x.id]+'T12:00'))/864e5):null}))
+    .sort((a,b)=>b.x.box.intact-a.x.box.intact);
+}
+/* البكش رايح فين (5.0.0): الفاقد · العهدة الراكدة · التالف على السواقين —
+   تلات أسئلة عن نفس الحاجة كانوا تلات تقارير في بابين */
+function repBoxWhere(){
+  const D=S.D;
+  const loss=repBoxLoss(),lossP=S.print.html;
+  const st=staleCustody();
+  const stbl=`<table><thead><tr><th>الجهة</th><th class="n">العهدة</th><th class="n">آخر حركة</th>
+    <th class="n">من</th></tr></thead><tbody>
+    ${st.map(r=>`<tr data-act="${D.farms.some(f=>f.id===r.x.id)?'repFarm':'repMerchant'}" data-id="${r.x.id}">
+      <td class="tname">${esc(r.x.name)}</td><td class="n">${r.x.box.intact}</td>
+      <td class="n">${r.last?arDate(r.last):'—'}</td><td class="n">${r.days===null?'—':r.days+' يوم'}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي (${st.length})</td><td class="n">${sum(st,r=>r.x.box.intact)}</td><td colspan="2"></td></tr></tfoot></table>`;
+  S.sub.repbox='dmg';const dmg=repBox(),dmgP=S.print.html;
+  S.print={title:'البكش رايح فين',html:`<h3>الفاقد</h3>${lossP}<h3>العهدة الراكدة (${STALE} يوم بلا حركة)</h3>${st.length?stbl:'<p>لا يوجد</p>'}<h3>التالف على السواقين</h3>${dmgP}`};
+  return loss
+    +`<div class="eyebrow box">عهدة راكدة — ${STALE} يوم بلا حركة (${st.length})</div>
+      <div class="card">${st.length?`<div class="tscroll">${stbl}</div>
+        <p class="note">بكش عند الجهة وما اتحركش من ${STALE} يوم أو أكتر. اضغط على الجهة لكشفها.</p>`
+        :'<div class="empty">مافيش عهدة راكدة</div>'}</div>`
+    +dmg;
+}
+/* حجم الشغل (5.0.0): لكل مزرعة ولكل مبيع في المدى — فواتير وبكش ومبلغ —
+   قصاد الفترة اللي قبلها بنفس الطول (prevRange) */
+function repVolume(){
+  const D=S.D,F=S.F;
+  const from=F.from||monthStart(),to=F.to||todayISO();
+  const [pf,pt]=prevRange(from,to);
+  const inv=D.live.filter(e=>e.type==='invoice');
+  const agg=(key,a,b)=>{const m={};inv.filter(e=>e.date>=a&&e.date<=b).forEach(e=>{
+    const x=m[e[key]]||(m[e[key]]={n:0,bx:0,amt:0});x.n++;x.bx+=+e.boxes||0;x.amt+=P(e.amount)});return m};
+  const dl=(c,p2)=>!p2?(c?'<span class="dlt up">جديد</span>':''):(()=>{const v=Math.round((c-p2)/Math.abs(p2)*100);
+    return Math.abs(v)<1?'<span class="dlt zero">=</span>':`<span class="dlt ${v>0?'up':'down'}">${v>0?'▲':'▼'} ${Math.abs(v)}%</span>`})();
+  const block=(key,list,lbl)=>{
+    const now=agg(key,from,to),was=agg(key,pf,pt);
+    const rows=list.filter(x=>now[x.id]||was[x.id]).map(x=>({x,n:now[x.id]||{n:0,bx:0,amt:0},w:was[x.id]||{n:0,bx:0,amt:0}}))
+      .sort((a,b)=>b.n.amt-a.n.amt||a.x.name.localeCompare(b.x.name,'ar'));
+    const T=rows.reduce((a,r)=>({n:a.n+r.n.n,bx:a.bx+r.n.bx,amt:a.amt+r.n.amt,w:a.w+r.w.amt}),{n:0,bx:0,amt:0,w:0});
+    const tbl=`<table><thead><tr><th>${lbl}</th><th class="n">المبلغ</th><th class="n">بكش</th><th class="n">فواتير</th>
+      <th class="n">السابقة</th><th class="n">الفرق</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr data-act="${key==='farmId'?'repFarm':'repMerchant'}" data-id="${r.x.id}"><td class="tname">${esc(r.x.name)}</td>
+        <td class="n" style="font-weight:600">${money(r.n.amt/100)}</td><td class="n">${r.n.bx}</td><td class="n">${r.n.n}</td>
+        <td class="n">${money(r.w.amt/100)}</td><td class="n">${dl(r.n.amt,r.w.amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>الإجمالي (${rows.length})</td><td class="n">${money(T.amt/100)}</td><td class="n">${T.bx}</td>
+        <td class="n">${T.n}</td><td class="n">${money(T.w/100)}</td><td class="n">${dl(T.amt,T.w)}</td></tr></tfoot></table>`;
+    return{rows,tbl,T};
+  };
+  const Fm=block('farmId',D.farms,'المزرعة'),Mm=block('merchantId',D.merchants,'المبيع');
+  S.print={title:`حجم الشغل ${arDate(from)} ← ${arDate(to)}`,html:`<h3>المزارع</h3>${Fm.tbl}<h3>المبايع</h3>${Mm.tbl}`};
+  return `<div class="card">${repSum([['المبيعات في المدة',money(Fm.T.amt/100),'over'],
+      ['الفترة اللي قبلها',money(Fm.T.w/100)]])}
+      <p class="note" style="margin:0">مقارنة ${arDate(from)} ← ${arDate(to)} بـ ${arDate(pf)} ← ${arDate(pt)} (نفس عدد الأيام).
+      المبلغ للفواتير المسعّرة بس — المسوّدة بتتعدّ في «فواتير» و«بكش».</p></div>
+    <div class="eyebrow brass">المزارع (${Fm.rows.length})</div>
+    <div class="card">${Fm.rows.length?`<div class="tscroll">${Fm.tbl}</div>`:'<div class="empty">لا فواتير</div>'}</div>
+    <div class="eyebrow acct">المبايع (${Mm.rows.length})</div>
+    <div class="card">${Mm.rows.length?`<div class="tscroll">${Mm.tbl}</div>`:'<div class="empty">لا فواتير</div>'}</div>`;
+}
 function boxLossSpan(){
   const D=S.D;
   const legs=[];

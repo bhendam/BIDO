@@ -14,7 +14,7 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
       ['m2','merchant','صالة الأمانة'],['dr1','driver','عم محمود'],['dr2','driver','سيد التوك'],
       ['r1','route','كفر الشيخ ← العبور',450],['r2','route','بلطيم ← السلام',550],['i1','ice','مصنع النور']];
     for(const [id,type,name,fare] of E)await putEntity({id,type,name,place:'',phone:'',price:type==='ice'?20:0,fare:fare||0,createdAt:new Date().toISOString()});
-    const bx=async(date,op,p,driverId)=>append({type:'box',op,date,legs:buildLegs(op,p),params:p,driverId:driverId||null});
+    const bx=async(date,op,p,driverId)=>append({type:'box',op,date,legs:buildLegs(op,p),params:p,driverId:driverId||null,dmgReason:p.dmgReason||null});
     await bx(d(13),'opening_box',{locId:'WH',oIntact:500,oDamaged:0});
     await bx(d(12),'issue_farm',{toId:'f1',count:200,driverId:'dr1'},'dr1');
     await bx(d(10),'issue_farm',{toId:'f2',count:100,driverId:'dr2'},'dr2');
@@ -52,6 +52,13 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
   await open('boxAll','','all');await shot('r04-boxall');
   await open('drv','','',{drvRep:'detail'});await shot('r05-drv-detail');
   await open('drv','','',{drvRep:'sum'});await shot('r06-drv-sum');
+  await open('boxWhere','','all');await shot('r07-boxwhere');
+  await open('volume','','week');await shot('r08-volume');
+  await open('aging','','all');await shot('r09-aging');
+  await open('income','','month');await shot('r10-income');
+  await open('audit','','all');await shot('r11-audit');
+  await open('ice','','all');await shot('r12-ice');
+  await open('bal','','',{bal:'driver'});await shot('r13-bal-drv');
   console.log('DRV',JSON.stringify(await p.evaluate(()=>({range:[S.F.from,S.F.to],
     rows:S.D.drivers.map(d=>{const x=drvSpan(S.D.live,d.id,S.F.from,S.F.to);return[d.name,x.open,x.trips,x.trip,x.adv,x.pay,x.close]}),
     allTime:S.D.drivers.map(d=>[d.name,drvSpan(S.D.live,d.id,'','').close,d.balance])}))));
