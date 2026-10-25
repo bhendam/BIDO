@@ -814,6 +814,26 @@ td.tname{text-align:right}
 /* صف يفتح كشف الجهة: سهم صغير بعد الاسم على الشاشة بس — الطباعة والـCSV نظيفة */
 tr[data-act]{cursor:pointer}
 td .cnt{display:block;font-size:var(--fs-xs);color:var(--muted);font-weight:400;unicode-bidi:plaintext}
+/* تسليم اليوم */
+.htool{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.htool .btn{width:auto;flex:0 0 auto}
+.htool .btn[aria-pressed=true]{background:var(--accent);color:var(--on-c);border-color:var(--accent)}
+.hx{background:none;border:0;color:var(--muted);min-width:44px;min-height:44px;margin-inline-start:auto;
+  display:inline-grid;place-items:center;cursor:pointer;padding:0}
+.hx .ico{width:var(--ic-sm);height:var(--ic-sm)}
+.eyebrow .hx,.subh .hx,.hent .hx{margin-block:-12px}
+.hent{display:flex;align-items:center;gap:8px;margin:16px 2px 8px;font-size:var(--fs-m)}
+.hent .dnet{font-size:var(--fs-s);color:var(--muted)}
+.hents{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.hchip{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 12px;border-radius:22px;
+  border:1px dashed var(--line-2);background:none;color:var(--ink-2);font:inherit;font-size:var(--fs-s);cursor:pointer}
+.hchip .ico{width:16px;height:16px;display:inline-block}
+table.bxv{width:auto;min-width:220px}
+table.bxv tr.rest td{font-weight:700;border-top:2px solid var(--line-2)}
+.tplsec{border-bottom:1px solid var(--line);padding:8px 0}
+.tplrow{display:inline-flex;align-items:center;gap:2px;margin:2px 4px 2px 0}
+.tplitems{display:flex;flex-wrap:wrap;padding-inline-start:16px}
+.hmv{background:none;border:1px solid var(--line);border-radius:8px;min-width:36px;min-height:36px;color:var(--ink-2);cursor:pointer}
 tr.dayrow td{background:var(--card-2);color:var(--ink-2);font-weight:600;font-size:var(--fs-s)}
 .dmgn{color:var(--debt);font-weight:400}
 @media screen{tr[data-act] td.tname::after{content:"‹";margin-inline-start:6px;color:var(--muted);font-weight:400}}
@@ -1281,6 +1301,8 @@ const S={tab:"home",
   sub:{fin:"invoice",ops:"acct",box:"out",boxop:"issue_farm",drv:"trips",ice:"op",
     rep:"box",repbox:"stmt",set:"farm",setg:"data",acct:"all",dacct:"driver"},
   rep:"hand",repGate:true,
+  /* تسليم اليوم: الاسطمبات وتعديلات كل يوم (meta) — handEdit حالة شاشة بس */
+  hand:{tpls:[],days:{},last:'full'},handEdit:false,
   drill:{},entities:[],ledger:[],co:{name:"دفتر السماكة",phone:"",logo:""},autoBox:true,
   hap:true,flash:null,mode:'auto',
   /* الحركات الملغاة مخفية افتراضياً في كل الشاشات. مش محذوفة — السجل تراكمي
@@ -1458,6 +1480,7 @@ async function refresh(){
   S.bk=(await getMeta('backup'))||S.bk;
   S.wipeLog=(await getMeta('wipeLog'))||[];
   S.recentRep=(await getMeta('repRecent'))||[];
+  S.hand={tpls:(await getMeta('handTpl'))||[],days:(await getMeta('handDays'))||{},last:(await getMeta('handLast'))||'full'};
   S.drill=(await getMeta('drill'))||S.drill;
   S.pinRep=(await getMeta('repPin'))||[];
   S.devId=(await getMeta('deviceId'))||"";
@@ -3014,46 +3037,6 @@ const fsTblBox=d=>`<table><thead><tr><th>العملية</th><th>الطرف ال�
   <tfoot><tr><td colspan="2">${d.bx.length} حركة</td>
     <td class="n">${d.bIn}</td><td class="n">${d.bOut}</td></tr></tfoot></table>`;
 
-/* قسم مزرعة واحدة على الشاشة. الأقسام الفاضية بتتشال خالص — «لا يوجد»
-   أربع مرات تحت كل مزرعة بتخلّي الورقة أطول وأصعب في القراءة. */
-function farmBlock(f,d){
-  const P=[];
-  if(d.inv.length)P.push(`<div class="subh">البيع <b>${money(d.invAmt)}</b></div>
-    <div class="tscroll">${fsTblSales(d)}</div>`);
-  if(d.ice.length)P.push(`<div class="subh">الثلج <b>${d.iceQty} بلاطة · ${money(d.iceVal)}</b></div>
-    <div class="tscroll">${fsTblIce(d)}</div>`);
-  if(d.cost.length)P.push(`<div class="subh">المصاريف <b>${money(d.costTot)}</b></div>
-    <div class="tscroll">${fsTblCost(d)}</div>`);
-  /* رقمان لا أربعة: «راح للمزرعة كام ورجع كام» — الرصيد التراكمي موجود في
-     تقرير البكش، وحشره هنا كان بيزوّد أرقاماً بلا سؤال تجاوب عليه.
-     التسمية صريحة بالاتجاه: «صادر للمزرعة» لا «صادر» وحدها — «صادر» بالنسبة
-     للمزرعة عكسها بالنسبة للمخزن، والخلط هنا بيقلب الرقمين. */
-  P.push(`<div class="subh">البكش <b>${d.close} باقي</b></div>
-    <div class="bxtbl"><table>
-      <thead><tr><th class="n">صادر للمزرعة</th><th class="n">وارد منها</th>
-        <th class="n">الباقي عليها</th></tr></thead>
-      <tbody><tr><td class="n out">${d.bIn}</td><td class="n in">${d.bOut}</td>
-        <td class="n rest">${d.close}</td></tr></tbody></table></div>
-    <p class="note" style="margin:8px 2px 0">الباقي = إجمالي العهدة عند المزرعة
-      لحد آخر ${d.lbl}، مش فرق الصادر والوارد لوحده.</p>`);
-  return `<div class="eyebrow">${esc(f.name)}
-      <span class="dnet num">${d.invBoxes} صندوق · ${money(d.invAmt)}</span></div>
-    <div class="card">${P.join('')}</div>`;
-}
-/* نفس القسم للطباعة — بلا بطاقات ولا ألوان، عناوين وجداول فقط */
-function farmBlockPrint(f,d){
-  const P=[`<h3 class="farmsec">${esc(f.name)}</h3>`];
-  if(d.inv.length)P.push('<h4>البيع</h4>'+fsTblSales(d));
-  if(d.ice.length)P.push('<h4>الثلج</h4>'+fsTblIce(d));
-  if(d.cost.length)P.push('<h4>المصاريف</h4>'+fsTblCost(d));
-  P.push(`<h4>البكش</h4>
-    <table><thead><tr><th class="n">صادر للمزرعة</th><th class="n">وارد منها</th>
-      <th class="n">الباقي عليها</th></tr></thead>
-    <tbody><tr><td class="n">${d.bIn}</td><td class="n">${d.bOut}</td>
-      <td class="n">${d.close}</td></tr></tbody></table>
-    <p>الباقي = إجمالي العهدة عند المزرعة حتى آخر ${d.lbl}.</p>`);
-  return P.join('');
-}
 /*
   صافي حساب المبايع في نهاية يوم معيّن.
   مش رصيد «دلوقتي»: بيتحسب من كل الحركات المؤرَّخة حتى اليوم ده وبس، فورقة
@@ -3137,94 +3120,304 @@ function prevRange(from,to){
   const d=Math.round((new Date(to+'T12:00')-new Date(from+'T12:00'))/864e5)+1;
   return[addDays(from,-d),addDays(from,-1)];
 }
-function handover(){
-  const D=S.D,F=S.F;
-  const from=F.from||todayISO(),to=F.to||from;
-  const one=from===to;
+/* ============ تسليم اليوم (5.0.0) ============
+   ورقة واحدة آخر اليوم للمراجعة والتسليم للمراجِع. طبقتين:
+   ١) الاسطمبة: أقسام كبيرة وبنود جوّاها، تختار اللي يظهر وترتّبه وتحفظه باسم.
+   ٢) تعديلات اليوم: تشيل قسم أو بند أو جهة جوّه قسم، وتضيف حركات من أيام تانية
+      (بتاريخها، وخارج مجاميع اليوم). بتتحفظ مع اليوم.
+   **الحسابات مش بتتأثر بأي حاجة من دول**: كل مجموع محسوب من الدفتر كله؛
+   الإخفاء عرض بس، وفيه سطر «ن بند مش معروض» عشان المراجِع يعرف.
+   التخزين في meta (مش الدفتر ولا سلسلة التوقيع): handTpl · handDays · handLast —
+   وبيدخلوا النسخة الاحتياطية. */
+const HSECS=[
+  ['farms','المزارع',[['sales','البيع'],['ice','الثلج'],['cost','المصاريف'],['box','البكش']]],
+  ['merch','المبايع',[['col','التحصيلات'],['net','صافي الحساب'],['box','البكش']]],
+  ['issues','محتاج مراجعة',[]],
+  ['drivers','السواقين',[['trips','الرحلات'],['adv','السلف']]],
+  ['wh','المخزن',[]],
+  ['edited','اتعدّل في أيام سابقة',[]],
+  ['added','مضاف من أيام تانية',[]]
+];
+const HFULL={id:'full',name:'اليوم كامل',secs:HSECS.map(([k,,it])=>[k,it.map(x=>x[0])])};
+const hSec=k=>HSECS.find(x=>x[0]===k);
+const hItemLbl=(k,i)=>((hSec(k)||[,,[]])[2].find(x=>x[0]===i)||[,i])[1];
+const hTpls=()=>[HFULL,...(S.hand.tpls||[])];
+const hTpl=id=>hTpls().find(t=>t.id===id)||HFULL;
+const hDay=d=>S.hand.days[d]||{};
+/* حفظ عرض لا بيانات محاسبية: لو فشل، الشغل يكمّل في الجلسة ولا يقع */
+function hSave(){saveRepPref('handTpl',S.hand.tpls);saveRepPref('handDays',S.hand.days);saveRepPref('handLast',S.hand.last)}
+function hDaySet(d,fn){const x={tpl:S.hand.last,hide:[],add:[],...hDay(d)};
+  x.hide=[...(x.hide||[])];x.add=[...(x.add||[])];fn(x);S.hand.days[d]=x;hSave()}
+/* تاريخ تسجيل الحركة بالتوقيت المحلي (createdAt محفوظ UTC) */
+const localDay=iso=>{const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+/* حركات اتسجّلت في المدى وبتعدّل أو بتلغي حركة تاريخها قبل المدى — تعديل يوم
+   قديم ما بيظهرش في أرقام النهارده، فالقسم ده هو اللي بيوريه. */
+function handEdited(ledger,from,to){
+  const byId=new Map(ledger.map(e=>[e.id,e]));
+  return ledger.filter(e=>(e.replaces||e.voidOf)&&e.createdAt).map(e=>{
+    const o=byId.get(e.replaces||e.voidOf);const at=localDay(e.createdAt);
+    return{e,o,at}}).filter(x=>x.o&&x.at>=from&&x.at<=to&&x.o.date<from)
+    .sort((a,b)=>a.e.seq-b.e.seq);
+}
+/* مجاميع اليوم اللي بتتحفظ مع «تم التسليم» وتتقارن بعدها */
+function handSums(from,to){
+  const D=S.D,L=D.live.filter(e=>e.date>=from&&e.date<=to),T=t=>L.filter(e=>e.type===t);
+  const W=boxLedger(D.live.filter(e=>e.type==='box'||e.type.startsWith('box_')),WH,from,to);
+  return{sales:sumM(T('invoice'),i=>i.amount),inv:T('invoice').length,col:sumM(T('collection'),c=>c.amount),
+    cost:sumM(T('farm_cost'),c=>c.amount),trips:sumM(T('trip'),x=>x.fare??x.cost),adv:sumM(T('driver_advance'),x=>x.amount),
+    whI:W.close.i,whD:W.close.d};
+}
+const HSUMLBL={sales:'المبيعات',inv:'عدد الفواتير',col:'التحصيل',cost:'المصاريف',trips:'الرحلات',adv:'السلف',
+  whI:'المخزن سليم',whD:'المخزن تالف'};
+/* وصف حركة في سطر — للأقسام اللي فيها حركات من أيام مختلفة */
+function entLine(e){
+  const D=S.D,n=id=>esc(D.nameOf(id));
+  if(e.type==='invoice')return[`فاتورة · ${n(e.farmId)} ← ${n(e.merchantId)}`,`${e.boxes||0} ص · ${+e.amount>0?money(e.amount):'مسوّدة'}`];
+  if(e.type==='collection')return[`تحصيل · ${n(e.merchantId)}`,money(e.amount)];
+  if(e.type==='trip')return[`رحلة · ${n(e.driverId)} · ${n(e.routeId)}`,money(e.fare??e.cost)];
+  if(e.type==='driver_advance')return[`سلفة · ${n(e.driverId)}`,money(e.amount)];
+  if(e.type==='driver_payment')return[`مدفوع لسواق · ${n(e.driverId)}`,money(e.amount)];
+  if(e.type==='farm_cost')return[`مصروف · ${n(e.farmId)} · ${esc(CATLBL[e.cat]||e.cat)}`,money(e.amount)];
+  if(e.type==='ice_op')return[`ثلج · ${n(e.factoryId)} ← ${n(e.farmId)}`,`${e.qty} بلاطة`];
+  if(e.type==='settlement')return[`تصفية · ${n(e.farmId)}`,money(e.payable)];
+  if(e.type==='box'||e.type.startsWith('box_'))return[`${esc(BOXOP[e.op]||'بكش')} · ${esc(boxPairs(e))}`,boxQtyTxt(e)];
+  return[esc(ALLT[e.type]||e.type),''];
+}
+/* إيه اللي اتغيّر في التعديل: الحقول اللي بتفرق في الحساب بس */
+function editDiff(o,e){
+  if(e.voidOf)return 'اتلغت';
+  const f=[['amount','المبلغ',money],['boxes','البكش',v=>v||0],['fare','الأجرة',money],['qty','البلاطات',v=>v],
+    ['farmId','المزرعة',v=>S.D.nameOf(v)],['merchantId','المبيع',v=>S.D.nameOf(v)],['driverId','السواق',v=>v?S.D.nameOf(v):'—']];
+  const d=f.filter(([k])=>(o[k]??'')!==(e[k]??'')&&(o[k]!==undefined||e[k]!==undefined)).map(([k,l,fm])=>`${l}: كان ${esc(String(fm(o[k])))} · بقى ${esc(String(fm(e[k])))}`);
+  if(o.type==='box'||e.type==='box'){const a=sum(legsOf(o),l=>l.count),b=sum(legsOf(e),l=>l.count);if(a!==b)d.push(`العدد: كان ${a} · بقى ${b}`)}
+  return d.join(' · ')||'تعديل بيان';
+}
+
+/* ---------- البيانات: كل قسم بيتحسب مرة، والعرض شاشة أو ورق من نفس البيانات ---------- */
+function handData(from,to){
+  const D=S.D;
+  const ents=D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
+  const mbox=D.merchants.map(m=>({m,B:boxLedger(ents,m.id,from,to)})).filter(x=>x.B.rows.length);
   const L=D.live.filter(e=>e.date>=from&&e.date<=to);
-  const pick=t=>L.filter(e=>e.type===t);
-  const inv=pick('invoice').filter(i=>+i.amount>0),col=pick('collection');
-  const st=pick('settlement'),tr=pick('trip'),ic=pick('ice_op');
-  const bx=L.filter(e=>e.type==='box');
-  let bIn=0,bOut=0;
-  bx.forEach(e=>legsOf(e).forEach(l=>{if(l.to===WH)bIn+=l.count;if(l.from===WH)bOut+=l.count}));
-  const issues=handIssues(from,to);
+  const drv=D.drivers.map(d=>{const t=L.filter(e=>e.type==='trip'&&e.driverId===d.id),
+      a=L.filter(e=>e.type==='driver_advance'&&e.driverId===d.id);
+    return{d,t,a,tt:sumM(t,x=>x.fare??x.cost),at:sumM(a,x=>x.amount)}}).filter(x=>x.t.length||x.a.length);
+  return{FA:farmsActive(from,to),C:colSpan(from,to),M:merchAsOf(to),mbox,drv,
+    W:boxLedger(ents,WH,from,to),I:handIssues(from,to),E:handEdited(S.ledger,from,to)};
+}
+/* جدول البكش الرأسي: بايت · صادر لها · وارد منها · فاضل */
+const boxVert=(open,inn,out,close,who)=>`<table class="bxv"><tbody>
+  <tr><td>بايت</td><td class="n">${open}</td></tr>
+  <tr><td>صادر ${who}</td><td class="n cin">${inn}</td></tr>
+  <tr><td>وارد ${who==='لها'?'منها':'منه'}</td><td class="n cout">${out}</td></tr>
+  <tr class="rest"><td>فاضل</td><td class="n">${close}</td></tr></tbody></table>`;
+
+/*
+  رسم التسليم. V = {from,to,one,tpl,hide:Set,add:[],edit,print}
+  print=true: عناوين وجداول بس (للطباعة وواتساب) — نفس الأقسام ونفس الترتيب.
+*/
+function handBody(V,X){
+  const D=S.D,H=p=>V.hide.has(p);
+  const xb=p=>V.edit&&!V.print?`<button type="button" class="hx" data-act="handHide" data-p="${p}" aria-label="إخفاء من التسليم">${IC('x')}</button>`:'';
+  const sec=(k,title,body,cls)=>V.print?`<h3>${title}</h3>${body}`
+    :`<div class="eyebrow ${cls||''}">${title}${xb('sec:'+k)}</div>${body}`;
+  const sub=(k,i,title,body)=>V.print?`<h4>${title}</h4>${body}`
+    :`<div class="subh">${title}${xb('item:'+k+'.'+i)}</div><div class="tscroll">${body}</div>`;
+  const card=b=>V.print?b:`<div class="card">${b}</div>`;
+  const hidN={n:0};const keep=p=>{if(H(p)){hidN.n++;return false}return true};
+  const out=[];
+  V.tpl.secs.forEach(([k,items])=>{
+    if(!hSec(k))return;
+    if(H('sec:'+k)){hidN.n++;return}
+    const its=items.filter(i=>keep('item:'+k+'.'+i));
+    const [,title]=hSec(k);
+    if(k==='farms'){
+      const FA=X.FA.filter(x=>keep('ent:farms.'+x.f.id));
+      const blocks=FA.map(({f,d})=>{
+        const P=[];
+        its.forEach(i=>{
+          if(i==='sales'&&d.inv.length)P.push(sub(k,i,`البيع <b>${money(d.invAmt)}</b>`,fsTblSales(d)));
+          if(i==='ice'&&d.ice.length)P.push(sub(k,i,`الثلج <b>${d.iceQty} بلاطة · ${money(d.iceVal)}</b>`,fsTblIce(d)));
+          if(i==='cost'&&d.cost.length)P.push(sub(k,i,`المصاريف <b>${money(d.costTot)}</b>`,fsTblCost(d)));
+          if(i==='box')P.push(sub(k,i,`البكش <b>${d.close} فاضل</b>`,boxVert(d.open,d.bIn,d.bOut,d.close,'لها')));
+        });
+        const head=`${esc(f.name)}`;
+        return V.print?`<h3 class="farmsec">${head}</h3>${P.join('')}`
+          :`<div class="hent"><b>${head}</b><span class="dnet num">${d.invBoxes} صندوق · ${money(d.invAmt)}</span>${xb('ent:farms.'+f.id)}</div>
+            <div class="card">${P.join('')||'<div class="empty">كل بنود المزرعة مخفية</div>'}</div>`});
+      out.push(sec(k,`${title} (${FA.length})`,blocks.join('')||card('<div class="empty">لا حركة على أي مزرعة</div>'),'brass'));
+    }
+    if(k==='merch'){
+      const P=[];
+      its.forEach(i=>{
+        if(i==='col'){const it=X.C.items.filter(c=>keep('ent:merch.'+c.merchantId));
+          P.push(sub(k,i,`التحصيلات <b>${money(X.C.total)}</b>`,`<table><thead><tr><th>المبيع</th><th class="n">المبلغ</th><th>ملاحظات</th></tr></thead>
+            <tbody>${it.map(c=>`<tr><td class="tname">${esc(D.nameOf(c.merchantId))}${V.one?'':` <span class="dsub">${arDate(c.date)}</span>`}</td>
+              <td class="n">${money(c.amount)}</td><td>${esc(c.note||'—')}</td></tr>`).join('')||'<tr><td colspan="3">لا تحصيلات</td></tr>'}</tbody>
+            <tfoot><tr><td>الإجمالي (${X.C.items.length} تحصيل)</td><td class="n">${money(X.C.total)}</td><td></td></tr></tfoot></table>`))}
+        if(i==='net'){const r=X.M.rows.filter(x=>keep('ent:merch.'+x.m.id));
+          P.push(sub(k,i,`صافي الحساب آخر ${arDate(V.to)} <b>${money(X.M.T.bal)}</b>`,`<table><thead><tr><th>المبيع</th><th class="n">الصافي</th></tr></thead>
+            <tbody>${r.map(x=>`<tr><td class="tname">${esc(x.m.name)}${x.dft?` <span class="tag">${x.dft} مسوّدة</span>`:''}</td>${mcell(x.bal)}</tr>`).join('')||'<tr><td colspan="2">لا يوجد</td></tr>'}</tbody>
+            <tfoot><tr><td>الإجمالي (${X.M.rows.length} مبيع)</td><td class="n">${money(X.M.T.bal)}</td></tr></tfoot></table>`))}
+        if(i==='box'&&X.mbox.length){const r=X.mbox.filter(x=>keep('ent:merch.'+x.m.id));
+          P.push(sub(k,i,'البكش',`<table><thead><tr><th>المبيع</th><th class="n">بايت</th><th class="n">صادر له</th>
+            <th class="n">وارد منه</th><th class="n">فاضل</th></tr></thead><tbody>
+            ${r.map(({m,B})=>{const t=B.rows.reduce((a,x)=>({i:a.i+x.ii,o:a.o+x.oi}),{i:0,o:0});
+              return `<tr><td class="tname">${esc(m.name)}</td><td class="n">${B.open.i}</td><td class="n cin">${t.i}</td>
+                <td class="n cout">${t.o}</td><td class="n" style="font-weight:600">${B.close.i}</td></tr>`}).join('')}</tbody></table>`))}
+      });
+      if(V.edit&&!V.print){const ms=new Set([...X.C.items.map(c=>c.merchantId),...X.M.rows.map(x=>x.m.id),...X.mbox.map(x=>x.m.id)]);
+        P.push(`<div class="hents">${[...ms].filter(id=>!H('ent:merch.'+id)).map(id=>
+          `<button type="button" class="hchip" data-act="handHide" data-p="ent:merch.${id}">${esc(D.nameOf(id))} ${IC('x')}</button>`).join('')}</div>`)}
+      out.push(sec(k,title,card(P.join('')||'<div class="empty">كل بنود المبايع مخفية</div>'),'acct'));
+    }
+    if(k==='issues'){
+      out.push(sec(k,X.I.length?`${title} (${X.I.length})`:'لا شيء يحتاج مراجعة',V.print
+        ?(X.I.length?`<table><tbody>${X.I.map(([t,v])=>`<tr><td>${esc(t)}</td><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`:'<p>لا شيء.</p>')
+        :X.I.length?X.I.map(([t2,v,hint,act])=>`<div class="rec"><div class="top"><b>${esc(t2)}</b></div>
+            <div class="meta">${esc(v)}</div><div class="meta" style="color:var(--muted)">${esc(hint)}</div>
+            ${act?`<div class="acts"><button class="btn ghost sm" data-act="${act}">اذهب</button></div>`:''}</div>`).join('')
+          :`<div class="empty" style="background:var(--credit-bg);border-color:var(--credit);color:var(--credit)">
+            <b>كله سليم</b>مافيش مسوّدات ناقصة ولا أرصدة غريبة.</div>`,X.I.length?'debt':''));
+    }
+    if(k==='drivers'){
+      const r=X.drv.filter(x=>keep('ent:drivers.'+x.d.id));
+      const showT=its.includes('trips'),showA=its.includes('adv');
+      const tbl=`<table><thead><tr><th>السواق</th>${showT?'<th>الرحلات</th><th class="n">الأجرة</th>':''}${showA?'<th class="n">السلف</th>':''}${V.edit&&!V.print?'<th></th>':''}</tr></thead>
+        <tbody>${r.map(x=>`<tr><td class="tname">${esc(x.d.name)}</td>
+          ${showT?`<td>${[...new Set(x.t.map(e=>D.nameOf(e.routeId)))].map(esc).join(' · ')||'—'}<span class="cnt">${x.t.length} رحلة</span></td><td class="n">${money(x.tt)}</td>`:''}
+          ${showA?`<td class="n cout">${x.at?money(x.at):''}</td>`:''}${V.edit&&!V.print?`<td>${xb('ent:drivers.'+x.d.id)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4">لا رحلات ولا سلف</td></tr>'}</tbody>
+        <tfoot><tr><td>الإجمالي (${X.drv.length})</td>${showT?`<td>${sum(X.drv,x=>x.t.length)} رحلة</td><td class="n">${money(sumM(X.drv,x=>x.tt))}</td>`:''}
+          ${showA?`<td class="n">${money(sumM(X.drv,x=>x.at))}</td>`:''}${V.edit&&!V.print?'<td></td>':''}</tr></tfoot></table>`;
+      out.push(sec(k,title,card(V.print?tbl:`<div class="tscroll">${tbl}</div>`),'drv'));
+    }
+    if(k==='wh'){
+      const W=X.W,t=W.rows.reduce((a,x)=>({ii:a.ii+x.ii,id:a.id+x.id,oi:a.oi+x.oi,od:a.od+x.od}),{ii:0,id:0,oi:0,od:0});
+      const tbl=`<table class="bxv"><thead><tr><th></th><th class="n">سليم</th><th class="n">تالف</th></tr></thead><tbody>
+        <tr><td>أول ${V.one?'اليوم':'المدة'}</td><td class="n">${W.open.i}</td><td class="n">${W.open.d}</td></tr>
+        <tr><td>وارد</td><td class="n cin">${t.ii}</td><td class="n cin">${t.id}</td></tr>
+        <tr><td>صادر</td><td class="n cout">${t.oi}</td><td class="n cout">${t.od}</td></tr>
+        <tr class="rest"><td>آخر ${V.one?'اليوم':'المدة'}</td><td class="n">${W.close.i}</td><td class="n">${W.close.d}</td></tr></tbody></table>`;
+      out.push(sec(k,title,card(tbl),'box'));
+    }
+    if(k==='edited'){
+      const r=X.E.filter(x=>keep('row:'+x.e.id));
+      if(!X.E.length&&V.print)return;
+      out.push(sec(k,`${title} (${X.E.length})`,card(r.length?`<table><thead><tr><th class="n">تاريخها</th><th>الحركة</th><th>اللي اتغيّر</th>${V.edit&&!V.print?'<th></th>':''}</tr></thead>
+        <tbody>${r.map(({e,o})=>{const [t1]=entLine(o);return `<tr><td class="n">${arDate(o.date)}</td><td>${t1}</td>
+          <td>${editDiff(o,e)}</td>${V.edit&&!V.print?`<td>${xb('row:'+e.id)}</td>`:''}</tr>`}).join('')}</tbody></table>`
+        :'<div class="empty">مافيش تعديل على أيام سابقة</div>'),'debt'));
+    }
+    if(k==='added'){
+      const r=V.add.map(id=>S.ledger.find(e=>e.id===id)).filter(Boolean);
+      if(!r.length&&(V.print||!V.edit))return;
+      out.push(sec(k,`${title} (${r.length})`,card(`<table><thead><tr><th class="n">تاريخها</th><th>الحركة</th><th class="n">القيمة</th>${V.edit&&!V.print?'<th></th>':''}</tr></thead>
+        <tbody>${r.map(e=>{const [t1,v]=entLine(e);return `<tr><td class="n">${arDate(e.date)}</td><td>${t1}${S.D.dead.has(e.id)?' <span class="tag">اتعدّلت/اتلغت</span>':''}</td>
+          <td class="n">${v}</td>${V.edit&&!V.print?`<td><button type="button" class="hx" data-act="handUnadd" data-id="${e.id}" aria-label="شيل">${IC('x')}</button></td>`:''}</tr>`}).join('')
+          ||'<tr><td colspan="4">مافيش — «إضافة بند» فوق</td></tr>'}</tbody></table>
+        <p class="note">${V.print?'':'حركات من أيام تانية للعلم بس — '}مش داخلة في مجاميع ${V.one?'اليوم':'المدة'}.</p>`)));
+    }
+  });
+  return{html:out.join(''),hidden:hidN.n};
+}
+function handView(edit,print){
+  const F=S.F,from=F.from||todayISO(),to=F.to||from,one=from===to;
+  const day=one?hDay(from):{};
+  return{from,to,one,tpl:hTpl(day.tpl||S.hand.last),hide:new Set(one?day.hide||[]:[]),
+    add:one?day.add||[]:[],edit:one&&edit,print,day};
+}
+/* ورقة الطباعة وواتساب — نفس الاسطمبة ونفس تعديلات اليوم */
+function handPrintHTML(){
+  const V=handView(false,true),X=handData(V.from,V.to),B=handBody(V,X);
+  return B.html+(B.hidden||V.add.length?`<p>التسليم معدّل: ${B.hidden?`${B.hidden} بند مش معروض`:''}${B.hidden&&V.add.length?' · ':''}${V.add.length?`${V.add.length} حركة مضافة من أيام تانية`:''} — المجاميع هي الفعلي من الدفتر.</p>`:'');
+}
+function handover(){
+  const V=handView(!!S.handEdit,false),X=handData(V.from,V.to),B=handBody(V,X);
   const R=[["today","اليوم"],["yest","أمس"],["week","٧ أيام"],["month","الشهر"]];
-  /* الفترة السابقة بنفس الطول — الرقم لوحده مالوش معنى من غير مرجع */
-  const days=Math.max(1,Math.round((new Date(to)-new Date(from))/864e5)+1);
-  const pFrom=addDays(from,-days),pTo=addDays(from,-1);
-  const PL=D.live.filter(e=>e.date>=pFrom&&e.date<=pTo);
-  const ppick=t=>PL.filter(e=>e.type===t);
-  const prev={inv:ppick('invoice').filter(i=>+i.amount>0),col:ppick('collection'),
-    tr:ppick('trip'),ic:ppick('ice_op')};
-  let pIn=0,pOut=0;
-  PL.filter(e=>e.type==='box').forEach(e=>legsOf(e).forEach(l=>{
-    if(l.to===WH)pIn+=l.count;if(l.from===WH)pOut+=l.count}));
-  const delta=(now,was)=>{
-    if(!was&&!now)return '';
-    if(!was)return `<span class="dlt up">جديد</span>`;
-    const p=Math.round((now-was)/Math.abs(was)*100);
-    if(Math.abs(p)<1)return `<span class="dlt zero">= السابق</span>`;
-    return `<span class="dlt ${p>0?'up':'down'}">${p>0?'▲':'▼'} ${Math.abs(p)}%</span>`;
-  };
-  const box=(lbl,val,sub,cls,dl)=>`<div class="hcell ${cls||''}"><div class="hl">${lbl}</div>
-    <div class="hv num">${val}</div>${sub||dl?`<div class="hs">${sub||''}${dl||''}</div>`:''}</div>`;
-  /* الورقة تبدأ من المزارع مباشرةً. مؤشّرات الفترة والمقارنة والأرصدة العامة
-     كانت بتاخد شاشة كاملة قبل أول رقم يهمّ المستلم، وكلها موجودة في الرئيسية
-     وفي تقاريرها. «محتاج مراجعة» اتنقل لآخر الورقة (ما اتشالش: بينبّه على
-     مسوّدات بلا مبلغ وهي بتغيّر أرقام الورقة نفسها). */
-  return `<div class="qr" style="margin-bottom:14px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}"
-      aria-selected="${from===({today:todayISO(),yest:addDays(todayISO(),-1),
-        week:addDays(todayISO(),-6),month:monthStart()})[k]&&to===todayISO()||(k==='yest'&&from===to&&from===addDays(todayISO(),-1))||(k==='today'&&from===to&&from===todayISO())}">${l}</button>`).join('')}
+  const t=todayISO();
+  const isR=k=>k==='today'?V.one&&V.from===t:k==='yest'?V.one&&V.from===addDays(t,-1)
+    :V.to===t&&V.from===(k==='week'?addDays(t,-6):monthStart());
+  /* «تم التسليم» واتغيّر بعده: المجاميع المحفوظة قصاد الفعلي دلوقتي */
+  let stamp='';
+  if(V.one&&V.day.delivered){const was=V.day.delivered.sums||{},now=handSums(V.from,V.to);
+    const diff=Object.keys(HSUMLBL).filter(k=>Math.abs((+was[k]||0)-(+now[k]||0))>.004);
+    const at=new Date(V.day.delivered.at).toLocaleString('ar-EG',{hour:'numeric',minute:'2-digit',day:'numeric',month:'numeric'});
+    stamp=diff.length?`<div class="attn" style="margin-bottom:12px"><div class="attnrow t-bad">
+        <span class="ar1"><b>اتغيّر بعد التسليم (${esc(at)})</b></span>
+        <span class="ar2">${diff.map(k=>{const f=v=>k==='inv'||k.startsWith('wh')?(+v||0):money(v);
+          return `${HSUMLBL[k]}: كان ${f(was[k])} · بقى ${f(now[k])}`}).join(' — ')}</span></div></div>`
+      :`<div class="diff over" style="margin-bottom:12px"><span>اتسلّم ${esc(at)}</span><b>✓ مطابق للدفتر</b></div>`}
+  const mod=B.hidden||V.add.length;
+  S.print={title:(V.one?'تسليم يوم ':'تسليم فترة ')+arDate(V.from)+(V.one?'':' — '+arDate(V.to)),html:handPrintHTML()};
+  return `<div class="qr" style="margin-bottom:10px">${R.map(([k,l])=>`<button data-act="handRange" data-r="${k}" aria-selected="${isR(k)}">${l}</button>`).join('')}
     <button data-act="fToggle">${IC('cal')}مخصّص</button></div>
   ${S.fopen?filterBar():''}
-  <div class="rptname"><b>${one?'تسليم يوم '+arDate(from):'تسليم فترة'}</b>
-    <span>${one?'':arDate(from)+' — '+arDate(to)}</span></div>
-  ${handDetail(from,to)}
+  <div class="htool">
+    <button type="button" class="btn ghost sm" data-act="handTpl">${IC('grid')}${esc(V.tpl.name)}</button>
+    ${V.one?`<button type="button" class="btn ghost sm" data-act="handEdit" aria-pressed="${!!S.handEdit}">${S.handEdit?'تم':'تعديل التسليم'}</button>
+      ${S.handEdit?`<button type="button" class="btn ghost sm" data-act="handAdd">+ إضافة بند</button>`:''}`:''}
+  </div>
+  <div class="rptname"><b>${V.one?'تسليم يوم '+arDate(V.from):'تسليم فترة'}</b><span>${V.one?'':arDate(V.from)+' — '+arDate(V.to)}</span></div>
+  ${stamp}
+  ${mod?`<div class="diff" style="margin-bottom:12px"><span>التسليم معدّل: ${B.hidden?`${B.hidden} بند مش معروض`:''}${B.hidden&&V.add.length?' · ':''}${V.add.length?`${V.add.length} مضاف`:''} — المجاميع الفعلي</span>
+    ${V.one?`<button type="button" class="linkbtn" data-act="handReset">رجّع الأصل</button>`:''}</div>`:''}
+  ${S.handEdit&&V.one?`<p class="note">اضغط ${IC('x')} جنب أي قسم أو بند أو جهة عشان تخفيه من ورقة اليوم ده. الحسابات مش بتتغيّر.</p>`:''}
+  ${B.html}
+  <div class="btnrow" style="margin-top:14px">
+    <button class="btn dark" data-act="handPrint">${IC('print')}طباعة ورقة التسليم</button>
+    ${V.one?`<button class="btn ${V.day.delivered?'ghost':''}" data-act="handDeliver">${V.day.delivered?'سلّمته تاني':'تم التسليم'}</button>`:''}</div>`;
+}
+/* شيت الاسطمبات: اختيار · نسخة جديدة من الحالية · ترتيب وإظهار الأقسام والبنود */
+function handTplSheet(){
+  const cur=hTpl(S.hand.last),ro=cur.id==='full';
+  const on=new Map(cur.secs.map(([k,it])=>[k,it]));
+  const order=[...cur.secs.map(x=>x[0]),...HSECS.map(x=>x[0]).filter(k=>!on.has(k))];
+  const mv=(p,d)=>ro?'':`<button type="button" class="hmv" data-act="tplMove" data-p="${p}" data-d="${d}" aria-label="${d<0?'لفوق':'لتحت'}">${d<0?'▴':'▾'}</button>`;
+  const ck=(p,v,l)=>`<button type="button" class="pchip" data-act="tplTog" data-p="${p}" aria-pressed="${v}"${ro?' disabled':''}>${l}</button>`;
+  const secs=order.map(k=>{const [,t,its]=hSec(k),inSec=on.get(k);
+    const iOrder=inSec?[...inSec,...its.map(x=>x[0]).filter(i=>!inSec.includes(i))]:its.map(x=>x[0]);
+    return `<div class="tplsec"><div class="tplrow">${ck('sec:'+k,!!inSec,t)}${inSec?mv('sec:'+k,-1)+mv('sec:'+k,1):''}</div>
+      ${inSec&&its.length?`<div class="tplitems">${iOrder.map(i=>`<span class="tplrow">${ck('item:'+k+'.'+i,inSec.includes(i),hItemLbl(k,i))}${inSec.includes(i)?mv('item:'+k+'.'+i,-1)+mv('item:'+k+'.'+i,1):''}</span>`).join('')}</div>`:''}</div>`}).join('');
+  openSheet('اسطمبات التسليم','اختار اسطمبة، أو اعمل واحدة جديدة وظبّط أقسامها وبنودها',
+    `<div class="pkrow" style="flex-wrap:wrap">${hTpls().map(t=>`<button type="button" class="pchip" data-act="tplUse" data-id="${t.id}" aria-pressed="${t.id===cur.id}">${esc(t.name)}</button>`).join('')}</div>
+    <div class="field" style="margin-top:12px"><label>اسطمبة جديدة من «${esc(cur.name)}»</label>
+      <div class="with-btn"><input id="tplName" placeholder="مثلاً: تسليم المراجع" autocomplete="off">
+      <button type="button" class="btn sm" data-act="tplNew">حفظ</button></div></div>
+    <div class="eyebrow">${ro?'«اليوم كامل» ثابتة — اعمل منها نسخة عشان تعدّل':'الأقسام والبنود — اضغط للإظهار/الإخفاء، والأسهم للترتيب'}</div>
+    ${secs}
+    ${ro?'':`<button type="button" class="btn ghost danger" data-act="tplDel" data-id="${cur.id}" style="margin-top:12px">${IC('trash')}مسح «${esc(cur.name)}»</button>`}`);
+}
+async function handReset(){const d=S.F.from;
+  if(!await ask("رجّع الأصل","تلغي كل الإخفاء والإضافات على تسليم "+arDate(d)+"؟",{ok:"رجّع"}))return;
+  hDaySet(d,x=>{x.hide=[];x.add=[]});render()}
+async function tplDel(id){
+  if(!await ask("مسح الاسطمبة","تمسح «"+hTpl(id).name+"»؟ الأيام اللي اتسلّمت بيها هتتعرض بـ«اليوم كامل».",{ok:"امسح",danger:1}))return;
+  S.hand.tpls=(S.hand.tpls||[]).filter(t=>t.id!==id);S.hand.last='full';hSave();handTplSheet();render()}
+function tplEdit(fn){const t=(S.hand.tpls||[]).find(x=>x.id===S.hand.last);if(!t)return;fn(t);hSave();handTplSheet();render()}
+function tplToggle(p){tplEdit(t=>{
+  const [kind,rest]=p.split(':');
+  if(kind==='sec'){const i=t.secs.findIndex(x=>x[0]===rest);
+    if(i>=0)t.secs.splice(i,1);else t.secs.push([rest,hSec(rest)[2].map(x=>x[0])])}
+  else{const [k,it]=rest.split('.'),s=t.secs.find(x=>x[0]===k);if(!s)return;
+    const i=s[1].indexOf(it);if(i>=0)s[1].splice(i,1);else s[1].push(it)}})}
+function tplMove(p,d){tplEdit(t=>{
+  const [kind,rest]=p.split(':');
+  const arr=kind==='sec'?t.secs:(t.secs.find(x=>x[0]===rest.split('.')[0])||[,[]])[1];
+  const key=kind==='sec'?rest:rest.split('.')[1];
+  const i=arr.findIndex(x=>(kind==='sec'?x[0]:x)===key),j=i+d;
+  if(i<0||j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]})}
+/* شيت «إضافة بند»: حركات يوم تاني تتضاف لورقة اليوم بتاريخها */
+function handAddSheet(day){
+  const D=S.D,cur=new Set(hDay(S.F.from).add||[]);
+  const list=D.live.filter(e=>e.date===day&&e.type!=='void'&&!cur.has(e.id)).sort((a,b)=>a.seq-b.seq);
+  openSheet('إضافة بند من يوم تاني','الحركة تظهر بتاريخها في «مضاف من أيام تانية» — مش بتدخل مجاميع اليوم',
+    `<div class="field"><label>اليوم</label><input type="date" id="haDay" value="${day}"></div>
+    <div style="max-height:52vh;overflow:auto">${list.length?list.map(e=>{const [t1,v]=entLine(e);
+      return `<button type="button" class="drow" data-act="handAddId" data-id="${e.id}"><span class="tname">${t1}</span><b class="num">${v}</b><span class="go">+</span></button>`}).join('')
+      :'<div class="empty">مافيش حركات في اليوم ده</div>'}</div>`);
+  const i=$('#haDay');if(i)i.addEventListener('change',()=>handAddSheet(i.value||day));
+}
 
-  <div class="eyebrow ${issues.length?'debt':''}">${issues.length?`محتاج مراجعة (${issues.length})`:'لا شيء يحتاج مراجعة'}</div>
-  ${issues.length?issues.map(([t2,v,hint,act])=>`<div class="rec">
-      <div class="top"><b>${esc(t2)}</b></div>
-      <div class="meta">${esc(v)}</div>
-      <div class="meta" style="color:var(--muted)">${esc(hint)}</div>
-      ${act?`<div class="acts"><button class="btn ghost sm" data-act="${act}">اذهب</button></div>`:''}
-    </div>`).join('')
-    :`<div class="empty" style="background:var(--credit-bg);border-color:var(--credit);color:var(--credit)">
-      <b>كله سليم</b>مافيش مسوّدات ناقصة ولا أرصدة غريبة — تقدر تقفل اليوم.</div>`}
-
-  <button class="btn dark" data-act="handPrint" style="margin-top:14px">${IC('print')}طباعة ورقة التسليم كاملة</button>`;
-}
-/*
-  ذيل ورقة التسليم: تفصيل كل مزرعة لوحدها (بيع · ثلج · مصاريف · بكش)،
-  وبعدها تحصيلات المدى. الغرض إن اللي بيستلم آخر اليوم يقرأ ورقة واحدة
-  من فوق لتحت بدل ما يفتح أربع تقارير ويقارن بينهم بنفسه.
-*/
-function handDetail(from,to){
-  const FA=farmsActive(from,to),C=colSpan(from,to),M=merchAsOf(to);
-  const lbl=from===to?'يوم '+arDate(from):`${arDate(from)} — ${arDate(to)}`;
-  return `<div class="eyebrow brass">تفصيل المزارع (${FA.length})</div>
-    ${FA.length?FA.map(x=>farmBlock(x.f,x.d)).join('')
-      :'<div class="card"><div class="empty">لا حركة على أي مزرعة في '+esc(lbl)+'</div></div>'}
-    <div class="eyebrow acct">التحصيلات (${C.items.length})</div>
-    <div class="card">${C.items.length?`<div class="tscroll">${C.tbl}</div>
-      <div class="diff over" style="margin-top:12px"><span>إجمالي التحصيل</span>
-        <b>${money(C.total)}</b></div>`
-      :'<div class="empty">لا تحصيلات في '+esc(lbl)+'</div>'}</div>
-    <div class="eyebrow acct">صافي حساب المبايع (${M.rows.length})</div>
-    <div class="card"><div class="tscroll">${M.tbl}</div>
-      <div class="diff ${M.T.bal>.004?'short':'over'}" style="margin-top:12px">
-        <span>إجمالي المديونية آخر ${from===to?arDate(to):'المدة'}</span><b>${money(M.T.bal)}</b></div>
-      <p class="note">أرقام آخر ${arDate(to)} لا أرقام النهارده — الأحمر مديونية عليه،
-      والأخضر دفعة مقدّمة له.${M.T.dft?` فيه ${M.T.dft} مسوّدة بلا مبلغ لسه ما دخلتش الحساب.`:''}</p>
-    </div>`;
-}
-function handIssuesHTML(){
-  const I=handIssues(S.F.from||todayISO(),S.F.to||S.F.from||todayISO());
-  if(!I.length)return '<h3>المراجعة</h3><p>لا شيء يحتاج مراجعة.</p>';
-  return `<h3>محتاج مراجعة (${I.length})</h3>
-    <table><thead><tr><th>البند</th><th>التفصيل</th></tr></thead><tbody>
-    ${I.map(([t,v])=>`<tr><td>${esc(t)}</td><td>${esc(v)}</td></tr>`).join('')}</tbody></table>`;
-}
 /* نقطة واحدة لملخّص التقرير — كل تقرير له رصيد جارٍ يستعملها بدل صفّ `.diff`
    مكرّر تحت كل جدول. rows = [[عنوان, قيمة, صنف؟] | null]. */
 const repSum=rows=>`<div class="repsum">${rows.filter(Boolean)
@@ -4751,8 +4944,25 @@ function onClick(ev){
       return render()}
     case 'handPrint':return printDoc(
       (S.F.from===S.F.to?'ورقة تسليم يوم ':'ورقة تسليم فترة ')+arDate(S.F.from||todayISO()),
-      farmsPrint(S.F.from||todayISO(),S.F.to||S.F.from||todayISO())+handIssuesHTML(),
-      fname('تسليم',dtag(S.F.from||todayISO())));
+      handPrintHTML(),fname('تسليم',dtag(S.F.from||todayISO())));
+    case 'handEdit':S.handEdit=!S.handEdit;return render();
+    case 'handTpl':return handTplSheet();
+    case 'handAdd':return handAddSheet(addDays(S.F.from||todayISO(),-1));
+    case 'handAddId':hDaySet(S.F.from,x=>{if(!x.add.includes(b.dataset.id))x.add.push(b.dataset.id)});
+      closeSheet();toast("اتضافت لورقة اليوم","ok");return render();
+    case 'handUnadd':hDaySet(S.F.from,x=>{x.add=x.add.filter(i=>i!==b.dataset.id)});return render();
+    case 'handHide':hDaySet(S.F.from,x=>{if(!x.hide.includes(b.dataset.p))x.hide.push(b.dataset.p)});return render();
+    case 'handReset':return handReset();
+    case 'handDeliver':hDaySet(S.F.from,x=>{x.tpl=hTpl(x.tpl).id;x.delivered={at:new Date().toISOString(),sums:handSums(S.F.from,S.F.from)}});
+      toast("اتسجّل وقت التسليم ومجاميعه","ok");return render();
+    case 'tplUse':S.hand.last=b.dataset.id;if(S.F.from===S.F.to)hDaySet(S.F.from,x=>{x.tpl=b.dataset.id});hSave();handTplSheet();return render();
+    case 'tplNew':{const n=(($('#tplName')||{}).value||'').trim();if(!n)return toast("اكتب اسم الاسطمبة","err");
+      const src=hTpl(S.hand.last),t={id:'t'+uid(),name:clean(n),secs:JSON.parse(JSON.stringify(src.secs))};
+      S.hand.tpls=[...(S.hand.tpls||[]),t];S.hand.last=t.id;if(S.F.from===S.F.to)hDaySet(S.F.from,x=>{x.tpl=t.id});
+      hSave();handTplSheet();return render()}
+    case 'tplDel':return tplDel(b.dataset.id);
+    case 'tplTog':return tplToggle(b.dataset.p);
+    case 'tplMove':return tplMove(b.dataset.p,+b.dataset.d);
     case 'range':return setRange(b.dataset.r);
     case 'combined':return printDoc("كشف حساب مجمّع — "+S.D.nameOf(S.F.ent),combinedHTML(S.F.ent),
       fname('كشف_مجمع',S.D.nameOf(S.F.ent),dtag(todayISO())));
@@ -5590,6 +5800,17 @@ function runTests(){
    ok("أسبوع الحساب يبدأ الجمعة",weekOf('2026-10-25').join()==='2026-10-23,2026-10-29'
      &&weekOf('2026-10-23')[0]==='2026-10-23'&&weekOf('2026-10-22')[0]==='2026-10-16');}
 
+  /* 5.0.0 — «اتعدّل في أيام سابقة»: تعديل اتسجّل في اليوم على حركة تاريخها قبله */
+  {const ts=d=>new Date(d+'T10:00').toISOString();
+   const L3=[{id:'a',type:'invoice',date:'2026-01-01',seq:1,createdAt:ts('2026-01-01')},
+     {id:'b',type:'invoice',date:'2026-01-01',seq:2,replaces:'a',createdAt:ts('2026-01-05')},
+     {id:'c',type:'invoice',date:'2026-01-05',seq:3,createdAt:ts('2026-01-05')},
+     {id:'d',type:'void',voidOf:'c',seq:4,createdAt:ts('2026-01-05')},
+     {id:'e',type:'void',voidOf:'a',seq:5,createdAt:ts('2026-01-06')}];
+   const E3=handEdited(L3,'2026-01-05','2026-01-05');
+   ok("اتعدّل في أيام سابقة: تعديل النهارده على حركة قديمة",E3.length===1&&E3[0].e.id==='b'&&E3[0].o.id==='a');
+   ok("اتعدّل في أيام سابقة: حذف حركة من نفس اليوم مش منه",!E3.some(x=>x.e.id==='d'));}
+
   S.diag={kind:'tests',rows:R,pass:R.filter(x=>x.ok).length,total:R.length};
   render();
   toast(`${R.filter(x=>x.ok).length}/${R.length} اختبار ناجح`,R.every(x=>x.ok)?"ok":"err");
@@ -5841,16 +6062,6 @@ function summaryHTML(from,to){
   <tfoot><tr><td colspan="3">الإجمالي</td><td class="n">${sum(inv,i=>i.boxes)}</td>
     <td class="n">${money(sumM(inv,i=>i.amount))}</td></tr></tfoot></table>`;
 }
-/* نفس ذيل الشاشة لكن للورق: مزرعة تحت مزرعة ثم التحصيلات */
-function farmsPrint(from,to){
-  const FA=farmsActive(from,to),C=colSpan(from,to),M=merchAsOf(to);
-  return `<h3>تفصيل المزارع (${FA.length})</h3>
-    ${FA.length?FA.map(x=>farmBlockPrint(x.f,x.d)).join(''):'<p>لا حركة على أي مزرعة.</p>'}
-    <h3>التحصيلات (${C.items.length})</h3>${C.tbl}
-    <h3>صافي حساب المبايع آخر ${arDate(to)}</h3>${M.tbl}
-    <p>أرقام آخر ${arDate(to)} لا أرقام تاريخ الطباعة.${
-      M.T.dft?` فيه ${M.T.dft} مسوّدة بلا مبلغ لم تدخل الحساب بعد.`:''}</p>`;
-}
 function dailyHTML(){
   const D=S.D,k=D.kpi;
   const R=(a,b)=>`<tr><td>${a}</td><td style="text-align:left">${b}</td></tr>`;
@@ -5913,7 +6124,8 @@ function exportCSV(){
 }
 function exportJSON(auto){
   const b=new Blob([JSON.stringify({v:3,exportedAt:new Date().toISOString(),device:S.devId,
-    company:S.co,security:{lockedUntil:S.sec.lockedUntil},entities:S.entities,ledger:S.ledger},null,2)],{type:'application/json'});
+    company:S.co,security:{lockedUntil:S.sec.lockedUntil},entities:S.entities,ledger:S.ledger,
+    handover:{tpls:S.hand.tpls,days:S.hand.days,last:S.hand.last}},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);
   a.download=(S.co.name||"fish-ledger").replace(/\s/g,'-')+"-"+todayISO()+(auto?"-تلقائي":"")+".json";a.click();
   URL.revokeObjectURL(a.href);
@@ -5933,7 +6145,12 @@ function importJSON(){
       const tx=DBH.transaction(['ledger','entities'],'readwrite');
       d.entities.forEach(e=>tx.objectStore('entities').put(cleanObj(e)));
       d.ledger.filter(e=>!known.has(e.id)).forEach(e=>{const {seq,...rest}=e;tx.objectStore('ledger').add(rest)});
-      tx.oncomplete=async()=>{if(d.company)await setMeta('company',d.company);await refresh();toast("تمت الاستعادة","ok")};
+      tx.oncomplete=async()=>{if(d.company)await setMeta('company',d.company);
+        /* الاسطمبات وتعديلات التسليم: بيضيف الناقص بس — مايمسحش ولا يغيّر اللي على الجهاز */
+        if(d.handover){const h=d.handover,have=new Set((S.hand.tpls||[]).map(t=>t.id));
+          S.hand.tpls=[...(S.hand.tpls||[]),...(h.tpls||[]).filter(t=>t&&t.id&&!have.has(t.id))];
+          S.hand.days={...(h.days||{}),...S.hand.days};hSave()}
+        await refresh();toast("تمت الاستعادة","ok")};
     }catch(err){toast("تعذّرت الاستعادة: "+err.message,"err")}};
   i.click();
 }

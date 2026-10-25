@@ -59,6 +59,38 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
   await open('audit','','all');await shot('r11-audit');
   await open('ice','','all');await shot('r12-ice');
   await open('bal','','',{bal:'driver'});await shot('r13-bal-drv');
+  /* تسليم اليوم: الأقسام · تعديل · إضافة من يوم تاني · تم التسليم · تغيير بعده · اسطمبة */
+  await open('hand','','today');await shot('r20-hand');
+  const H=await p.evaluate(async()=>{
+    const d=todayISO();const sec=()=>[...document.querySelectorAll('#app .eyebrow')].map(e=>e.textContent.trim().split('\n')[0]);
+    const before=sec();
+    S.handEdit=true;render();
+    const xs=document.querySelectorAll('#app [data-act="handHide"]').length;
+    hDaySet(d,x=>{x.hide.push('ent:farms.f2','item:farms.ice')});
+    const old=S.ledger.find(e=>e.type==='collection'&&e.date===addDays(d,-5));
+    hDaySet(d,x=>{x.add.push(old.id)});
+    const sumsA=handSums(d,d);
+    hDaySet(d,x=>{x.delivered={at:new Date().toISOString(),sums:sumsA}});
+    render();
+    const printed=handPrintHTML();
+    /* تعديل بعد التسليم */
+    await append({type:'collection',date:d,merchantId:'m1',amount:777});
+    render();
+    const banner=(document.querySelector('#app .attnrow.t-bad .ar1')||{}).textContent||'';
+    return{before,xs,hiddenNote:(document.querySelector('#app .diff span')||{}).textContent,
+      printHasF2:printed.includes('مزرعة الشرقاوي'),printHasAdded:printed.includes(arDate(old.date)),
+      banner,editedSec:sec().find(t=>t.startsWith('اتعدّل'))};
+  });
+  console.log('HAND',JSON.stringify(H));
+  await shot('r21-hand-edit');
+  await p.evaluate(()=>{S.handEdit=false;render()});
+  await p.click('[data-act="handTpl"]');await p.waitForTimeout(300);
+  await p.fill('#tplName','تسليم المراجع');await p.click('[data-act="tplNew"]');await p.waitForTimeout(300);
+  await p.click('[data-act="tplTog"][data-p="sec:drivers"]');await p.waitForTimeout(200);
+  await p.click('[data-act="tplMove"][data-p="sec:merch"][data-d="-1"]');await p.waitForTimeout(200);
+  await shot('r22-tpl-sheet');
+  console.log('TPL',JSON.stringify(await p.evaluate(()=>({last:S.hand.last,tpl:hTpl(S.hand.last).secs.map(x=>x[0]),day:S.hand.days[todayISO()].tpl}))));
+  await p.evaluate(()=>closeSheet());await shot('r23-hand-tpl');
   console.log('DRV',JSON.stringify(await p.evaluate(()=>({range:[S.F.from,S.F.to],
     rows:S.D.drivers.map(d=>{const x=drvSpan(S.D.live,d.id,S.F.from,S.F.to);return[d.name,x.open,x.trips,x.trip,x.adv,x.pay,x.close]}),
     allTime:S.D.drivers.map(d=>[d.name,drvSpan(S.D.live,d.id,'','').close,d.balance])}))));
