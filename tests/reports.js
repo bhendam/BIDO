@@ -50,6 +50,11 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
   await open('merchEnt','m1','all',{merchEnt:'stmt'});await shot('r02-merch-box');
   await open('daily','','today');await shot('r03-wh-today');
   await open('boxAll','','all');await shot('r04-boxall');
+  await open('drv','','',{drvRep:'detail'});await shot('r05-drv-detail');
+  await open('drv','','',{drvRep:'sum'});await shot('r06-drv-sum');
+  console.log('DRV',JSON.stringify(await p.evaluate(()=>({range:[S.F.from,S.F.to],
+    rows:S.D.drivers.map(d=>{const x=drvSpan(S.D.live,d.id,S.F.from,S.F.to);return[d.name,x.open,x.trips,x.trip,x.adv,x.pay,x.close]}),
+    allTime:S.D.drivers.map(d=>[d.name,drvSpan(S.D.live,d.id,'','').close,d.balance])}))));
   /* أرقام للمقارنة مع الحساب الأصلي (derive) — لازم يتطابقوا */
   const chk=await p.evaluate(()=>{const ents=S.D.live.filter(e=>e.type==='box'||e.type.startsWith('box_'));
     const out={};for(const id of ['WH','f1','f2','m1','m2']){const B=boxLedger(ents,id,'','');const b=S.D.boxOf(id);

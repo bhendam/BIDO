@@ -813,6 +813,7 @@ input,select,textarea,.field,.pick{scroll-margin-block:96px}
 td.tname{text-align:right}
 /* صف يفتح كشف الجهة: سهم صغير بعد الاسم على الشاشة بس — الطباعة والـCSV نظيفة */
 tr[data-act]{cursor:pointer}
+td .cnt{display:block;font-size:var(--fs-xs);color:var(--muted);font-weight:400;unicode-bidi:plaintext}
 tr.dayrow td{background:var(--card-2);color:var(--ink-2);font-weight:600;font-size:var(--fs-s)}
 .dmgn{color:var(--debt);font-weight:400}
 @media screen{tr[data-act] td.tname::after{content:"‹";margin-inline-start:6px;color:var(--muted);font-weight:400}}
@@ -2672,6 +2673,9 @@ function selectRep(k){
   setRep(k);S.page=0;S.toTop=true;S.fopen=false;
   if(REPNOENT.has(k))S.F.ent='';
   if(k==='daily'&&S.F.from!==S.F.to){const t=todayISO();S.F.from=t;S.F.to=t;S.F.range='today'}
+  /* حساب السواقين بيتعمل آخر الأسبوع على الأسبوع اللي خلص (جمعة ← خميس) */
+  if(k==='drv'&&S.F.range!=='lwk'&&S.F.range!=='wk'){const[a]=weekOf(todayISO());
+    S.F.from=addDays(a,-7);S.F.to=addDays(a,-1);S.F.range='lwk'}
   closeSheet();render();
   /* تقرير جهة واحدة بلا جهة مختارة = شاشة إرشاد فاضية وخطوة زيادة في الفلتر،
      فنفتح مُختار الجهة على طول. ولو المختار حالياً من نوع تاني (مبيع في تقرير
@@ -2816,7 +2820,8 @@ const REPNEEDENT=new Set(['farmEnt','merchEnt']);
 function filterBar(){
   const F=S.F,D=S.D;
   const etype=repEt(S.rep);
-  const R=[["today","اليوم"],["week","٧ أيام"],["month","هذا الشهر"],["all","الكل"],["custom","مخصص"]];
+  const R=S.rep==='drv'?[["lwk","الأسبوع اللي فات"],["wk","الأسبوع ده"],["month","هذا الشهر"],["custom","مخصص"]]
+    :[["today","اليوم"],["week","٧ أيام"],["month","هذا الشهر"],["all","الكل"],["custom","مخصص"]];
   const cur=F.ent?D.ent(F.ent):null;
   const noEnt=REPNOENT.has(S.rep);
   return `<div class="card">
@@ -3524,101 +3529,97 @@ function repAll(){
       +(show<items.length?`<button class="more" data-act="more">عرض ${Math.min(N,items.length-show)} أخرى · باقي ${items.length-show}</button>`:'')
       :'<div class="empty"><b>لا حركات</b>غيّر الفلتر أو المدى الزمني.</div>');
 }
+/*
+  حساب سواق في مدى (5.0.0) — دالة نقية زي boxLedger: نفس المعادلة اللي في derive
+  (افتتاحي + أجور الرحلات − السلف − المدفوع) لكن مقطوعة على المدى.
+  open = رصيده قبل from · rows = حركاته في المدى بالرصيد بعد كل واحدة ·
+  byRoute = عدد وإجمالي كل نوع رحلة · close = المستحق آخر المدى. المال بالقروش.
+*/
+function drvSpan(live,id,from,to){
+  const mine=live.filter(e=>(e.type==='trip'||e.type==='driver_advance'||e.type==='driver_payment'
+      ||e.type==='opening_cash')&&(e.driverId===id||e.entityId===id)&&(!to||e.date<=to))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+  const val=e=>e.type==='trip'?P(e.fare??e.cost):e.type==='opening_cash'?P(e.amount):-P(e.amount);
+  let open=0,run=0;const rows=[],byRoute={};let T={trip:0,adv:0,pay:0,n:0};
+  mine.forEach(e=>{
+    if(from&&e.date<from){open+=val(e);run=open;return}
+    run+=val(e);
+    if(e.type==='trip'){const k=e.routeId||'';const r=byRoute[k]||(byRoute[k]={n:0,t:0});
+      r.n++;r.t+=P(e.fare??e.cost);T.trip+=P(e.fare??e.cost);T.n++}
+    else if(e.type==='driver_advance')T.adv+=P(e.amount);
+    else if(e.type==='driver_payment')T.pay+=P(e.amount);
+    rows.push({e,run:run/100})});
+  Object.values(byRoute).forEach(r=>r.t/=100);
+  return{open:open/100,close:run/100,rows,byRoute,
+    trip:T.trip/100,adv:T.adv/100,pay:T.pay/100,trips:T.n};
+}
+/* أسبوع الحساب جمعة ← خميس (طلب المالك). getDay: الجمعة = ٥ */
+function weekOf(iso){
+  const d=new Date(iso+'T12:00'),back=(d.getDay()-5+7)%7;
+  const from=addDays(iso,-back);return[from,addDays(from,6)];
+}
+/* السواقين (5.0.0): تفصيلي (كل سواق: رصيد أول المدة · رحلاته بنوعها · سلفه
+   · مدفوعه · المستحق آخر المدة) ومجمّع (سطر لكل سواق وعمود لكل نوع رحلة:
+   عدد · إجمالي) والتالف. المدى الافتراضي الأسبوع اللي فات. */
 function repDrv(){
   const D=S.D,F=S.F;
   const who=F.ent?D.drivers.find(d=>d.id===F.ent):null;
-  const K=S.sub.drvRep||'trips';
-  if(who&&K==='dmg')return seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)
-    +`<div style="height:12px"></div>`+driverDmgTab(who);
-  const segTop=who?seg('drvRep',[["trips","حساب رحلات"],["dmg","تقرير التالف"]],K,true)+`<div style="height:12px"></div>`:'';
-  /* ترتيب السائقين: بالاسم (أبجدي، الافتراضي) أو بتاريخ آخر حركة (الأحدث أولاً)
-     — يفيد في لقاء السائق النشط بسرعة بدل تصفّح كل القائمة. */
-  const srt=who?'name':(S.sub.drvSort||'name');
-  const segSort=who?'':`${seg('drvSort',[["name","بالاسم"],["date","بالتاريخ"]],srt,true)}<div style="height:12px"></div>`;
-  const TY=['trip','driver_advance','driver_payment'];
-  const nm={trip:'رحلة',driver_advance:'سلفة',driver_payment:'تصفية'};
-  const items=D.live.filter(e=>TY.includes(e.type)&&inR(e)&&(!F.ent||e.driverId===F.ent))
-    .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
-
-  /* صف الحركة. الرصيد الجاري بيتحسب داخل كل سائق على حدة، فبيعبّر عن رصيده
-     هو في الفترة — لا مجموع مختلط لسائقين مختلفين. */
-  const row=(e,run)=>`<tr><td class="n">${arDate(e.date)}</td><td>${nm[e.type]}</td>
-    <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'—'):'—'}</td>
-    <td>${esc(e.note||'—')}</td>
-    <td class="n cin">${e.type==='trip'?money(+e.fare||+e.cost||0):''}</td>
-    <td class="n cout">${e.type!=='trip'?money(+e.amount||0):''}</td>
-    <td class="n" style="font-weight:600">${money(run)}</td></tr>`;
-
-  /* جدول حركات سائق واحد داخل المدى + صافي الفترة في التذييل.
-     المال بالقروش الصحيحة (P/msum) لا جمع عشري مباشر. */
-  const drvTable=list=>{
-    let cIn=0,cOut=0,run=0;
-    const body=list.map(e=>{
-      const v=e.type==='trip'?P(e.fare??e.cost):P(e.amount);
-      if(e.type==='trip'){cIn+=v;run=msum(run,v/100)}else{cOut+=v;run=msum(run,-v/100)}
-      return row(e,run)}).join('');
-    return `<table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>ملاحظات</th>
-      <th class="n">مستحق له</th><th class="n">مدفوع/سلف</th><th class="n">الرصيد</th></tr></thead>
-      <tbody>${body}</tbody>
-      <tfoot><tr><td colspan="4">صافي الفترة (${list.length} حركة)</td>
-        <td class="n">${money(cIn/100)}</td><td class="n">${money(cOut/100)}</td>
-        ${mcell(msum(cIn/100,-cOut/100),1)}</tr></tfoot></table>`;
-  };
-
-  /* تجميع حركات المدى لكل سائق */
-  const byD={};
-  items.forEach(e=>{if(e.driverId)(byD[e.driverId]||(byD[e.driverId]=[])).push(e)});
-  /* آخر تاريخ حركة لكل سائق — من كل السجل لا من المدى، فترتيب «بالتاريخ» ثابت */
-  const lastD={};
-  D.live.forEach(e=>{if(!e.driverId||!TY.includes(e.type))return;
-    if(!lastD[e.driverId]||e.date>lastD[e.driverId])lastD[e.driverId]=e.date});
-  const ordered=(srt==='date'
-    ?D.drivers.slice().sort((a,b)=>{const x=lastD[a.id]||'',y=lastD[b.id]||'';
-        return x&&y?(y.localeCompare(x)||a.name.localeCompare(b.name,'ar')):x?-1:y?1:a.name.localeCompare(b.name,'ar')})
-    :D.drivers.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar')))
-    .filter(d=>!F.ent||d.id===F.ent);
-  /* السائقون اللي ليهم حركة فعلية في المدى وحدهم — سائق بلا حركة لا يستحق قسماً */
-  const act=ordered.filter(d=>byD[d.id]&&byD[d.id].length);
-
-  /* أرقام الفترة لسائق: أجور · سلف · مدفوع · الصافي (كلها قروش) */
-  const agg=id=>{const l=byD[id]||[];let t=0,a=0,y=0;
-    l.forEach(e=>{if(e.type==='trip')t+=P(e.fare??e.cost);
-      else if(e.type==='driver_advance')a+=P(e.amount);else y+=P(e.amount)});
-    return{t,a,y,net:msum(t/100,-a/100,-y/100)}};
-
-  /* الجدول المجمّع: كل سائق سطر بأرقام الفترة المختارة وحدها */
-  const sums=act.map(d=>({d,...agg(d.id)}));
-  const gT=sums.reduce((x,s)=>x+s.t,0),gA=sums.reduce((x,s)=>x+s.a,0),gY=sums.reduce((x,s)=>x+s.y,0);
-  const total=`<table><thead><tr><th>السائق</th><th class="n">أجور</th><th class="n">سلف</th>
-    <th class="n">مدفوع</th><th class="n">صافي الفترة</th></tr></thead>
-    <tbody>${sums.map(s=>`<tr><td class="tname">${esc(s.d.name)}</td>
-      <td class="n">${money(s.t/100)}</td><td class="n">${money(s.a/100)}</td>
-      <td class="n">${money(s.y/100)}</td>${mcell(s.net,1)}</tr>`).join('')}</tbody>
-    <tfoot><tr><td>الإجمالي (${sums.length} سائق)</td><td class="n">${money(gT/100)}</td>
-      <td class="n">${money(gA/100)}</td><td class="n">${money(gY/100)}</td>
-      ${mcell(msum(gT/100,-gA/100,-gY/100),1)}</tr></tfoot></table>`;
-
-  /* قسم لكل سائق: عنوان باسمه وصافي فترته، وتحته حركاته. */
-  const secs=act.map(d=>{const s=agg(d.id),neg=s.net<-.004;
-    return `<div class="eyebrow drv">${esc(d.name)}
-      <span class="dnet num ${neg?'money-pos':'money-neg'}">${money(s.net)} ج.م</span></div>
-      <div class="card"><div class="tscroll">${drvTable(byD[d.id])}</div></div>`}).join('');
-
-  const printHtml=(who
-    ?(act.length?drvTable(byD[who.id]||[]):'<p>لا حركات في المدى</p>')
-    :act.map(d=>`<h3>${esc(d.name)}</h3>`+drvTable(byD[d.id])).join(''))
-    +(act.length?`<h3>إجمالي السائقين في الفترة</h3>`+total:'');
-  S.print={title:"تقرير السائقين"+(who?` — ${who.name}`:""),html:printHtml,phone:who?.phone};
-
-  if(!act.length)return segTop+segSort
-    +`<div class="eyebrow">حركات السائقين</div>
-      <div class="card"><div class="empty">لا حركات في المدى</div></div>`;
-
-  return segTop+segSort+secs
-    +`<div class="eyebrow">إجمالي السائقين في الفترة</div>
-      <div class="card"><div class="tscroll">${total}</div>
-      <p class="note">أرقام المدى المختار وحده — مش تراكمية من أول السجل.
-      الأحمر = مستحق للسائق علينا · الأخضر = سلف زائدة عليه.</p></div>`;
+  const K=S.sub.drvRep==='trips'||!S.sub.drvRep?'detail':S.sub.drvRep;
+  const tabs=seg('drvRep',[["detail","تفصيلي"],["sum","مجمّع"],["dmg","التالف"]],K,true)+`<div style="height:12px"></div>`;
+  if(K==='dmg'){if(who)return tabs+driverDmgTab(who);S.sub.repbox='dmg';return tabs+repBox()}
+  const L=D.drivers.filter(d=>!who||d.id===who.id)
+    .map(d=>({d,x:drvSpan(D.live,d.id,F.from,F.to)}))
+    /* السواق اللي ما اشتغلش في المدة ما يظهرش — إلا لو عليه أو له رصيد */
+    .filter(({x})=>x.rows.length||Math.abs(x.close)>.004)
+    .sort((a,b)=>a.d.name.localeCompare(b.d.name,'ar'));
+  const per=F.from&&F.to?`${arDate(F.from)} ← ${arDate(F.to)}`:'كل الفترات';
+  if(!L.length)return tabs+`<div class="card"><div class="empty"><b>لا حركات سواقين</b>في ${esc(per)}</div></div>`;
+  const nm={trip:'رحلة',driver_advance:'سلفة',driver_payment:'مدفوع',opening_cash:'رصيد افتتاحي'};
+  if(K==='detail'){
+    /* ٥ أعمدة لا ٦: السلفة والمدفوع عمود واحد («عليه») والبيان بيقول أنهي —
+       على الموبايل العمود السادس والرصيد كانوا بيقعوا برّه الشاشة. والتاريخ
+       يوم/شهر بس: المدة أسبوع. */
+    const dm=iso=>arDate(iso).slice(0,5);
+    const tbl=({d,x})=>`<table><thead><tr><th>اليوم</th><th>البيان</th><th class="n">له</th>
+      <th class="n">عليه</th><th class="n">الرصيد</th></tr></thead><tbody>
+      <tr class="dayrow"><td colspan="4">رصيد أول المدة</td>${mcell(x.open,1)}</tr>
+      ${x.rows.map(({e,run})=>`<tr><td class="n">${dm(e.date)}</td>
+        <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'رحلة'):`<b>${nm[e.type]}</b>`}${e.note?` <span class="dsub">${esc(e.note)}</span>`:''}</td>
+        <td class="n cin">${e.type==='trip'||e.type==='opening_cash'?money(e.type==='trip'?(e.fare??e.cost):e.amount):''}</td>
+        <td class="n cout">${e.type==='driver_advance'||e.type==='driver_payment'?money(e.amount):''}</td>
+        <td class="n" style="font-weight:600">${money(run)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="2">المستحق · ${x.trips} رحلة</td>
+        <td class="n">${money(x.trip)}</td><td class="n">${money(msum(x.adv,x.pay))}</td>${mcell(x.close,1)}</tr></tfoot></table>`;
+    S.print={title:`حساب السواقين — ${per}`+(who?` — ${who.name}`:''),
+      html:L.map(r=>`<h3>${esc(r.d.name)}</h3>`+tbl(r)).join(''),phone:who?.phone};
+    return tabs+L.map(r=>`<div class="eyebrow drv">${esc(r.d.name)}
+        <span class="dnet num">${money(r.x.close)} ج.م</span></div>
+      <div class="card"><div class="tscroll">${tbl(r)}</div></div>`).join('')
+      +`<p class="note">المستحق = رصيد أول المدة + الرحلات − السلف − المدفوع. موجب = له علينا.</p>`;
+  }
+  /* مجمّع: عمود لكل نوع رحلة اتعمل في المدة بس */
+  const routes=[...new Set(L.flatMap(r=>Object.keys(r.x.byRoute)))]
+    .sort((a,b)=>(D.nameOf(a)||'').localeCompare(D.nameOf(b)||'','ar'));
+  const rn=k=>k?D.nameOf(k):'بدون نوع';
+  /* الإجمالي فوق وعدد الرحلات تحته: «1 · 450» جوّه نص عربي ماكانش واضح أنهي العدد */
+  const cell=r=>r?`${money(r.t)}<span class="cnt">${r.n} رحلة</span>`:'';
+  const sumR=k=>{let n=0,t=0;L.forEach(r=>{const v=r.x.byRoute[k];if(v){n+=v.n;t+=P(v.t)}});return{n,t:t/100}};
+  const tbl=`<table><thead><tr><th>السواق</th>${routes.map(k=>`<th class="n">${esc(rn(k))}</th>`).join('')}
+    <th class="n">إجمالي الرحلات</th><th class="n">سلف</th><th class="n">مدفوع</th><th class="n">المستحق</th></tr></thead>
+    <tbody>${L.map(({d,x})=>`<tr data-act="repDriver" data-id="${d.id}"><td class="tname">${esc(d.name)}</td>
+      ${routes.map(k=>`<td class="n">${cell(x.byRoute[k])}</td>`).join('')}
+      <td class="n" style="font-weight:600">${cell({n:x.trips,t:x.trip})}</td>
+      <td class="n">${money(x.adv)}</td><td class="n">${money(x.pay)}</td>${mcell(x.close,1)}</tr>`).join('')}</tbody>
+    <tfoot><tr><td>الإجمالي (${L.length})</td>${routes.map(k=>`<td class="n">${cell(sumR(k))}</td>`).join('')}
+      <td class="n">${cell({n:sum(L,r=>r.x.trips),t:sumM(L,r=>r.x.trip)})}</td>
+      <td class="n">${money(sumM(L,r=>r.x.adv))}</td><td class="n">${money(sumM(L,r=>r.x.pay))}</td>
+      <td class="n">${money(sumM(L,r=>r.x.close))}</td></tr></tfoot></table>`;
+  S.print={title:`حساب السواقين مجمّع — ${per}`,html:tbl};
+  return tabs+`<div class="card">${repSum([[`إجمالي ${sum(L,r=>r.x.trips)} رحلة`,money(sumM(L,r=>r.x.trip))],
+      ['المستحق للسواقين',money(sumM(L,r=>r.x.close)),'short']])}
+    <div class="tscroll">${tbl}</div>
+    <p class="note">كل خانة = إجمالي النوع ده في المدة وتحته عدد رحلاته، بالأجرة اللي اتسجّلت مع كل رحلة.
+      اضغط على سواق لتفصيله.</p></div>`;
 }
 /* تقرير التالف لسائق واحد — منفصل عن ملخص كل السائقين (dmg) حتى لا يتأثر التقرير العام. */
 function driverDmgTab(driver){
@@ -4752,6 +4753,8 @@ function setRange(r){
   const F=S.F,t=todayISO();F.range=r;
   if(r==='today'){F.from=t;F.to=t}
   if(r==='week'){F.from=addDays(t,-6);F.to=t}
+  if(r==='wk'){F.from=weekOf(t)[0];F.to=t}
+  if(r==='lwk'){const[a]=weekOf(t);F.from=addDays(a,-7);F.to=addDays(a,-1)}
   if(r==='month'){F.from=monthStart();F.to=t}
   if(r==='all'){F.from='';F.to=''}
   render();
@@ -5502,6 +5505,22 @@ function runTests(){
    ok("جرد المخزن: السليم والتالف منفصلين",B.open.i===-100&&B.close.i===-80&&B.close.d===5);
    B=boxLedger(E2,'m1','','');
    ok("كشف المبيع: صادر له ووارد منه",B.rows[0].ii===30&&B.rows[1].oi===20&&B.rows[1].od===5);}
+
+  /* 5.0.0 — حساب السواق في مدى (drvSpan) وأسبوع جمعة ← خميس */
+  {const L2=[{id:'o',type:'opening_cash',entityId:'d1',amount:100,date:'2026-01-01',seq:1},
+     {id:'t1',type:'trip',driverId:'d1',routeId:'r1',fare:450,date:'2026-01-02',seq:2},
+     {id:'a1',type:'driver_advance',driverId:'d1',amount:200,date:'2026-01-09',seq:3},
+     {id:'t2',type:'trip',driverId:'d1',routeId:'r1',fare:450,date:'2026-01-10',seq:4},
+     {id:'t3',type:'trip',driverId:'d1',routeId:'r2',fare:550.5,date:'2026-01-11',seq:5},
+     {id:'p1',type:'driver_payment',driverId:'d1',amount:300,date:'2026-01-12',seq:6},
+     {id:'t4',type:'trip',driverId:'d2',routeId:'r1',fare:999,date:'2026-01-10',seq:7}];
+   const x=drvSpan(L2,'d1','2026-01-09','2026-01-15');
+   ok("حساب السواق: رصيد أول المدة = كل اللي قبلها",x.open===550);
+   ok("حساب السواق: المستحق = أول + رحلات − سلف − مدفوع",x.close===msum(550,450,550.5,-200,-300));
+   ok("حساب السواق: عدد وإجمالي كل نوع رحلة",x.byRoute.r1.n===1&&x.byRoute.r2.t===550.5&&x.trips===2);
+   ok("حساب السواق: سواق تاني ما يدخلش",!x.rows.some(r=>r.e.id==='t4'));
+   ok("أسبوع الحساب يبدأ الجمعة",weekOf('2026-10-25').join()==='2026-10-23,2026-10-29'
+     &&weekOf('2026-10-23')[0]==='2026-10-23'&&weekOf('2026-10-22')[0]==='2026-10-16');}
 
   S.diag={kind:'tests',rows:R,pass:R.filter(x=>x.ok).length,total:R.length};
   render();
