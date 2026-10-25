@@ -27,7 +27,7 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
     await append({type:'collection',date:d(5),merchantId:'m1',amount:20000});
     await append({type:'collection',date:d(0),merchantId:'m2',amount:5000});
     for(const [n,dr,r,f] of [[12,'dr1','r1',450],[10,'dr2','r2',550],[9,'dr1','r1',450],[8,'dr2','r1',450],[6,'dr1','r2',550],[5,'dr1','r1',450],[3,'dr2','r2',550],[1,'dr1','r1',450],[0,'dr2','r1',450]])
-      await append({type:'trip',date:d(n),driverId:dr,routeId:r,fare:f});
+      await append({type:'trip',date:d(n),driverId:dr,routeId:r,fare:f,note:n%2?'سروح العبور':'سوق السلام'});
     await append({type:'driver_advance',date:d(9),driverId:'dr1',amount:300});
     await append({type:'driver_advance',date:d(4),driverId:'dr1',amount:200});
     await append({type:'driver_advance',date:d(2),driverId:'dr2',amount:150});

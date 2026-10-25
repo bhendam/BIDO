@@ -1130,7 +1130,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').replaceChildren(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="5.0.0";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="5.0.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -3775,16 +3775,20 @@ function repDrv(){
     /* ٥ أعمدة لا ٦: السلفة والمدفوع عمود واحد («عليه») والبيان بيقول أنهي —
        على الموبايل العمود السادس والرصيد كانوا بيقعوا برّه الشاشة. والتاريخ
        يوم/شهر بس: المدة أسبوع. */
+    /* 5.0.1 بطلب المالك: التاريخ · اليوم · الرحلة · البيان (وجهة الرحلة من الملاحظة) ·
+       له · عليه · الرصيد. السلفة والمدفوع خانة «الرحلة» فيها نوعهم والبيان ملاحظتهم. */
     const dm=iso=>arDate(iso).slice(0,5);
-    const tbl=({d,x})=>`<table><thead><tr><th>اليوم</th><th>البيان</th><th class="n">له</th>
-      <th class="n">عليه</th><th class="n">الرصيد</th></tr></thead><tbody>
-      <tr class="dayrow"><td colspan="4">رصيد أول المدة</td>${mcell(x.open,1)}</tr>
-      ${x.rows.map(({e,run})=>`<tr><td class="n">${dm(e.date)}</td>
-        <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'رحلة'):`<b>${nm[e.type]}</b>`}${e.note?` <span class="dsub">${esc(e.note)}</span>`:''}</td>
+    const wd=iso=>new Date(iso+'T12:00').toLocaleDateString('ar-EG',{weekday:'long'});
+    const tbl=({d,x})=>`<table><thead><tr><th>التاريخ</th><th>اليوم</th><th>الرحلة</th><th>البيان</th>
+      <th class="n">له</th><th class="n">عليه</th><th class="n">الرصيد</th></tr></thead><tbody>
+      <tr class="dayrow"><td colspan="6">رصيد أول المدة</td>${mcell(x.open,1)}</tr>
+      ${x.rows.map(({e,run})=>`<tr><td class="n">${dm(e.date)}</td><td>${wd(e.date)}</td>
+        <td>${e.type==='trip'?esc(D.nameOf(e.routeId)||e.destination||'رحلة'):`<b>${nm[e.type]}</b>`}</td>
+        <td>${esc(e.note||'—')}</td>
         <td class="n cin">${e.type==='trip'||e.type==='opening_cash'?money(e.type==='trip'?(e.fare??e.cost):e.amount):''}</td>
         <td class="n cout">${e.type==='driver_advance'||e.type==='driver_payment'?money(e.amount):''}</td>
         <td class="n" style="font-weight:600">${money(run)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="2">المستحق · ${x.trips} رحلة</td>
+      <tfoot><tr><td colspan="4">المستحق · ${x.trips} رحلة</td>
         <td class="n">${money(x.trip)}</td><td class="n">${money(msum(x.adv,x.pay))}</td>${mcell(x.close,1)}</tr></tfoot></table>`;
     S.print={title:`حساب السواقين — ${per}`+(who?` — ${who.name}`:''),
       html:L.map(r=>`<h3>${esc(r.d.name)}</h3>`+tbl(r)).join(''),phone:who?.phone};
