@@ -101,7 +101,9 @@
   --shadow:0 1px 2px rgba(17,26,31,.04), 0 1px 3px rgba(17,26,31,.06);
   --dlgbg:rgba(17,26,31,.5);
   --font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,system-ui,-apple-system,sans-serif;
-  --num:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --num:"IBM Plex Mono","IBM Plex Sans Arabic","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  /* Plex Mono مافيهوش عربي: من غير الخط العربي بعده مباشرة، أي كلمة عربية جوّه
+     خانة رقم (صندوق · سليم · بايت) كانت بتقع على خط monospace للنظام فتتفرّق حروفها. */
 }
 /* هوية القسم: الشريط والأيقونات — والخلفية تفضل محايدة */
 body[data-theme=acct]   {--accent:var(--c-acct);--accent-soft:var(--primary-bg)}
@@ -699,8 +701,10 @@ button{cursor:pointer;border:0;border-radius:11px;font-weight:600;letter-spacing
 .repsum .rsi{flex:1 1 40%;min-width:128px;padding:8px 12px;border-radius:11px;
   background:var(--card-2);display:flex;flex-direction:column;gap:4px}
 .repsum .rsi span{font-size:var(--fs-xs);color:var(--muted)}
-.repsum .rsi b{font-family:var(--num);font-variant-numeric:tabular-nums;direction:ltr;
-  font-size:var(--fs-l);white-space:nowrap}
+/* الاتجاه من المحتوى نفسه: رقم لوحده يفضل LTR، و«260 سليم · 4 تالف» يتقري RTL
+   صح ويلفّ لو ضاق — direction:ltr + nowrap كانوا بيقلبوا الكلام ويطلّعوه برّه الخانة */
+.repsum .rsi b{font-family:var(--num);font-variant-numeric:tabular-nums;unicode-bidi:plaintext;
+  font-size:var(--fs-l);white-space:normal;overflow-wrap:anywhere}
 .repsum .rsi.short{background:var(--debt-bg);color:var(--debt)}
 .repsum .rsi.over{background:var(--credit-bg);color:var(--credit)}
 
@@ -809,6 +813,8 @@ input,select,textarea,.field,.pick{scroll-margin-block:96px}
 td.tname{text-align:right}
 /* صف يفتح كشف الجهة: سهم صغير بعد الاسم على الشاشة بس — الطباعة والـCSV نظيفة */
 tr[data-act]{cursor:pointer}
+tr.dayrow td{background:var(--card-2);color:var(--ink-2);font-weight:600;font-size:var(--fs-s)}
+.dmgn{color:var(--debt);font-weight:400}
 @media screen{tr[data-act] td.tname::after{content:"‹";margin-inline-start:6px;color:var(--muted);font-weight:400}}
 tr.zero td{color:var(--muted)}
 tr.zero td.tname{font-weight:400}
@@ -1238,6 +1244,35 @@ function legsOf(e){
   if(e.type==='box_replace')return[{from:e.entityId,to:WH,cond:'damaged',count:+e.damagedIn||0},{from:WH,to:e.entityId,cond:'intact',count:+e.intactOut||0}].filter(l=>l.count>0);
   if(e.type==='box_move')return[{from:e.fromId,to:e.toId,cond:'intact',count:+e.count||0}];
   return[];
+}
+/*
+  كشف بكش لموقع واحد (5.0.0) — دالة نقية: نفس الحركات تدّي نفس الأرقام،
+  وكل تقارير البكش بتقرا منها فلا يفترق رقمان.
+  ents: حركات البكش الحيّة · loc: المخزن أو جهة · from/to: المدى ('' = مفتوح).
+  الناتج: open = الرصيد قبل from · rows = كل حركة في المدى بأرقامها والرصيد بعدها
+  (ai/ad) · days = يوم بيوم للأيام اللي فيها حركة بس · close = الرصيد آخر المدى.
+  «in» = داخل الموقع (للجهة: صادر لها) · «out» = خارج منه (للجهة: وارد منها).
+*/
+function boxLedger(ents,loc,from,to){
+  const L=ents.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
+  let i=0,d=0;const open={i:0,d:0},rows=[];
+  for(const e of L){
+    if(to&&e.date>to)break;
+    let ii=0,id=0,oi=0,od=0;
+    legsOf(e).forEach(l=>{const n=+l.count||0;
+      if(l.to===loc){if(l.cond==='damaged')id+=n;else ii+=n}
+      if(l.from===loc){if(l.cond==='damaged')od+=n;else oi+=n}});
+    if(!(ii||id||oi||od))continue;
+    i+=ii-oi;d+=id-od;
+    if(from&&e.date<from){open.i=i;open.d=d;continue}
+    rows.push({e,ii,id,oi,od,ai:i,ad:d});
+  }
+  const days=[];
+  rows.forEach(r=>{let x=days[days.length-1];
+    if(!x||x.date!==r.e.date){x={date:r.e.date,bi:r.ai-(r.ii-r.oi),bd:r.ad-(r.id-r.od),
+      ii:0,id:0,oi:0,od:0,rows:[]};days.push(x)}
+    x.ii+=r.ii;x.id+=r.id;x.oi+=r.oi;x.od+=r.od;x.ci=r.ai;x.cd=r.ad;x.rows.push(r)});
+  return{open,rows,days,close:{i,d}};
 }
 
 /* ============ الحالة ============ */
@@ -2364,6 +2399,13 @@ function boxQtyTxt(e){
   if(e.op==='opening_box'&&(+((e.params||{}).dir)||1)<0)return `${boxQty(e)} عندنا`;
   return String(boxQty(e));
 }
+/* «من ← إلى» للحركة بلا أعداد ولا تكرار — والعقدة الوسيطة #ADJ (تحويل حالة) مش طرف */
+function boxPairs(e){
+  const seen=new Set();
+  legsOf(e).forEach(l=>{if(l.from==='#ADJ'||l.to==='#ADJ')return;
+    seen.add(`${S.D.nameOf(l.from)} ← ${S.D.nameOf(l.to)}`)});
+  return [...seen].join(' · ')||'تصحيح رصد';
+}
 function legsTxt(e){return legsOf(e).map(l=>`${S.D.nameOf(l.from)} ← ${S.D.nameOf(l.to)}: ${l.count} ${CONDAR[l.cond]}`).join(" · ")}
 /* مسار الحركة بلا تكرار: نتجاهل عقدة التصحيح ونعرض الطرفين الحقيقيين */
 function boxFlow(e){
@@ -3257,92 +3299,80 @@ function repBox(){
 
   /* كشف عهدة: كل حركة تخصّ الجهة سطراً سطراً مع رصيد جارٍ —
      بما فيها ترحيل البكش الآلي المصاحب لفواتير البيع. */
+  /* كشف بكش الجهة (5.0.0): يوم بيوم للأيام اللي فيها حركة، وتحته الحركات
+     متجمّعة باليوم ومع كل حركة طرفها وسواقها والرصيد بعدها. الأيام الفاضية
+     مش بتظهر — «بايت» أي يوم هو «فاضل» آخر يوم فيه حركة قبله. */
   if(S.sub.repbox==='stmt'){
-    let oi=0,od=0;
-    ents.filter(e=>F.from&&e.date<F.from).forEach(e=>legsOf(e).forEach(l=>{
-      if(l.to===loc)l.cond==='intact'?oi+=l.count:od+=l.count;
-      if(l.from===loc)l.cond==='intact'?oi-=l.count:od-=l.count}));
-    const mine=ents.filter(e=>inR(e)&&legsOf(e).some(l=>l.from===loc||l.to===loc))
-      .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
-    let ri=oi,rd=od,TI=0,TO=0;
-    const rows=mine.map(e=>{
-      let ii=0,id=0,oo=0,od2=0;const other=new Set();
-      legsOf(e).forEach(l=>{
-        if(l.to===loc){l.cond==='intact'?ii+=l.count:id+=l.count;if(l.from!==loc)other.add(D.nameOf(l.from))}
-        if(l.from===loc){l.cond==='intact'?oo+=l.count:od2+=l.count;if(l.to!==loc)other.add(D.nameOf(l.to))}});
-      ri+=ii-oo;rd+=id-od2;TI+=ii+id;TO+=oo+od2;
-      return `<tr><td class="n">${arDate(e.date)}</td>
-        <td>${esc(BOXOP[e.op]||'حركة')}${e.auto?' <span class="tag">آلي</span>':''}</td>
-        <td>${esc([...other].join(' · ')||'—')}</td>
-        <td class="n cin">${ii+id||''}</td><td class="n cout">${oo+od2||''}</td>
-        <td class="n" style="font-weight:600">${loc===WH?ri+'/'+rd:ri}</td></tr>`}).join('');
-    const tbl=`<table><thead><tr><th>التاريخ</th><th>العملية</th><th>الطرف الآخر</th>
-      <th class="n">وارد</th><th class="n">صادر</th>
-      <th class="n">${loc===WH?'الرصيد سليم/تالف':'العهدة'}</th></tr></thead>
-      <tbody><tr><td colspan="3">رصيد افتتاحي للفترة</td><td class="n"></td><td class="n"></td>
-        <td class="n" style="font-weight:600">${loc===WH?oi+'/'+od:oi}</td></tr>${rows}</tbody>
-      <tfoot><tr><td colspan="3">الإجمالي (${mine.length} حركة)</td>
-        <td class="n">${TI}</td><td class="n">${TO}</td>
-        <td class="n">${loc===WH?ri+'/'+rd:ri}</td></tr></tfoot></table>`;
-    S.print={title:`كشف عهدة البكش — ${D.nameOf(loc)}`,html:tbl,phone:D.phoneOf(loc)};
+    const W=loc===WH,B=boxLedger(ents,loc,F.from,F.to);
+    const n=(i2,d2)=>W?`${i2}${d2?` <span class="dmgn">+${d2}ت</span>`:''}`:`${i2}`;
+    const T=B.rows.reduce((a,r)=>({i:a.i+r.ii+r.id,o:a.o+r.oi+r.od}),{i:0,o:0});
+    const [hIn,hOut]=W?['وارد','صادر']:['صادر لها','وارد منها'];
+    const dtbl=`<table><thead><tr><th>اليوم</th><th class="n">بايت</th><th class="n">${hIn}</th>
+      <th class="n">${hOut}</th><th class="n">فاضل</th></tr></thead><tbody>
+      ${B.days.map(x=>`<tr><td class="n">${arDate(x.date)}</td><td class="n">${n(x.bi,x.bd)}</td>
+        <td class="n cin">${x.ii+x.id||''}</td><td class="n cout">${x.oi+x.od||''}</td>
+        <td class="n" style="font-weight:600">${n(x.ci,x.cd)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>${B.days.length} يوم فيه حركة</td><td class="n">${n(B.open.i,B.open.d)}</td>
+        <td class="n">${T.i}</td><td class="n">${T.o}</td><td class="n">${n(B.close.i,B.close.d)}</td></tr></tfoot></table>`;
+    /* الأرقام جنب العملية والطرف بعدها: على الموبايل الجدول بيتسحب، والرصيد
+       بعد الحركة هو اللي بيتدوّر عليه — مايصحّش يبقى آخر عمود برّه الشاشة */
+    const mtbl=`<table><thead><tr><th>العملية</th>
+      <th class="n">${W?'وارد':'لها'}</th><th class="n">${W?'صادر':'منها'}</th><th class="n">الرصيد بعدها</th>
+      <th>من ← إلى</th><th>السواق</th></tr></thead><tbody>
+      ${B.days.map(x=>`<tr class="dayrow"><td colspan="6">${arDate(x.date)} · بايت ${n(x.bi,x.bd)}</td></tr>`
+        +x.rows.map(r=>`<tr><td>${esc(BOXOP[r.e.op]||'حركة')}${r.e.auto?' <span class="tag">آلي</span>':''}</td>
+          <td class="n cin">${r.ii+r.id||''}</td><td class="n cout">${r.oi+r.od||''}</td>
+          <td class="n" style="font-weight:600">${n(r.ai,r.ad)}</td>
+          <td>${esc(boxPairs(r.e))}</td><td>${esc(r.e.driverId?D.nameOf(r.e.driverId):'—')}</td></tr>`).join('')).join('')}</tbody>
+      <tfoot><tr><td>الإجمالي (${B.rows.length} حركة)</td><td class="n">${T.i}</td>
+        <td class="n">${T.o}</td><td class="n">${n(B.close.i,B.close.d)}</td><td colspan="2"></td></tr></tfoot></table>`;
+    S.print={title:`كشف بكش — ${D.nameOf(loc)}`,
+      html:`<h3>يوم بيوم</h3>${dtbl}<h3>الحركات</h3>${mtbl}`,phone:D.phoneOf(loc)};
     const b=D.boxOf(loc);
-    return t+`<div class="eyebrow">كشف عهدة — ${esc(D.nameOf(loc))}</div>
-      <div class="card">
-        ${repSum([['رصيد افتتاحي للفترة',loc===WH?`${oi} سليم · ${od} تالف`:`${oi} صندوق`],
-          ['رصيد آخر الفترة',loc===WH?`${ri} سليم · ${rd} تالف`:`${ri} صندوق`,'over']])}
-        ${mine.length?`<div class="tscroll">${tbl}</div>`:'<div class="empty">لا حركات في المدى المحدد</div>'}
-        <div class="diff"><span>الرصيد الحالي الكلي</span>
-          <b>${loc===WH?`${b.intact} سليم · ${b.damaged} تالف`:`${b.intact} صندوق`}${b.loss?` · فاقد ${b.loss}`:''}</b></div>
-        <p class="note">يشمل ترحيل البكش الآلي المصاحب لفواتير البيع (المعلَّم بـ«آلي»).
-          غيّر «الجهة» من الفلتر فوق لعرض كشف مزرعة أو مبيع آخر.</p></div>`;
+    return `<div class="card">
+        ${repSum([['بايت أول المدة',W?`${B.open.i} سليم · ${B.open.d} تالف`:`${B.open.i} صندوق`],
+          ['فاضل آخر المدة',W?`${B.close.i} سليم · ${B.close.d} تالف`:`${B.close.i} صندوق`,'over']])}
+        ${B.rows.length?`<div class="tscroll">${dtbl}</div>`:'<div class="empty">لا حركات بكش في المدى المحدد</div>'}</div>
+      ${B.rows.length?`<div class="eyebrow">الحركات (${B.rows.length})</div>
+        <div class="card"><div class="tscroll">${mtbl}</div>
+        <p class="note">${W?'':'«لها» = صناديق راحت للجهة · «منها» = رجعت منها. '}الرصيد جنب كل حركة = الرصيد بعدها مباشرة.
+          الآلي = ترحيل البكش المصاحب لفاتورة البيع.</p></div>`:''}
+      <div class="diff"><span>الرصيد الحالي الكلي</span>
+        <b>${W?`${b.intact} سليم · ${b.damaged} تالف`:`${b.intact} صندوق`}${b.loss?` · فاقد ${b.loss}`:''}</b></div>`;
   }
   /* يوم واحد مختار: تقرير مفصّل بكل صادر ووارد ورصيد أول وآخر اليوم */
+  /* يوم واحد (5.0.0): صف لكل عملية — الطرف والسواق، والوارد والصادر سليم وتالف
+     منفصلين، والرصيد بعد كل عملية، بين رصيد أول اليوم وآخره، وسطر «الفعلي» لو
+     اتعمل جرد في اليوم. التالف عمود للمخزن بس (قاعدة ٦). */
   if(S.sub.repbox==='daily'&&F.from&&F.from===F.to){
-    const day=F.from;
-    let oi=0,od=0;
-    ents.filter(e=>e.date<day).forEach(e=>legsOf(e).forEach(l=>{
-      if(l.to===loc)l.cond==='intact'?oi+=l.count:od+=l.count;
-      if(l.from===loc)l.cond==='intact'?oi-=l.count:od-=l.count}));
-    const day1=ents.filter(e=>e.date===day&&legsOf(e).some(l=>l.from===loc||l.to===loc))
-      .sort((a,b)=>a.seq-b.seq);
-    let ci=oi,cd=od,TI=0,TO=0;
-    const rows=day1.map(e=>{
-      let ii=0,idd=0,oo=0,od2=0;const other=new Set();
-      legsOf(e).forEach(l=>{
-        if(l.to===loc){l.cond==='intact'?ii+=l.count:idd+=l.count;if(l.from!==loc&&l.from!=='#ADJ')other.add(D.nameOf(l.from))}
-        if(l.from===loc){l.cond==='intact'?oo+=l.count:od2+=l.count;if(l.to!==loc&&l.to!=='#ADJ')other.add(D.nameOf(l.to))}});
-      ci+=ii-oo;cd+=idd-od2;TI+=ii+idd;TO+=oo+od2;
-      return `<tr><td>${esc(BOXOP[e.op]||'حركة')}${e.auto?' <span class="tag">آلي</span>':''}</td>
-        <td>${esc([...other].join(' · ')||'—')}</td>
-        <td>${esc(e.driverId?D.nameOf(e.driverId):'—')}</td>
-        <td class="n cin">${ii+idd||''}</td><td class="n cout">${oo+od2||''}</td></tr>`}).join('');
-    const B=D.boxOf(loc),W=loc===WH;
-    const fmt=(i,d2)=>W?`${i} سليم · ${d2} تالف`:`${i} صندوق`;
-    const tbl=`<table><thead><tr><th>العملية</th><th>الطرف الآخر</th><th>السائق</th>
-      <th class="n">وارد</th><th class="n">صادر</th></tr></thead>
-      <tbody>${rows||'<tr><td colspan="5">لا حركات في هذا اليوم</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="3">إجمالي ${day1.length} حركة</td>
-        <td class="n">${TI}</td><td class="n">${TO}</td></tr></tfoot></table>`;
-    const summary=`<h3>أرصدة اليوم</h3><table><thead><tr><th>البند</th><th class="n">العدد</th></tr></thead><tbody>
-      <tr><td>رصيد افتتاحي أول اليوم</td><td class="n">${fmt(oi,od)}</td></tr>
-      <tr><td>إجمالي الوارد</td><td class="n">${TI}</td></tr>
-      <tr><td>إجمالي الصادر</td><td class="n">${TO}</td></tr>
-      <tr><td>رصيد ختامي آخر اليوم</td><td class="n">${fmt(ci,cd)}</td></tr></tbody>
-      <tfoot><tr><td>العدد الفعلي الآن في ${esc(D.nameOf(loc))}</td>
-        <td class="n">${fmt(B.intact,B.damaged)}</td></tr></tfoot></table>`;
-    S.print={title:`تقرير ${D.nameOf(loc)} ليوم ${arDate(day)}`,html:summary+'<h3>حركات اليوم</h3>'+tbl};
-    return t+`<div class="eyebrow">${esc(D.nameOf(loc))} — ${arDate(day)}</div>
+    const day=F.from,W=loc===WH,B=boxLedger(ents,loc,day,day);
+    const fmt=(i2,d2)=>W?`${i2} · ${d2}`:`${i2}`;
+    const cols=W?8:6;
+    const c=v=>`<td class="n">${v||''}</td>`;
+    const rows=B.rows.map(r=>`<tr><td>${esc(BOXOP[r.e.op]||'حركة')}${r.e.auto?' <span class="tag">آلي</span>':''}</td>
+      ${c(r.ii)}${W?c(r.id):''}${c(r.oi)}${W?c(r.od):''}
+      <td class="n" style="font-weight:600">${fmt(r.ai,r.ad)}</td>
+      <td>${esc(boxPairs(r.e))}</td><td>${esc(r.e.driverId?D.nameOf(r.e.driverId):'—')}</td></tr>`).join('');
+    const T=B.rows.reduce((a,r)=>({ii:a.ii+r.ii,id:a.id+r.id,oi:a.oi+r.oi,od:a.od+r.od}),{ii:0,id:0,oi:0,od:0});
+    const aud=ents.filter(e=>e.op==='audit'&&e.date===day&&e.locId===loc).sort((a,b)=>a.seq-b.seq).pop();
+    const nc=W?5:3;   /* أعمدة الأرقام بعد «العملية»، والرصيد آخرها */
+    const tbl=`<table><thead><tr><th>العملية</th>
+      <th class="n">وارد${W?' سليم':''}</th>${W?'<th class="n">وارد تالف</th>':''}
+      <th class="n">صادر${W?' سليم':''}</th>${W?'<th class="n">صادر تالف</th>':''}
+      <th class="n">الرصيد${W?' سليم · تالف':''}</th><th>الطرف</th><th>السواق</th></tr></thead><tbody>
+      <tr class="dayrow"><td colspan="${nc}">رصيد أول اليوم</td><td class="n">${fmt(B.open.i,B.open.d)}</td><td colspan="2"></td></tr>
+      ${rows||`<tr><td colspan="${cols}">لا حركات في هذا اليوم</td></tr>`}</tbody>
+      <tfoot><tr><td>آخر اليوم (${B.rows.length})</td>
+        ${c(T.ii)}${W?c(T.id):''}${c(T.oi)}${W?c(T.od):''}<td class="n">${fmt(B.close.i,B.close.d)}</td><td colspan="2"></td></tr>
+      ${aud?`<tr><td colspan="${nc}">الفعلي بالجرد · الفرق ${(aud.counted.intact-aud.book.intact)+(aud.counted.damaged-aud.book.damaged)}</td>
+        <td class="n">${fmt(aud.counted.intact,aud.counted.damaged)}</td><td colspan="2"></td></tr>`:''}</tfoot></table>`;
+    S.print={title:`جرد ${D.nameOf(loc)} ليوم ${arDate(day)}`,html:tbl};
+    return `<div class="eyebrow">${esc(D.nameOf(loc))} — ${arDate(day)}</div>
       <div class="card">
-        <div class="diff"><span>رصيد أول اليوم</span><b>${fmt(oi,od)}</b></div>
-        <div class="row"><div class="diff over" style="flex:1"><span>وارد</span><b>${TI}</b></div>
-          <div class="diff short" style="flex:1"><span>صادر</span><b>${TO}</b></div></div>
-        <div class="diff"><span>رصيد آخر اليوم</span><b>${fmt(ci,cd)}</b></div>
-        <div class="diff over"><span>العدد الفعلي الآن</span><b>${fmt(B.intact,B.damaged)}</b></div>
-      </div>
-      <div class="eyebrow">حركات اليوم (${day1.length})</div>
-      <div class="card"><div class="tscroll">${tbl}</div>
-        <p class="note">اختر «اليوم» أو حدّد نفس التاريخ في «من» و«إلى» لتقرير يوم واحد مفصّل.
-          مدى أكبر من يوم يعرض ملخصاً يومياً.</p></div>`;
+        ${repSum([['رصيد أول اليوم',W?`${B.open.i} سليم · ${B.open.d} تالف`:`${B.open.i}`],
+          ['رصيد آخر اليوم',W?`${B.close.i} سليم · ${B.close.d} تالف`:`${B.close.i}`,'over']])}
+        <div class="tscroll">${tbl}</div>
+        <p class="note">الرصيد جنب كل عملية = الرصيد بعدها مباشرة. مدى أكبر من يوم بيعرض ملخصاً يوم بيوم.</p></div>`;
   }
   if(S.sub.repbox==='daily'){
     /* رصيد افتتاحي = كل الحركات قبل «من»، ثم يوم بيوم: وارد − صادر = رصيد ختامي.
@@ -4029,6 +4059,10 @@ function repBoxAll(){
   const all=ents.filter(e=>inR(e)&&(!F.ent||legsOf(e).some(x=>x.from===F.ent||x.to===F.ent)));
   const l=notVoid(all).sort((a,b)=>b.seq-a.seq),nv=voidCount(all);
   const ref=F.ent||WH;
+  /* الرصيد بعد كل حركة للجهة المختارة (أو المخزن) — من كل السجل الحيّ */
+  const after={};
+  boxLedger(D.live.filter(e=>e.type==='box'||e.type.startsWith('box_')),ref,'','')
+    .rows.forEach(r=>after[r.e.id]=ref===WH?`${r.ai} · ${r.ad}ت`:`${r.ai}`);
   const io=e=>{let i=0,o=0;legsOf(e).forEach(x=>{if(x.to===ref)i+=x.count;if(x.from===ref)o+=x.count});return[i,o]};
   let TI=0,TO=0;
   const rows=l.map(e=>{const[i,o]=io(e);TI+=i;TO+=o;
@@ -4043,7 +4077,8 @@ function repBoxAll(){
   const N=30,show=Math.min(l.length,N*((S.page||0)+1));
   return `<div class="eyebrow">كل حركات البكش (${l.length})${voidBtn(nv)}</div>`
     +(l.length?l.slice(0,show).map(e=>recHTML(e,(BOXOP[e.op]||'حركة بكش')+(e.auto?' · آلي':''),
-        boxFlow(e)+(e.driverId?` · ${D.nameOf(e.driverId)}`:''),boxQtyTxt(e))).join('')
+        boxFlow(e)+(e.driverId?` · ${D.nameOf(e.driverId)}`:'')
+          +(after[e.id]!==undefined?` · رصيد ${D.nameOf(ref)} بعدها ${after[e.id]}`:''),boxQtyTxt(e))).join('')
       +(show<l.length?`<button class="more" data-act="more">عرض ${Math.min(N,l.length-show)} حركة أخرى · باقي ${l.length-show}</button>`:'')
       :'<div class="empty">لا حركات</div>');
 }
@@ -5451,6 +5486,22 @@ function runTests(){
 
   d=D([{...inv('a',1000),date:TD},{type:'void',voidOf:'a'}]);
   ok("الملغاة لا تدخل أرقام اليوم",d.kpi.todaySales===0&&d.kpi.todayOps===0);
+
+  /* 5.0.0 — كشف البكش بالرصيد الجاري (boxLedger) */
+  {const bx=(id,date,seq,legs)=>({id,type:'box',op:'x',date,seq,legs});
+   const E2=[bx('a','2026-01-01',1,[{from:'WH',to:'f1',cond:'intact',count:100}]),
+     bx('b','2026-01-02',2,[{from:'f1',to:'m1',cond:'intact',count:30}]),
+     bx('c','2026-01-02',3,[{from:'m1',to:'WH',cond:'intact',count:20},{from:'m1',to:'WH',cond:'damaged',count:5}]),
+     bx('d','2026-01-04',4,[{from:'WH',to:'f1',cond:'intact',count:10}])];
+   let B=boxLedger(E2,'f1','2026-01-02','2026-01-04');
+   ok("كشف البكش: بايت أول المدة = كل اللي قبلها",B.open.i===100);
+   ok("كشف البكش: الرصيد بعد كل حركة",B.rows.map(r=>r.ai).join()==='70,80');
+   ok("كشف البكش: الأيام اللي فيها حركة بس",B.days.map(x=>x.date).join()==='2026-01-02,2026-01-04');
+   ok("كشف البكش: بايت اليوم = فاضل آخر يوم قبله",B.days[1].bi===70&&B.days[1].ci===80);
+   B=boxLedger(E2,'WH','2026-01-02','2026-01-02');
+   ok("جرد المخزن: السليم والتالف منفصلين",B.open.i===-100&&B.close.i===-80&&B.close.d===5);
+   B=boxLedger(E2,'m1','','');
+   ok("كشف المبيع: صادر له ووارد منه",B.rows[0].ii===30&&B.rows[1].oi===20&&B.rows[1].od===5);}
 
   S.diag={kind:'tests',rows:R,pass:R.filter(x=>x.ok).length,total:R.length};
   render();
