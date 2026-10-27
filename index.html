@@ -1130,7 +1130,7 @@ function toast(m,k=""){const t=document.createElement('div');t.className='toast 
   $('#toast').replaceChildren(t);buzz(k);setTimeout(()=>t.remove(),2800)}
 
 /* ============ قاعدة البيانات ============ */
-const APPVER="5.0.1";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
+const APPVER="5.0.2";   /* يظهر في الترويسة والإعدادات للتأكد من النسخة المُشغَّلة */
 const DBN="fish_trade_ledger",DBV=2;let DBH=null;
 function openDB(){return new Promise((res,rej)=>{
   const rq=indexedDB.open(DBN,DBV);
@@ -3426,6 +3426,14 @@ function handAddSheet(day){
    مكرّر تحت كل جدول. rows = [[عنوان, قيمة, صنف؟] | null]. */
 const repSum=rows=>`<div class="repsum">${rows.filter(Boolean)
   .map(([l,v,c])=>`<div class="rsi${c?' '+c:''}"><span>${esc(l)}</span><b>${v}</b></div>`).join('')}</div>`;
+/* صافي حساب المبيع قبل يوم معيّن — نفس معادلة derive وmerchAsOf:
+   افتتاحي + فواتير − تحصيلات، لكل الحركات اللي تاريخها قبل before. */
+function merchBefore(live,id,before){
+  const L=live.filter(e=>e.date<before);
+  return msum(sumM(L.filter(e=>e.type==='opening_cash'&&e.entityId===id),e=>e.amount),
+    sumM(L.filter(e=>e.type==='invoice'&&e.merchantId===id),e=>e.amount),
+    -sumM(L.filter(e=>e.type==='collection'&&e.merchantId===id),e=>e.amount));
+}
 function repAcct(){
   const D=S.D,F=S.F;
   const target=F.ent?D.merchants.concat(D.farms).find(x=>x.id===F.ent):null;
@@ -3461,8 +3469,14 @@ function repAcct(){
     ||(isM&&(e.type==='invoice'||e.type==='collection')&&e.merchantId===target.id)
     ||(!isM&&(e.type==='invoice'&&e.farmId===target.id||e.type==='settlement'&&e.farmId===target.id))))
     .sort((a,b)=>a.date.localeCompare(b.date)||a.seq-b.seq);
-  let runP=0;
-  const rows=items.map(e=>{
+  /* 5.0.2 بطلب المالك: «الكل» (فواتير وتحصيل مع بعض) أول سطر فيه صافي الحساب قبل
+     المدة والرصيد بيكمّل منه — من غيره الرصيد كان بيبدأ من صفر أول المدة فيطلع
+     حركة الفترة بس مش حساب المبيع. «فواتير» لوحدها و«تحصيلات» لوحدها للفترة بس. */
+  const carry=isM&&K==='all'&&F.from;
+  const open=carry?merchBefore(D.live,target.id,F.from):0;
+  let runP=P(open);
+  const rows=(carry?`<tr class="dayrow"><td colspan="5">صافي الحساب قبل ${arDate(F.from)}: <span class="num">${money(open)}</span></td>
+      <td class="n" style="font-weight:600">${money(open)}</td></tr>`:'')+items.map(e=>{
     const amt=+e.amount||0;
     const dr=e.type==='invoice'?amt:(e.type==='opening_cash'&&amt>0?amt:0);
     const cr=e.type==='collection'?amt:(e.type==='settlement'?(+e.total||0):(e.type==='opening_cash'&&amt<0?-amt:0));
@@ -3473,7 +3487,7 @@ function repAcct(){
       <td class="n" style="font-weight:600">${money(run)}</td></tr>`}).join('');
   const head=`<table><thead><tr><th>التاريخ</th><th>البيان</th><th>التفصيل</th>
     <th class="n">مدين</th><th class="n">دائن</th><th class="n">الرصيد</th></tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="3">الإجمالي</td>
+    <tfoot><tr><td colspan="3">${carry?'إجمالي الفترة · والرصيد آخرها':'إجمالي الفترة'}</td>
       <td class="n">${money(items.reduce((t,e)=>t+(e.type==='invoice'?P(e.amount):(e.type==='opening_cash'&&+e.amount>0?P(e.amount):0)),0)/100)}</td>
       <td class="n">${money(items.reduce((t,e)=>t+(e.type==='collection'?P(e.amount):(e.type==='settlement'?P(e.total):(e.type==='opening_cash'&&+e.amount<0?-P(e.amount):0))),0)/100)}</td>
       <td class="n">${money(runP/100)}</td></tr></tfoot></table>`;
@@ -3510,6 +3524,8 @@ function repBox(){
     const [hIn,hOut]=W?['وارد','صادر']:['صادر لها','وارد منها'];
     const dtbl=`<table><thead><tr><th>اليوم</th><th class="n">بايت</th><th class="n">${hIn}</th>
       <th class="n">${hOut}</th><th class="n">فاضل</th></tr></thead><tbody>
+      ${F.from?`<tr class="dayrow"><td>قبل ${arDate(F.from)}</td><td colspan="3">رصيد ما قبل المدة</td>
+        <td class="n" style="font-weight:600">${n(B.open.i,B.open.d)}</td></tr>`:''}
       ${B.days.map(x=>`<tr><td class="n">${arDate(x.date)}</td><td class="n">${n(x.bi,x.bd)}</td>
         <td class="n cin">${x.ii+x.id||''}</td><td class="n cout">${x.oi+x.od||''}</td>
         <td class="n" style="font-weight:600">${n(x.ci,x.cd)}</td></tr>`).join('')}</tbody>
@@ -3520,6 +3536,8 @@ function repBox(){
     const mtbl=`<table><thead><tr><th>العملية</th>
       <th class="n">${W?'وارد':'لها'}</th><th class="n">${W?'صادر':'منها'}</th><th class="n">الرصيد بعدها</th>
       <th>من ← إلى</th><th>السواق</th></tr></thead><tbody>
+      ${F.from?`<tr class="dayrow"><td colspan="3">رصيد ما قبل ${arDate(F.from)}</td>
+        <td class="n">${n(B.open.i,B.open.d)}</td><td colspan="2"></td></tr>`:''}
       ${B.days.map(x=>`<tr class="dayrow"><td colspan="6">${arDate(x.date)} · بايت ${n(x.bi,x.bd)}</td></tr>`
         +x.rows.map(r=>`<tr><td>${esc(BOXOP[r.e.op]||'حركة')}${r.e.auto?' <span class="tag">آلي</span>':''}</td>
           <td class="n cin">${r.ii+r.id||''}</td><td class="n cout">${r.oi+r.od||''}</td>
@@ -5818,6 +5836,13 @@ function runTests(){
    const E3=handEdited(L3,'2026-01-05','2026-01-05');
    ok("اتعدّل في أيام سابقة: تعديل النهارده على حركة قديمة",E3.length===1&&E3[0].e.id==='b'&&E3[0].o.id==='a');
    ok("اتعدّل في أيام سابقة: حذف حركة من نفس اليوم مش منه",!E3.some(x=>x.e.id==='d'));}
+
+  /* 5.0.2 — صافي حساب المبيع قبل المدة */
+  {const L4=[{type:'opening_cash',entityId:'m1',amount:1000,date:'2026-01-01'},
+     {type:'invoice',merchantId:'m1',amount:500.5,date:'2026-01-03'},{type:'collection',merchantId:'m1',amount:300,date:'2026-01-04'},
+     {type:'invoice',merchantId:'m1',amount:999,date:'2026-01-05'},{type:'invoice',merchantId:'m2',amount:77,date:'2026-01-02'}];
+   ok("صافي المبيع قبل المدة = افتتاحي + فواتير − تحصيل قبلها",merchBefore(L4,'m1','2026-01-05')===1200.5);
+   ok("صافي المبيع قبل المدة: حركات يوم البداية مش منه",merchBefore(L4,'m1','2026-01-04')===1500.5);}
 
   S.diag={kind:'tests',rows:R,pass:R.filter(x=>x.ok).length,total:R.length};
   render();

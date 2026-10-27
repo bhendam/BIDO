@@ -95,6 +95,15 @@ const OUT=process.env.OUT+'/',URL='http://localhost:'+process.env.PORT+'/index.h
   console.log('HKEY',JSON.stringify(await p.evaluate(()=>{S.F.from='';S.F.to='';S.F.range='all';
     selectRep('hand');const r=[S.F.from,S.F.to];hDaySet(hKey(),x=>{x.hide.push('sec:wh')});
     return{range:r,savedToday:(S.hand.days[todayISO()].hide||[]).includes('sec:wh'),emptyKey:!!S.hand.days['']}})));
+  /* 5.0.2: كشف المبيع «الكل» على أسبوع — آخر رصيد = حسابه الفعلي آخر الأسبوع */
+  await open('merchEnt','m1','week',{merchEnt:'led',acct:'all'});await shot('r30-merch-led-week');
+  console.log('ACCT',JSON.stringify(await p.evaluate(()=>{const ft=[...document.querySelectorAll('#app tfoot td')].map(t=>t.textContent.trim());
+    const first=(document.querySelector('#app tbody tr.dayrow')||{}).textContent||'';
+    return{first:first.replace(/\s+/g,' ').trim(),footBal:ft[ft.length-1],
+      expect:money(merchBefore(S.D.live,'m1',addDays(S.F.to,1))),now:money(S.D.merchants.find(m=>m.id==='m1').balance)}})));
+  await open('merchEnt','m1','week',{merchEnt:'led',acct:'inv'});
+  console.log('ACCTINV',await p.evaluate(()=>!document.querySelector('#app tbody tr.dayrow')));
+  await open('merchEnt','m1','week',{merchEnt:'stmt'});await shot('r31-merch-box-week');
   console.log('DRV',JSON.stringify(await p.evaluate(()=>({range:[S.F.from,S.F.to],
     rows:S.D.drivers.map(d=>{const x=drvSpan(S.D.live,d.id,S.F.from,S.F.to);return[d.name,x.open,x.trips,x.trip,x.adv,x.pay,x.close]}),
     allTime:S.D.drivers.map(d=>[d.name,drvSpan(S.D.live,d.id,'','').close,d.balance])}))));
